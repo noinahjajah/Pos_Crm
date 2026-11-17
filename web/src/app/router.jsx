@@ -2,7 +2,7 @@
 
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from './providers.jsx'
-import { AppLayout, Badge, Card, DEV_LABEL, HOME_BY_ROLE, MENU, PageHeader } from '../ui.jsx'
+import { AppLayout, Badge, Card, DEV_LABEL, HOME_BY_ROLE, MENU, PageHeader } from './ui.jsx'
 import { AccountPage, LoginPage } from '../pages/LoginPage.jsx'
 import { BranchesPage, UsersPage } from '../pages/ManagePages.jsx'
 import { PrintPreviewPage } from '../pages/PrintPage.jsx'

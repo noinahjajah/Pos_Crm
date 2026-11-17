@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, useNotice } from '../app/providers.jsx'
-import { clearLogoutReason, PASSWORD_RULES, passwordOk, peekLogoutReason } from '../api.js'
-import { Alert, Badge, Button, Card, Field, HOME_BY_ROLE, PageHeader, ROLE_LABEL, ROLE_TONE, TextInput, useForm } from '../ui.jsx'
+import { clearLogoutReason, PASSWORD_RULES, passwordOk, peekLogoutReason } from '../app/api.js'
+import { Alert, Badge, Button, Card, dateTime, Field, HOME_BY_ROLE, PageHeader, ROLE_LABEL, ROLE_TONE, TextInput, useForm } from '../app/ui.jsx'
 
 // บัญชีทดสอบ แสดงเฉพาะตอนพัฒนา
 const TEST_ACCOUNTS = [
@@ -178,7 +178,6 @@ export function LoginPage() {
   )
 }
 
-const dateTime = (iso) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '—')
 
 // บัญชีของฉัน: ดูข้อมูล + เปลี่ยนรหัสผ่าน
 export function AccountPage() {

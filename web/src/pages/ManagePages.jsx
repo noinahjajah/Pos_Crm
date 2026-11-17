@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { identityApi, passwordOk, randomPassword } from '../api.js'
+import { identityApi, passwordOk, randomPassword } from '../app/api.js'
 import { BRANCH_TYPE_LABEL, useAuth, useBranch, useNotice } from '../app/providers.jsx'
-import { Alert, AVATAR_COLOR, Avatar, Badge, BranchOptions, Button, Card, Field, PageHeader, PhaseNote, SidePanel, ROLE_LABEL, ROLE_TONE, Select, TextInput, useForm } from '../ui.jsx'
+import { Alert, AVATAR_COLOR, Avatar, Badge, BranchOptions, Button, Card, dateTime, Field, PageHeader, PhaseNote, SidePanel, ROLE_LABEL, ROLE_TONE, Select, TextInput, useForm } from '../app/ui.jsx'
 
 const LIMIT = 20
 
@@ -153,9 +153,7 @@ export function UsersPage() {
                           )}
                         </td>
                         <td className="muted">
-                          {u.last_login_at
-                            ? new Date(u.last_login_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })
-                            : 'ยังไม่เคยเข้า'}
+                          {u.last_login_at ? dateTime(u.last_login_at) : 'ยังไม่เคยเข้า'}
                         </td>
                         {isOwner && (
                           <td>

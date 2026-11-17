@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { useAuth, useBranch, useNotice } from './app/providers.jsx'
+import { useAuth, useBranch, useNotice } from './providers.jsx'
 
 // เมนูด้านซ้ายตาม role
 export const MENU = [
@@ -28,6 +28,9 @@ export function menuFor(role) {
 }
 
 export const HOME_BY_ROLE = { owner: '/dashboard', manager: '/dashboard', staff: '/tables' }
+
+/** วันเวลาแบบสั้น · ไม่มีค่า = — */
+export const dateTime = (iso) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '—')
 
 export const ROLE_LABEL = { owner: 'Owner', manager: 'Manager', staff: 'Staff' }
 export const ROLE_TONE = { owner: 'phase', manager: 'info', staff: 'neutral' }
