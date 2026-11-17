@@ -244,7 +244,8 @@ export function authRoutes({ repo, auth, loginGuard }) {
       }
       loginGuard.reset(profile.username);
       await auth.setPassword(profile.id, new_password);
-      auth.revokeSessions(profile.id);
+      // ยกเลิก session ทุกเครื่อง (รวมถึง session ที่เพิ่งใช้ตรวจรหัสเดิม) แล้วออก token ชุดใหม่
+      await auth.signOut({ userId: profile.id, accessToken: req.get('authorization')?.replace(/^Bearer\s+/i, '') });
       const updated = await repo.updateProfile(profile.id, { must_change_password: false });
       const session = await auth.signIn(profile.id, new_password);
       ok(res, { ...session, user: await presentUser(repo, updated) });
@@ -492,7 +493,10 @@ export function userRoutes({ repo, auth, loginGuard }) {
         if (!nextBranch) {
           throw errors.badRequest('ข้อมูลไม่ถูกต้อง', [{ field: 'branch_id', message: 'staff และ manager ต้องระบุสาขา' }]);
         }
-        if (nextBranch !== current.branch_id) await assertBranchUsable(nextBranch);
+        // ย้ายสาขา หรือเปิดบัญชีที่ลบไปแล้วกลับมา → สาขาต้องยังเปิดอยู่
+        if (nextBranch !== current.branch_id || (is_active === true && !current.is_active)) {
+          await assertBranchUsable(nextBranch);
+        }
       }
 
       const patch = {};

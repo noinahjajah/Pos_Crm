@@ -76,6 +76,9 @@ export function errorHandler({ logger = console } = {}) {
     if (err?.type === 'entity.parse.failed') {
       return sendError(res, errors.badRequest('รูปแบบ JSON ไม่ถูกต้อง'), requestIdOf(req));
     }
+    if (err?.type === 'entity.too.large') {
+      return sendError(res, new AppError(413, 'PAYLOAD_TOO_LARGE', 'ข้อมูลที่ส่งมาใหญ่เกินไป'), requestIdOf(req));
+    }
     if (err instanceof AppError) {
       return sendError(res, err, requestIdOf(req));
     }
@@ -136,6 +139,21 @@ export const zx = {
 };
 
 export { z };
+
+/**
+ * กันลืมเปลี่ยนค่าตัวอย่างจาก .env.example ตอนขึ้นระบบจริง (NODE_ENV=production + DATA_MODE=supabase)
+ * โหมดจำลอง (DATA_MODE=memory) ใช้ทดสอบเท่านั้น จึงยอมให้ใช้ค่าตัวอย่างได้แม้รันใน docker
+ * @param {Record<string, string|undefined>} values ชื่อตัวแปร → ค่า
+ */
+export function assertNotDevSecrets(values, env = process.env) {
+  if (env.NODE_ENV !== 'production' || env.DATA_MODE !== 'supabase' || env.ALLOW_DEV_SECRETS === 'true') return;
+  const weak = Object.entries(values)
+    .filter(([, v]) => v && (/change-me|dev-only|please-change/i.test(v) || v.length < 32))
+    .map(([k]) => k);
+  if (weak.length) {
+    throw new Error(`ค่า ${weak.join(', ')} ยังเป็นค่าตัวอย่างหรือสั้นเกินไป (ต้องยาว 32 ตัวขึ้นไป) ห้ามใช้ใน production`);
+  }
+}
 
 // ===================== header X-User-* / สิทธิ์ / สาขา =====================
 export const ROLES = Object.freeze({ STAFF: 'staff', MANAGER: 'manager', OWNER: 'owner' });

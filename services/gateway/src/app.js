@@ -4,7 +4,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify } from 'jose';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { ALL_ROLES, AppError, HEADERS, errorHandler, errors, sendError } from '@pos/shared';
+import { ALL_ROLES, AppError, HEADERS, assertNotDevSecrets, errorHandler, errors, sendError } from '@pos/shared';
 import { compilePermissions, findRule, PERMISSIONS } from './permissions.js';
 
 // ===================== config =====================
@@ -32,6 +32,7 @@ export function loadConfig(overrides = {}) {
   if (!config.internalKey) missing.push('INTERNAL_KEY');
   if (!config.jwtSecret && !config.jwksUrl) missing.push('JWT_SECRET หรือ SUPABASE_URL/SUPABASE_JWKS_URL');
   if (missing.length) throw new Error(`gateway: ขาด environment variable: ${missing.join(', ')}`);
+  assertNotDevSecrets({ INTERNAL_KEY: config.internalKey, JWT_SECRET: config.jwtSecret });
   return config;
 }
 
@@ -115,6 +116,10 @@ export function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
 // ทำก่อน Auth เพื่อให้ /internal/* ตอบ 404 เสมอ ไม่ว่าจะ login หรือไม่
 export function resolveRouteMw({ routes, permissions }) {
   return (req, res, next) => {
+    // กัน path แปลก ๆ หลุดผ่านตารางสิทธิ์ไปถึง service (เช่น /users/.. หรือ %2F ที่ถอดเป็น / ทีหลัง)
+    if (/(^|\/)\.\.?(\/|$)|%2e|%2f|%5c|\\/i.test(req.path)) {
+      return fail(req, res, errors.badRequest('path ไม่ถูกต้อง'));
+    }
     const match = matchRoute(routes, req.path);
     if (!match) return fail(req, res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'));
     const { route, servicePath } = match;

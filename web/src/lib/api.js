@@ -37,14 +37,20 @@ export function getSession() {
   return session
 }
 
-/** เหตุผลที่ถูกพาออกจากระบบครั้งล่าสุด ('expired' | 'disabled') — หน้า login อ่านแล้วล้างทิ้ง */
-export function consumeLogoutReason() {
+/** เหตุผลที่ถูกพาออกจากระบบครั้งล่าสุด ('expired' | 'disabled') — อ่านอย่างเดียว ไม่ลบ */
+export function peekLogoutReason() {
   try {
-    const reason = sessionStorage.getItem('pos.logoutReason')
-    sessionStorage.removeItem('pos.logoutReason')
-    return reason
+    return sessionStorage.getItem('pos.logoutReason')
   } catch {
     return null
+  }
+}
+
+export function clearLogoutReason() {
+  try {
+    sessionStorage.removeItem('pos.logoutReason')
+  } catch {
+    /* ignore */
   }
 }
 

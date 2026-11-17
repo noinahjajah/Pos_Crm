@@ -212,6 +212,24 @@ export function Receipt({ branch, order, payment, printTarget = false }) {
   )
 }
 
+// ===================== สั่งพิมพ์ =====================
+/**
+ * ใช้พิมพ์ใบใดใบหนึ่งบนหน้า (Dev 3 ใช้ในหน้าสั่งอาหาร / รับเงินได้เลย)
+ * @example
+ * const [target, print] = usePrintSlip()
+ * <Receipt ... printTarget={target === 'receipt'} />
+ * <button onClick={() => print('receipt')}>พิมพ์ใบเสร็จ</button>
+ */
+export function usePrintSlip() {
+  const [target, setTarget] = useState(null)
+  const print = (which) => {
+    flushSync(() => setTarget(which))
+    window.print()
+    setTarget(null)
+  }
+  return [target, print]
+}
+
 // ===================== หน้าตัวอย่างใบพิมพ์ =====================
 // ข้อมูลตัวอย่าง (รูปแบบเดียวกับที่ pos จะส่งมา) — Dev 3 เปลี่ยนเป็นข้อมูลจริงจาก API
 const ITEMS = [
@@ -239,7 +257,7 @@ const SAMPLE_TICKET = {
 export function PrintPreviewPage() {
   const { user } = useAuth()
   const { branches, selectedBranchId } = useBranch()
-  const [target, setTarget] = useState(null)
+  const [target, print] = usePrintSlip()
 
   const branch =
     branches.find((b) => b.id === (selectedBranchId || user.branch_id)) ??
@@ -256,12 +274,6 @@ export function PrintPreviewPage() {
     ...bill,
   }
   const payment = { method: 'cash', cash_received: cashReceived, change_amount: cashReceived - bill.total }
-
-  function print(which) {
-    flushSync(() => setTarget(which))
-    window.print()
-    setTarget(null)
-  }
 
   return (
     <>

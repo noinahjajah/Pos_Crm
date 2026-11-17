@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../app/providers.jsx'
-import { consumeLogoutReason, PASSWORD_RULES, passwordOk } from '../lib/api.js'
+import { clearLogoutReason, PASSWORD_RULES, passwordOk, peekLogoutReason } from '../lib/api.js'
 import { Alert, Badge, Button, Card, Field, HOME_BY_ROLE, PageHeader, ROLE_LABEL, ROLE_TONE, TextInput } from '../components/ui.jsx'
 
 // หน้าเกี่ยวกับการเข้าสู่ระบบของ Dev 1: login (1.2) และบัญชีของฉัน (เปลี่ยนรหัสผ่าน)
@@ -61,8 +61,10 @@ export function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [notice] = useState(() => LOGOUT_MESSAGE[consumeLogoutReason()] || '')
+  // อ่านแบบไม่ลบใน initializer (StrictMode เรียกซ้ำได้) แล้วค่อยลบหลังแสดงผล
+  const [notice] = useState(() => LOGOUT_MESSAGE[peekLogoutReason()] || '')
   const [busy, setBusy] = useState(false)
+  useEffect(() => clearLogoutReason(), [])
 
   if (user) return <Navigate to={user.must_change_password ? '/account' : HOME_BY_ROLE[user.role] || '/'} replace />
 

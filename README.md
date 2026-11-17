@@ -40,7 +40,7 @@ cd web && npm install && npm run dev   # เว็บ http://localhost:5173 (ส
 ## ทดสอบ
 
 ```bash
-npm test                    # identity 26 เคส + gateway 17 เคส
+npm test                    # identity 27 เคส + gateway 20 เคส (รวม integration gateway+identity)
 cd web && npm run lint && npm run build
 ```
 
@@ -50,6 +50,23 @@ cd web && npm run lint && npm run build
 npm run tokens              # พิมพ์ export TOKEN_STAFF / TOKEN_MANAGER / TOKEN_OWNER
 curl -H "Authorization: Bearer $TOKEN_STAFF" http://localhost:8080/api/v1/identity/me
 ```
+
+ทุก Pull Request มี GitHub Actions (`.github/workflows/ci.yml`) รันเทส backend, lint/build เว็บ และ build + รัน docker compose แล้วลอง login ผ่าน gateway ให้อัตโนมัติ
+
+## งานของ Dev 1 ตาม spec ข้อ 8
+
+| งาน | อยู่ที่ |
+|---|---|
+| schema identity + custom access token hook (`user_role`, `branch_id`) | `supabase/migrations/20261117000100_identity.sql` |
+| seed roles staff / manager / owner | migration เดียวกัน · seed 3 สาขาใน `supabase/seed.sql` |
+| API auth login / refresh / logout, me, branches, roles, users | `services/identity/src/routes.js` |
+| Gateway 10 middleware · route guard เป็น config `{method, path, roles}` | `services/gateway/src/app.js`, `permissions.js` |
+| Docker Compose (เปิดแค่ 8080), `.env` ตัวอย่าง, `X-Internal-Key` | `docker-compose.yml`, `docker/node-service.Dockerfile`, `.env.example` |
+| shared package: response/error, zod helper, middleware อ่าน `X-User-*` | `packages/shared/src/index.js` |
+| Frontend: login, layout + เมนูตาม role (1.2), หน้าจัดการผู้ใช้และสาขา | `web/src/pages/LoginPage.jsx`, `ManagePages.jsx`, `components/ui.jsx` |
+| 1.10 layout ใบออร์เดอร์เข้าครัวและใบเสร็จ (ก่อน VAT / VAT / สุทธิ) | `web/src/pages/PrintPage.jsx` |
+| ส่งมอบสัปดาห์แรก: gateway + token ทดสอบ 3 role | `npm run tokens` |
+| ต่อ Supabase จริง | รอทีมพร้อม (ดูหัวข้อด้านล่าง) |
 
 ## Dev 2 / Dev 3: เพิ่ม service ของตัวเอง
 
@@ -66,15 +83,16 @@ curl -H "Authorization: Bearer $TOKEN_STAFF" http://localhost:8080/api/v1/identi
    `branchFilter(req)` = สาขาที่ต้องกรอง (null = owner ดูทุกสาขา) · `resolveBranchId(req, body.branch_id)` = สาขาที่ใช้ตอนสร้างข้อมูล
 3. สิทธิ์ของ endpoint แก้ที่ `services/gateway/src/permissions.js` ไฟล์เดียว (ใส่ไว้ครบตาม spec ข้อ 4 แล้ว)
 4. หน้าเว็บ: เมนูและสิทธิ์อยู่ใน `MENU` (`web/src/components/ui.jsx`) · ผูกหน้าใน `PAGES` ของ `web/src/app/router.jsx` แทนหน้าว่าง
-5. ใบพิมพ์: ใช้ `<KitchenTicket>` และ `<Receipt>` จาก `web/src/pages/PrintPage.jsx` ส่งข้อมูลจาก `POST /orders/:id/tickets` และ `GET /orders/:id`
+5. ใบพิมพ์: ใช้ `<KitchenTicket>`, `<Receipt>` และ `usePrintSlip()` จาก `web/src/pages/PrintPage.jsx` ส่งข้อมูลจาก `POST /orders/:id/tickets` และ `GET /orders/:id`
 
 ## ตอนพร้อมต่อ Supabase
 
 1. รัน `supabase/migrations/20261117000100_identity.sql` แล้ว `supabase/seed.sql`
 2. Dashboard → Authentication → Hooks → Customize Access Token → เลือก `identity.custom_access_token_hook`
 3. Dashboard → Project Settings → API → Exposed schemas → เพิ่ม `identity`
-4. ใน `.env` ตั้ง `DATA_MODE=supabase`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (gateway ตรวจ token ผ่าน JWKS อัตโนมัติ)
+4. ใน `.env` ตั้ง `NODE_ENV=production` (ถ้าขึ้นระบบจริง), `DATA_MODE=supabase`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (gateway ตรวจ token ผ่าน JWKS อัตโนมัติ)
 5. `SEED_PASSWORD=... npm run seed:users` สร้างผู้ใช้ทดสอบ 3 role
+6. เปลี่ยน `INTERNAL_KEY` เป็นค่าสุ่มยาว 32 ตัวขึ้นไป (production + supabase จะไม่ยอมเริ่มถ้ายังเป็นค่าตัวอย่าง)
 
 ## สิ่งที่ Dev 1 ตัดสินใจเพิ่มจาก spec (ให้ทีมยืนยัน)
 

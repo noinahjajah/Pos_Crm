@@ -274,3 +274,15 @@ test('รหัสผ่านต้องมีตัวอักษรแล�
   assert.equal(res.status, 400);
   assert.equal(res.body.error.details[0].field, 'password');
 });
+
+test('เปิดบัญชีที่ลบไปแล้วกลับมาในสาขาที่ปิดแล้วไม่ได้', async () => {
+  const c = await request(app)
+    .post('/users')
+    .set(as(OWNER))
+    .send({ username: 'back1', password: 'temp1234', full_name: 'x', role: 'staff', branch_id: DRK.id });
+  await request(app).delete(`/users/${c.body.data.id}`).set(as(OWNER)).expect(200);
+  await request(app).delete(`/branches/${DRK.id}`).set(as(OWNER)).expect(200);
+  const res = await request(app).patch(`/users/${c.body.data.id}`).set(as(OWNER)).send({ is_active: true });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error.details[0].field, 'branch_id');
+});

@@ -205,13 +205,14 @@ const ROLE_OPTIONS = [
 ]
 
 function UserForm({ user, isSelf, onClose, onSaved }) {
-  const { branches } = useBranch()
+  const { branches, selectedBranchId } = useBranch()
   const isNew = !user
   const [form, setForm] = useState({
     username: user?.username ?? '',
     full_name: user?.full_name ?? '',
     role: user?.role ?? 'staff',
-    branch_id: user?.branch_id ?? branches[0]?.id ?? '',
+    // ผู้ใช้ใหม่: ตั้งเป็นสาขาที่เลือกดูอยู่ (ถ้ามี)
+    branch_id: user?.branch_id ?? (selectedBranchId || branches[0]?.id || ''),
     password: '',
     is_active: user?.is_active ?? true,
   })

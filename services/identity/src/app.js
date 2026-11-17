@@ -1,6 +1,6 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { errorHandler, internalAuth, notFoundHandler, requestId } from '@pos/shared';
+import { assertNotDevSecrets, errorHandler, internalAuth, notFoundHandler, requestId } from '@pos/shared';
 import { authRoutes, branchRoutes, createLoginGuard, meRoutes, roleRoutes, userRoutes } from './routes.js';
 import { createMemoryAuth, createMemoryRepo, SEED_USERS } from './memory.js';
 import { createSupabaseAuth, createSupabaseRepo } from './supabase.js';
@@ -51,6 +51,10 @@ export function loadConfig(overrides = {}) {
   if (missing.length) {
     throw new Error(`identity: ขาด environment variable: ${missing.join(', ')}`);
   }
+  assertNotDevSecrets({
+    INTERNAL_KEY: config.internalKey,
+    ...(config.dataMode === 'memory' ? { JWT_SECRET: config.jwtSecret } : {}),
+  });
   return config;
 }
 

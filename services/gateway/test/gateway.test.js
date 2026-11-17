@@ -205,3 +205,110 @@ test('rate limit /auth/login → 429 RATE_LIMITED', async () => {
   assert.equal(last.status, 429);
   assert.equal(last.body.error.code, 'RATE_LIMITED');
 });
+
+test('path แปลก (.. / %2F) → 400 ไม่ส่งต่อให้ service', async () => {
+  const a = await request(gw).get('/api/v1/identity/users/..').set(await bearer('owner', null));
+  assert.equal(a.status, 400);
+  const b = await request(gw).get('/api/v1/identity/users/x%2F..%2Finternal').set(await bearer('owner', null));
+  assert.equal(b.status, 400);
+});
+
+// =====================================================================
+// integration: gateway + identity ตัวจริง (memory mode) ต่อกันผ่าน HTTP
+// ตรวจว่าตารางสิทธิ์ใน permissions.js ตรงกับ route ที่ identity มีจริง
+// =====================================================================
+import { PERMISSIONS } from '../src/permissions.js';
+import { createApp as createIdentityApp } from '../../identity/src/app.js';
+import { createMemoryAuth, createMemoryRepo, SEED_USERS, SEED_BRANCHES } from '../../identity/src/memory.js';
+
+async function startStack() {
+  const repo = createMemoryRepo();
+  const auth = createMemoryAuth({ repo, jwtSecret: SECRET, seedUserIds: SEED_USERS.map((u) => u.id), seedPassword: 'password123' });
+  const identity = createIdentityApp({ repo, auth, internalKey: KEY, logger: { error() {} } });
+  const server = await new Promise((resolve) => {
+    const s = identity.listen(0, () => resolve(s));
+  });
+  const target = `http://127.0.0.1:${server.address().port}`;
+  const app = createApp(
+    {
+      internalKey: KEY,
+      jwtSecret: SECRET,
+      jwtAudience: 'authenticated',
+      corsOrigins: ['*'],
+      rateLimitPerMin: 10_000,
+      loginRateLimitPerMin: 10_000,
+      proxyTimeoutMs: 5000,
+      trustProxy: false,
+      logRequests: false,
+    },
+    {
+      routes: [{ name: 'identity', prefix: '/api/v1/identity', target }],
+      permissions: { identity: PERMISSIONS.identity },
+      logger: { log() {}, error() {} },
+    },
+  );
+  return { app, server };
+}
+
+const loginVia = async (app, username) => {
+  const res = await request(app).post('/api/v1/identity/auth/login').send({ username, password: 'password123' });
+  assert.equal(res.status, 200, `login ${username}`);
+  return { Authorization: `Bearer ${res.body.data.access_token}` };
+};
+
+test('integration: ทุก endpoint ในตารางสิทธิ์ของ identity มีอยู่จริง และ role ที่ไม่มีสิทธิ์ได้ 403', async () => {
+  const { app, server } = await startStack();
+  try {
+    const tokens = {
+      owner: await loginVia(app, 'owner'),
+      manager: await loginVia(app, 'manager1'),
+      staff: await loginVia(app, 'staff1'),
+    };
+    const sampleId = SEED_BRANCHES[0].id;
+    for (const rule of PERMISSIONS.identity) {
+      if (rule.roles === 'public' || rule.path === '/auth/logout' || rule.method === 'DELETE') continue;
+      const path = `/api/v1/identity${rule.path.replace(':id', sampleId)}`;
+      for (const role of ['owner', 'manager', 'staff']) {
+        const res = await request(app)[rule.method.toLowerCase()](path).set(tokens[role]).send({});
+        const label = `${rule.method} ${rule.path} as ${role}`;
+        assert.notEqual(res.body?.error?.code, 'ROUTE_NOT_FOUND', `${label}: service ไม่มี route นี้`);
+        if (rule.roles.includes(role)) {
+          assert.notEqual(res.body?.error?.code, 'FORBIDDEN', `${label}: gateway ให้ผ่านแต่ service ปฏิเสธ`);
+        } else {
+          assert.equal(res.status, 403, `${label}: ควรได้ 403`);
+        }
+      }
+    }
+  } finally {
+    server.close();
+  }
+});
+
+test('integration: flow ผู้ใช้ใหม่ผ่าน gateway — สร้าง → login → เปลี่ยนรหัส → ใช้ token ใหม่', async () => {
+  const { app, server } = await startStack();
+  try {
+    const owner = await loginVia(app, 'owner');
+    const created = await request(app)
+      .post('/api/v1/identity/users')
+      .set(owner)
+      .send({ username: 'flow1', password: 'temp1234', full_name: 'ทดสอบ', role: 'manager', branch_id: SEED_BRANCHES[1].id });
+    assert.equal(created.status, 201);
+
+    const l = await request(app).post('/api/v1/identity/auth/login').send({ username: 'flow1', password: 'temp1234' });
+    assert.equal(l.body.data.user.must_change_password, true);
+    const changed = await request(app)
+      .post('/api/v1/identity/auth/change-password')
+      .set({ Authorization: `Bearer ${l.body.data.access_token}` })
+      .send({ current_password: 'temp1234', new_password: 'flow2026x' });
+    assert.equal(changed.status, 200);
+
+    // manager ใหม่เห็นผู้ใช้เฉพาะสาขาเครื่องดื่ม
+    const users = await request(app)
+      .get('/api/v1/identity/users')
+      .set({ Authorization: `Bearer ${changed.body.data.access_token}` });
+    assert.equal(users.status, 200);
+    assert.ok(users.body.data.every((u) => u.branch_id === SEED_BRANCHES[1].id));
+  } finally {
+    server.close();
+  }
+});
