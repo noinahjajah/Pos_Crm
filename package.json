@@ -1,18 +1,21 @@
 {
   "name": "pos-crm",
   "private": true,
-  "description": "POS CRM — monorepo ของ service ฝั่ง backend (เฟส 1)",
+  "description": "POS CRM — monorepo ของ Dev 1 (service ฝั่ง backend + เว็บ) เฟส 1",
   "type": "module",
   "workspaces": [
     "packages/*",
-    "services/*"
+    "services/*",
+    "web"
   ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "dev": "concurrently -n identity,gateway -c blue,green \"npm run dev -w @pos/identity\" \"npm run dev -w @pos/gateway\"",
+    "dev": "concurrently -n identity,gateway,web -c blue,green,magenta \"npm run dev -w @pos/identity\" \"npm run dev -w @pos/gateway\" \"npm run dev -w web\"",
     "test": "npm test --workspaces --if-present",
+    "lint": "npm run lint -w web",
+    "build": "npm run build -w web",
     "tokens": "node services/identity/tools.mjs tokens",
     "seed:users": "node services/identity/tools.mjs seed-users"
   },

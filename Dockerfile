@@ -5,7 +5,7 @@ WORKDIR /src
 COPY . .
 RUN mkdir -p /out \
  && cp package.json package-lock.json /out/ \
- && for f in packages/*/package.json services/*/package.json; do \
+ && for f in packages/*/package.json services/*/package.json web/package.json; do \
       mkdir -p "/out/$(dirname "$f")" && cp "$f" "/out/$f"; \
     done
 

@@ -4,17 +4,17 @@
 
 **Windows** (เปิด PowerShell แล้ววางบรรทัดเดียว)
 ```powershell
-winget install -e --id Git.Git --accept-source-agreements --accept-package-agreements; winget install -e --id OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements; $env:Path=[Environment]::GetEnvironmentVariable('Path','Machine')+';'+[Environment]::GetEnvironmentVariable('Path','User'); git clone -b dev1/identity-gateway https://github.com/noinahjajah/Pos_Crm.git; cd Pos_Crm; Copy-Item .env.example .env; npm.cmd install; npm.cmd --prefix web install; Start-Process powershell -ArgumentList '-NoExit','-Command','npm.cmd run dev'; Start-Process powershell -ArgumentList '-NoExit','-Command','npm.cmd --prefix web run dev'; Start-Sleep 10; Start-Process http://localhost:5173
+winget install -e --id Git.Git --accept-source-agreements --accept-package-agreements; winget install -e --id OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements; $env:Path=[Environment]::GetEnvironmentVariable('Path','Machine')+';'+[Environment]::GetEnvironmentVariable('Path','User'); git clone -b dev1-identity https://github.com/noinahjajah/Pos_Crm.git; cd Pos_Crm; Copy-Item .env.example .env; npm.cmd install; Start-Process powershell -ArgumentList '-NoExit','-Command','npm.cmd run dev'; Start-Sleep 12; Start-Process http://localhost:5173
 ```
 
 **Mac** (เปิด Terminal แล้ววาง)
 ```bash
-command -v brew >/dev/null || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"; brew install git node; git clone -b dev1/identity-gateway https://github.com/noinahjajah/Pos_Crm.git && cd Pos_Crm && cp .env.example .env && npm install && npm --prefix web install && (npm run dev & npm --prefix web run dev & sleep 10; open http://localhost:5173; wait)
+command -v brew >/dev/null || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"; brew install git node; git clone -b dev1-identity https://github.com/noinahjajah/Pos_Crm.git && cd Pos_Crm && cp .env.example .env && npm install && (sleep 12 && open http://localhost:5173 &) && npm run dev
 ```
 
 เปิด http://localhost:5173 · login `owner` / `manager1` / `staff1` รหัส `password123`
 
-ครั้งต่อไป: เข้าโฟลเดอร์ `Pos_Crm` แล้วรัน `npm run dev` กับ `npm --prefix web run dev` คนละหน้าต่าง (Windows ใช้ `npm.cmd`)
+ครั้งต่อไป: เข้าโฟลเดอร์ `Pos_Crm` แล้วรัน `npm run dev` คำสั่งเดียว เปิดครบทั้ง identity, gateway และเว็บ (Windows ใช้ `npm.cmd run dev`)
 
 ### ต่อ Supabase
 - ค่าเริ่มต้นเป็น `DATA_MODE=memory` ใช้ได้ทันที ข้อมูลหายเมื่อปิดเซิร์ฟเวอร์
@@ -40,7 +40,7 @@ command -v brew >/dev/null || /bin/bash -c "$(curl -fsSL https://raw.githubuserc
 - เพิ่ม `GET /branches/:id` และ `GET /users/:id` (ไม่มีใน spec)
 - ปิดสาขาที่ยังมีผู้ใช้อยู่ไม่ได้ → 409 `BRANCH_HAS_ACTIVE_USERS`
 - ใส่ `GET /pos/kitchen/stream` (S M) ไว้ในตารางสิทธิ์ก่อน (ประเด็นเปิด 9.4)
-- โครงสร้าง monorepo: `services/<ชื่อ>` + `packages/shared` + npm workspaces
+- โครงสร้าง monorepo: `services/<ชื่อ>` + `packages/shared` + `web` อยู่ใน npm workspaces เดียวกัน (ติดตั้งครั้งเดียวที่ root)
 
 ## ทดสอบ
 - [x] `npm test` — identity 27, gateway 20 ผ่าน
