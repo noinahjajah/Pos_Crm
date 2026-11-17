@@ -1,0 +1,24 @@
+{
+  "name": "@pos/gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API Gateway :8080 — ทางเข้าเดียวของ client ตรวจ JWT + role + สาขา แล้วส่งต่อให้ service (Dev 1)",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --env-file-if-exists=../../.env --watch src/server.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "@pos/shared": "*",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "http-proxy-middleware": "^3.0.3",
+    "jose": "^5.9.6"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}

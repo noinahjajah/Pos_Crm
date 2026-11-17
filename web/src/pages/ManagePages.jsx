@@ -1,0 +1,522 @@
+import { useCallback, useEffect, useState } from 'react'
+import { identityApi } from '../lib/api.js'
+import { BRANCH_TYPE_LABEL, useAuth, useBranch } from '../app/providers.jsx'
+import { Alert, AVATAR_COLOR, Avatar, Badge, Button, Card, Field, Modal, PageHeader, ROLE_LABEL, ROLE_TONE, Select, TextInput } from '../components/ui.jsx'
+
+// หน้าจัดการของ Dev 1: ผู้ใช้ (1.3, 1.5) และสาขา (1.6)
+
+// ===================== ผู้ใช้ =====================
+const LIMIT = 20
+
+// ผู้ใช้ (1.3, 1.5)
+// owner: เพิ่ม/แก้ไข/ลบ ได้ทุกสาขา · manager: ดูรายชื่อพนักงานสาขาตัวเองอย่างเดียว
+export function UsersPage() {
+  const { user: me } = useAuth()
+  const { selectedBranchId } = useBranch()
+  const isOwner = me.role === 'owner'
+
+  const [rows, setRows] = useState([])
+  const [meta, setMeta] = useState({ page: 1, total: 0 })
+  const [page, setPage] = useState(1)
+  const [q, setQ] = useState('')
+  const [role, setRole] = useState('')
+  const [showInactive, setShowInactive] = useState(false)
+  const [error, setError] = useState('')
+  const [editing, setEditing] = useState(null) // null | 'new' | user
+
+  const load = useCallback(async () => {
+    setError('')
+    try {
+      const res = await identityApi.listUsers({
+        page,
+        limit: LIMIT,
+        q: q || undefined,
+        role: role || undefined,
+        include_inactive: isOwner && showInactive ? 'true' : undefined,
+        branch_id: isOwner ? selectedBranchId || undefined : undefined,
+      })
+      setRows(res.data)
+      setMeta(res.meta)
+    } catch (e) {
+      setError(e.message)
+    }
+  }, [page, q, role, showInactive, isOwner, selectedBranchId])
+
+  useEffect(() => {
+    const t = setTimeout(load, 250) // หน่วงตอนพิมพ์ค้นหา
+    return () => clearTimeout(t)
+  }, [load])
+
+  async function remove(u) {
+    if (!confirm(`ลบผู้ใช้ ${u.full_name} (${u.username})?\nบัญชีจะถูกปิดและออกจากระบบทุกเครื่อง`)) return
+    try {
+      await identityApi.deleteUser(u.id)
+      load()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  const pages = Math.max(1, Math.ceil((meta.total || 0) / LIMIT))
+
+  return (
+    <>
+      <PageHeader
+        title={isOwner ? 'จัดการผู้ใช้งาน' : 'พนักงานในสาขา'}
+        subtitle={
+          isOwner
+            ? 'เพิ่ม แก้ไข กำหนด Role และสาขาที่รับผิดชอบ'
+            : `${me.branch?.name ?? ''} · ดูรายชื่อได้อย่างเดียว เพิ่ม/ลบผู้ใช้ทำได้โดย Owner`
+        }
+        showBranchSwitch
+        actions={isOwner && <Button onClick={() => setEditing('new')}>+ เพิ่มผู้ใช้</Button>}
+      />
+      <div className="content">
+        <Alert>{error}</Alert>
+        <Card
+          title={`ผู้ใช้ทั้งหมด (${meta.total ?? 0})`}
+          actions={
+            <div className="toolbar">
+              <TextInput
+                placeholder="ค้นหาชื่อหรือ username…"
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value)
+                  setPage(1)
+                }}
+              />
+              <Select
+                value={role}
+                onChange={(e) => {
+                  setRole(e.target.value)
+                  setPage(1)
+                }}
+              >
+                <option value="">Role: ทั้งหมด</option>
+                <option value="owner">Owner</option>
+                <option value="manager">Manager</option>
+                <option value="staff">Staff</option>
+              </Select>
+              {isOwner && (
+                <label className="check">
+                  <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} /> แสดงที่ลบแล้ว
+                </label>
+              )}
+            </div>
+          }
+        >
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>ผู้ใช้</th>
+                  <th>Role</th>
+                  <th>สาขา</th>
+                  <th>สถานะ</th>
+                  {isOwner && <th style={{ textAlign: 'right' }}>จัดการ</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((u) => (
+                  <tr key={u.id} className={u.is_active ? '' : 'inactive'}>
+                    <td>
+                      <div className="person">
+                        <Avatar name={u.full_name} color={AVATAR_COLOR[u.role]} size="sm" />
+                        <div>
+                          <div>
+                            {u.full_name} {u.id === me.id && <span className="muted">(คุณ)</span>}
+                          </div>
+                          <div className="sub">{u.username}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <Badge tone={ROLE_TONE[u.role]}>{ROLE_LABEL[u.role]}</Badge>
+                    </td>
+                    <td>{u.branch ? u.branch.name : <span className="muted">ทุกสาขา</span>}</td>
+                    <td>{u.is_active ? <Badge tone="success">ใช้งาน</Badge> : <Badge>ลบแล้ว</Badge>}</td>
+                    {isOwner && (
+                      <td>
+                        <div className="actions">
+                          <Button variant="ghost" size="sm" onClick={() => setEditing(u)}>
+                            แก้ไข
+                          </Button>
+                          {u.is_active && u.id !== me.id && (
+                            <Button variant="ghost" size="sm" className="danger" onClick={() => remove(u)}>
+                              ลบ
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!rows.length && <div className="empty">ไม่พบผู้ใช้</div>}
+          </div>
+          <div className="pager">
+            แสดง {rows.length} จาก {meta.total ?? 0} รายการ
+            <div className="grow" />
+            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              ‹ ก่อนหน้า
+            </Button>
+            หน้า {page} / {pages}
+            <Button variant="secondary" size="sm" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
+              ถัดไป ›
+            </Button>
+          </div>
+        </Card>
+      </div>
+
+      {editing && (
+        <UserForm
+          user={editing === 'new' ? null : editing}
+          isSelf={editing !== 'new' && editing.id === me.id}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null)
+            load()
+          }}
+        />
+      )}
+    </>
+  )
+}
+
+const ROLE_OPTIONS = [
+  { value: 'owner', label: 'Owner', desc: 'เห็นทุกสาขา จัดการผู้ใช้และสาขา อนุมัติคำขอ' },
+  { value: 'manager', label: 'Manager', desc: 'ดูแลเฉพาะสาขาที่กำหนด อนุมัติคำขอของสาขา' },
+  { value: 'staff', label: 'Staff', desc: 'พนักงานหน้าร้าน (เสิร์ฟ + แคชเชียร์)' },
+]
+
+function UserForm({ user, isSelf, onClose, onSaved }) {
+  const { branches } = useBranch()
+  const isNew = !user
+  const [form, setForm] = useState({
+    username: user?.username ?? '',
+    full_name: user?.full_name ?? '',
+    role: user?.role ?? 'staff',
+    branch_id: user?.branch_id ?? branches[0]?.id ?? '',
+    password: '',
+    is_active: user?.is_active ?? true,
+  })
+  const [errors, setErrors] = useState({})
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+
+  async function save() {
+    setBusy(true)
+    setErrors({})
+    setError('')
+    const branch_id = form.role === 'owner' ? null : form.branch_id || null
+    try {
+      if (isNew) {
+        await identityApi.createUser({
+          username: form.username,
+          password: form.password,
+          full_name: form.full_name,
+          role: form.role,
+          branch_id,
+        })
+      } else {
+        const body = { full_name: form.full_name, role: form.role, branch_id }
+        if (form.password) body.password = form.password
+        if (form.is_active !== user.is_active) body.is_active = form.is_active
+        await identityApi.updateUser(user.id, body)
+      }
+      onSaved()
+    } catch (e) {
+      setErrors(e.fieldErrors || {})
+      setError(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal
+      title={isNew ? 'เพิ่มผู้ใช้' : `แก้ไขผู้ใช้ ${user.username}`}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            ยกเลิก
+          </Button>
+          <Button onClick={save} disabled={busy}>
+            {busy ? 'กำลังบันทึก…' : 'บันทึก'}
+          </Button>
+        </>
+      }
+    >
+      <Alert>{error}</Alert>
+      <div className="grid-2">
+        <Field label="ชื่อ-นามสกุล" error={errors.full_name}>
+          <TextInput value={form.full_name} onChange={set('full_name')} invalid={!!errors.full_name} />
+        </Field>
+        <Field label="ชื่อผู้ใช้ (username)" hint={isNew ? 'a-z 0-9 . _ -' : 'แก้ไม่ได้'} error={errors.username}>
+          <TextInput value={form.username} onChange={set('username')} disabled={!isNew} invalid={!!errors.username} autoCapitalize="none" />
+        </Field>
+      </div>
+      <Field
+        label={isNew ? 'รหัสผ่าน' : 'ตั้งรหัสผ่านใหม่'}
+        hint={isNew ? 'อย่างน้อย 8 ตัว' : 'เว้นว่างถ้าไม่เปลี่ยน · เปลี่ยนแล้วต้อง login ใหม่'}
+        error={errors.password}
+      >
+        <TextInput type="password" value={form.password} onChange={set('password')} autoComplete="new-password" invalid={!!errors.password} />
+      </Field>
+
+      <div className="field">
+        <span>กำหนด Role {isSelf && <em className="hint">เปลี่ยน role ของตัวเองไม่ได้</em>}</span>
+        <div className="radio-cards">
+          {ROLE_OPTIONS.map((r) => (
+            <label key={r.value} className={`radio-card ${form.role === r.value ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="role"
+                value={r.value}
+                checked={form.role === r.value}
+                disabled={isSelf}
+                onChange={set('role')}
+              />
+              <div>
+                <b>{r.label}</b>
+                <small>{r.desc}</small>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {form.role !== 'owner' && (
+        <Field label="สาขาที่รับผิดชอบ" error={errors.branch_id} hint={form.role === 'manager' ? 'Manager เห็นและจัดการได้เฉพาะสาขานี้' : ''}>
+          <Select value={form.branch_id} onChange={set('branch_id')}>
+            <option value="">— เลือกสาขา —</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name} ({b.code})
+              </option>
+            ))}
+          </Select>
+        </Field>
+      )}
+
+      {!isNew && !isSelf && (
+        <label className="check">
+          <input type="checkbox" checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} />
+          บัญชีใช้งานได้ (ปิด = ลบผู้ใช้ และออกจากระบบทุกเครื่อง)
+        </label>
+      )}
+    </Modal>
+  )
+}
+
+// ===================== สาขา =====================
+const EMPTY = { code: '', name: '', branch_type: 'restaurant', address: '', phone: '' }
+
+// จัดการสาขา — owner เท่านั้น (1.6)
+export function BranchesPage() {
+  const { reload: reloadSwitcher } = useBranch()
+  const [branches, setBranches] = useState([])
+  const [userCount, setUserCount] = useState({})
+  const [showClosed, setShowClosed] = useState(false)
+  const [error, setError] = useState('')
+  const [editing, setEditing] = useState(null) // null | 'new' | branch
+
+  const load = useCallback(async () => {
+    try {
+      const [{ data }, users] = await Promise.all([
+        identityApi.listBranches({ include_inactive: showClosed }),
+        identityApi.listUsers({ limit: 100 }),
+      ])
+      setBranches(data)
+      const count = {}
+      for (const u of users.data) if (u.branch_id) count[u.branch_id] = (count[u.branch_id] || 0) + 1
+      setUserCount(count)
+      setError('')
+    } catch (e) {
+      setError(e.message)
+    }
+  }, [showClosed])
+
+  useEffect(() => {
+    const t = setTimeout(load, 0) // โหลดหลัง render (ไม่ setState ใน effect ตรง ๆ)
+    return () => clearTimeout(t)
+  }, [load])
+
+  async function afterChange() {
+    await load()
+    reloadSwitcher()
+  }
+
+  async function close(b) {
+    if (!confirm(`ปิดสาขา ${b.name} (${b.code})?\nพนักงานในสาขานี้ต้องถูกย้ายหรือลบก่อน`)) return
+    try {
+      await identityApi.deleteBranch(b.id)
+      afterChange()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  async function reopen(b) {
+    try {
+      await identityApi.updateBranch(b.id, { is_active: true })
+      afterChange()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  return (
+    <>
+      <PageHeader
+        title="จัดการสาขา"
+        subtitle="เพิ่ม แก้ไข หรือปิดสาขา · ชื่อ ที่อยู่ และเบอร์โทรใช้พิมพ์หัวใบเสร็จ"
+        actions={<Button onClick={() => setEditing('new')}>+ เพิ่มสาขา</Button>}
+      />
+      <div className="content">
+        <Alert>{error}</Alert>
+        <div className="toolbar">
+          <label className="check">
+            <input type="checkbox" checked={showClosed} onChange={(e) => setShowClosed(e.target.checked)} /> แสดงสาขาที่ปิดแล้ว
+          </label>
+        </div>
+        <div className="branch-cards">
+          {branches.map((b) => (
+            <Card key={b.id} className={`branch-card ${b.is_active ? '' : 'closed'}`}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div className="code">{b.code}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 16 }}>{b.name}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>
+                    {BRANCH_TYPE_LABEL[b.branch_type]} · รหัส {b.code}
+                  </div>
+                </div>
+                {b.is_active ? <Badge tone="success">เปิดอยู่</Badge> : <Badge tone="neutral">ปิดแล้ว</Badge>}
+              </div>
+              <div className="muted" style={{ fontSize: 12 }}>
+                {b.address || 'ยังไม่ระบุที่อยู่'} · โทร {b.phone || '—'}
+              </div>
+              <div className="stat-row">
+                <div className="stat">
+                  <small>ประเภท</small>
+                  {BRANCH_TYPE_LABEL[b.branch_type]}
+                </div>
+                <div className="stat">
+                  <small>ผู้ใช้</small>
+                  {userCount[b.id] || 0} คน
+                </div>
+                <div className="stat">
+                  <small>สร้างเมื่อ</small>
+                  {new Date(b.created_at).toLocaleDateString('th-TH')}
+                </div>
+              </div>
+              <div className="toolbar">
+                <Button variant="secondary" onClick={() => setEditing(b)}>
+                  แก้ไข
+                </Button>
+                <div style={{ flex: 1 }} />
+                {b.is_active ? (
+                  <Button variant="ghost" className="danger" onClick={() => close(b)}>
+                    ปิดสาขา
+                  </Button>
+                ) : (
+                  <Button variant="ghost" onClick={() => reopen(b)}>
+                    เปิดสาขาอีกครั้ง
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+        {!branches.length && !error && <div className="empty">ยังไม่มีสาขา</div>}
+      </div>
+
+      {editing && (
+        <BranchForm
+          branch={editing === 'new' ? null : editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null)
+            afterChange()
+          }}
+        />
+      )}
+    </>
+  )
+}
+
+function BranchForm({ branch, onClose, onSaved }) {
+  const [form, setForm] = useState(() => (branch ? { ...EMPTY, ...branch, address: branch.address || '', phone: branch.phone || '' } : EMPTY))
+  const [errors, setErrors] = useState({})
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+
+  async function save() {
+    setBusy(true)
+    setErrors({})
+    setError('')
+    const body = {
+      code: form.code.trim().toUpperCase(),
+      name: form.name.trim(),
+      branch_type: form.branch_type,
+      address: form.address.trim() || null,
+      phone: form.phone.trim() || null,
+    }
+    try {
+      if (branch) await identityApi.updateBranch(branch.id, body)
+      else await identityApi.createBranch(body)
+      onSaved()
+    } catch (e) {
+      setErrors(e.fieldErrors || {})
+      setError(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal
+      title={branch ? `แก้ไขสาขา ${branch.code}` : 'เพิ่มสาขาใหม่'}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            ยกเลิก
+          </Button>
+          <Button onClick={save} disabled={busy}>
+            {busy ? 'กำลังบันทึก…' : 'บันทึกสาขา'}
+          </Button>
+        </>
+      }
+    >
+      <Alert>{error}</Alert>
+      <div className="grid-2">
+        <Field label="ชื่อสาขา" error={errors.name}>
+          <TextInput value={form.name} onChange={set('name')} invalid={!!errors.name} placeholder="เช่น สาขาบาร์" />
+        </Field>
+        <Field label="รหัสสาขา" hint="A-Z 0-9" error={errors.code}>
+          <TextInput value={form.code} onChange={set('code')} invalid={!!errors.code} placeholder="เช่น BAR01" />
+        </Field>
+        <Field label="ประเภทสาขา" error={errors.branch_type}>
+          <Select value={form.branch_type} onChange={set('branch_type')}>
+            {Object.entries(BRANCH_TYPE_LABEL).map(([v, l]) => (
+              <option key={v} value={v}>
+                {l}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="เบอร์โทร" error={errors.phone}>
+          <TextInput value={form.phone} onChange={set('phone')} placeholder="02-xxx-xxxx" />
+        </Field>
+      </div>
+      <Field label="ที่อยู่" hint="แสดงบนหัวใบเสร็จ" error={errors.address}>
+        <TextInput value={form.address} onChange={set('address')} />
+      </Field>
+    </Modal>
+  )
+}
