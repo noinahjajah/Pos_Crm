@@ -30,7 +30,8 @@ export function createSupabaseRepo(adminClient) {
   }
   const roleIdOf = async (name) => (await roles()).find((r) => r.name === name)?.id;
 
-  const PROFILE_COLS = 'id, username, full_name, branch_id, is_active, created_at, roles(name)';
+  const PROFILE_COLS =
+    'id, username, full_name, branch_id, is_active, must_change_password, last_login_at, created_at, roles(name)';
   const toProfile = (row) =>
     row && {
       id: row.id,
@@ -39,6 +40,8 @@ export function createSupabaseRepo(adminClient) {
       role: row.roles?.name,
       branch_id: row.branch_id,
       is_active: row.is_active,
+      must_change_password: row.must_change_password,
+      last_login_at: row.last_login_at,
       created_at: row.created_at,
     };
 

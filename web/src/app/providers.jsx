@@ -37,9 +37,16 @@ export function AuthProvider({ children }) {
     setSession(null)
   }, [])
 
+  // เปลี่ยนรหัสผ่านตัวเอง: ได้ token ชุดใหม่กลับมา (session เดิมถูกยกเลิก)
+  const changePassword = useCallback(async (current, next) => {
+    const { data } = await identityApi.changePassword(current, next)
+    setSession(data)
+    return data.user
+  }, [])
+
   const value = useMemo(
-    () => ({ user: session?.user ?? null, isAuthenticated: Boolean(session?.access_token), login, logout }),
-    [session, login, logout],
+    () => ({ user: session?.user ?? null, isAuthenticated: Boolean(session?.access_token), login, logout, changePassword }),
+    [session, login, logout, changePassword],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

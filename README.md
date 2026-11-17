@@ -28,10 +28,19 @@ cd web && npm install && npm run dev   # เว็บ http://localhost:5173 (ส
 
 หรือใช้ Docker: `docker compose up --build` (เปิดแค่ :8080) · เพิ่ม `--profile web` เพื่อเปิดเว็บที่ :5173
 
+## ระบบเข้าสู่ระบบ (1.2)
+
+- login ด้วย username + password → ได้ access token (อายุ 15 นาที) + refresh token (ใช้ได้ครั้งเดียว) · เว็บต่ออายุให้อัตโนมัติก่อนหมด 1 นาที และซิงก์กันทุกแท็บ
+- ใส่รหัสผิดติดกัน 5 ครั้ง → ล็อก username 15 นาที (`ACCOUNT_LOCKED`) · gateway จำกัด `/auth/login` 10 ครั้ง/นาที/IP อีกชั้น
+- owner สร้างผู้ใช้หรือรีเซ็ตรหัส = รหัสชั่วคราว → ผู้ใช้ถูกพาไปหน้า "บัญชีของฉัน" ให้ตั้งรหัสใหม่ก่อนใช้งาน (รีเซ็ตแล้วปลดล็อกให้ด้วย)
+- เปลี่ยนรหัสผ่านเอง `POST /identity/auth/change-password` → session อื่นทุกเครื่องถูกยกเลิก
+- รหัสผ่าน: 8–72 ตัว มีตัวอักษรภาษาอังกฤษและตัวเลข · บันทึกเวลาเข้าใช้ล่าสุด (`last_login_at`)
+- ลบผู้ใช้ / ปิดบัญชี → refresh ไม่ได้และ login ไม่ได้ทันที
+
 ## ทดสอบ
 
 ```bash
-npm test                    # identity 20 เคส + gateway 17 เคส
+npm test                    # identity 26 เคส + gateway 17 เคส
 cd web && npm run lint && npm run build
 ```
 

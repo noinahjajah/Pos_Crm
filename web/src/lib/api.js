@@ -31,20 +31,64 @@ function readSession() {
 
 let session = readSession()
 const listeners = new Set()
+let refreshTimer = null
 
 export function getSession() {
   return session
 }
 
-export function setSession(next) {
+/** เหตุผลที่ถูกพาออกจากระบบครั้งล่าสุด ('expired' | 'disabled') — หน้า login อ่านแล้วล้างทิ้ง */
+export function consumeLogoutReason() {
+  try {
+    const reason = sessionStorage.getItem('pos.logoutReason')
+    sessionStorage.removeItem('pos.logoutReason')
+    return reason
+  } catch {
+    return null
+  }
+}
+
+function endSession(reason) {
+  try {
+    if (reason) sessionStorage.setItem('pos.logoutReason', reason)
+  } catch {
+    /* ignore */
+  }
+  setSession(null)
+}
+
+function apply(next) {
   session = next
+  listeners.forEach((fn) => fn(next))
+  scheduleRefresh()
+}
+
+export function setSession(next) {
+  // จำเวลาหมดอายุของ access token ไว้ ใช้ต่ออายุล่วงหน้า
+  if (next && !next.expires_at && next.expires_in) next = { ...next, expires_at: Date.now() + next.expires_in * 1000 }
   try {
     if (next) localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
     else localStorage.removeItem(STORAGE_KEY)
   } catch {
     /* ไม่มี localStorage — ใช้ในหน่วยความจำต่อ */
   }
-  listeners.forEach((fn) => fn(next))
+  apply(next)
+}
+
+/** ต่ออายุ token ล่วงหน้า 60 วินาทีก่อนหมดอายุ ผู้ใช้จะไม่หลุดกลางงาน */
+function scheduleRefresh() {
+  clearTimeout(refreshTimer)
+  if (!session?.expires_at) return
+  const wait = Math.max(5_000, session.expires_at - Date.now() - 60_000)
+  refreshTimer = setTimeout(() => refreshSession(), wait)
+}
+
+// เปิดหลายแท็บ: login / logout / ต่ออายุในแท็บหนึ่ง แท็บอื่นตามด้วย
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY) apply(readSession())
+  })
+  scheduleRefresh()
 }
 
 export function onSessionChange(fn) {
@@ -94,8 +138,14 @@ async function refreshSession() {
       setSession(data)
       return true
     })
-    .catch(() => {
-      setSession(null)
+    .catch((err) => {
+      // refresh token ใช้ได้ครั้งเดียว: ถ้าแท็บอื่นต่ออายุไปก่อนแล้ว ให้ใช้ session ของแท็บนั้น
+      const latest = readSession()
+      if (latest?.refresh_token && latest.refresh_token !== session?.refresh_token) {
+        apply(latest)
+        return true
+      }
+      endSession(err.code === 'ACCOUNT_DISABLED' ? 'disabled' : 'expired')
       return false
     })
     .finally(() => {
@@ -116,9 +166,25 @@ export async function api(path, options = {}) {
     if (canRetry && (await refreshSession())) {
       return rawRequest(path, { ...options, token: session?.access_token })
     }
-    if (err.status === 401 && session) setSession(null)
+    if (err.status === 401 && session) endSession(err.code === 'ACCOUNT_DISABLED' ? 'disabled' : 'expired')
     throw err
   }
+}
+
+// ---------- กติการหัสผ่าน (ตรงกับฝั่ง identity) ----------
+export const PASSWORD_RULES = [
+  { test: (p) => p.length >= 8, label: 'อย่างน้อย 8 ตัวอักษร' },
+  { test: (p) => /[A-Za-z]/.test(p), label: 'มีตัวอักษรภาษาอังกฤษ' },
+  { test: (p) => /[0-9]/.test(p), label: 'มีตัวเลข' },
+]
+export const passwordOk = (p) => p.length <= 72 && PASSWORD_RULES.every((r) => r.test(p))
+
+/** สุ่มรหัสชั่วคราว 10 ตัว (มีตัวอักษรและตัวเลขแน่นอน) */
+export function randomPassword() {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const bytes = crypto.getRandomValues(new Uint32Array(8))
+  const body = Array.from(bytes, (n) => chars[n % chars.length]).join('')
+  return `${body}${(bytes[0] % 8) + 2}${chars[bytes[1] % 23]}`
 }
 
 // ---------- identity ----------
@@ -127,6 +193,8 @@ export const identityApi = {
     rawRequest('/identity/auth/login', { method: 'POST', body: { username, password } }),
   logout: () => api('/identity/auth/logout', { method: 'POST' }),
   me: () => api('/identity/me'),
+  changePassword: (current_password, new_password) =>
+    api('/identity/auth/change-password', { method: 'POST', body: { current_password, new_password } }),
 
   listBranches: (query) => api('/identity/branches', { query }),
   createBranch: (body) => api('/identity/branches', { method: 'POST', body }),

@@ -170,6 +170,26 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .login-card { width: 440px; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 36px; display: flex; flex-direction: column; gap: 18px; }
 .login-card h1 { margin: 0; font-size: 26px; }
 
+/* ===== รหัสผ่าน / บัญชีของฉัน ===== */
+.pw-wrap { position: relative; }
+.pw-wrap .input { padding-right: 72px; }
+.pw-toggle {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  background: none; border: 0; color: var(--green); font-size: 12px; font-weight: 500; cursor: pointer; padding: 6px 8px;
+}
+.hint.warn { color: #9a6b12; font-style: normal; }
+.alert-warning { background: #faf0de; color: #7a5410; }
+.account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; max-width: 1000px; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+dl.info { display: grid; grid-template-columns: 120px 1fr; gap: 10px 12px; margin: 0; font-size: 14px; }
+dl.info dt { color: var(--muted); }
+dl.info dd { margin: 0; }
+.rules { list-style: none; margin: -6px 0 0; padding: 0; display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.rules li.ok { color: #2e7d4f; }
+.user-box .name { color: #fff; text-decoration: none; display: block; }
+.user-box .name:hover { text-decoration: underline; }
+@media (max-width: 1000px) { .account-grid { grid-template-columns: 1fr; } }
+
 /* ===== Placeholder ===== */
 .placeholder { max-width: 640px; }
 

@@ -1,7 +1,7 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { errorHandler, internalAuth, notFoundHandler, requestId } from '@pos/shared';
-import { authRoutes, branchRoutes, meRoutes, roleRoutes, userRoutes } from './routes.js';
+import { authRoutes, branchRoutes, createLoginGuard, meRoutes, roleRoutes, userRoutes } from './routes.js';
 import { createMemoryAuth, createMemoryRepo, SEED_USERS } from './memory.js';
 import { createSupabaseAuth, createSupabaseRepo } from './supabase.js';
 
@@ -23,6 +23,9 @@ export function loadConfig(overrides = {}) {
     accessTokenTtlSec: Number(env.ACCESS_TOKEN_TTL_SEC || 900),
     refreshTokenTtlSec: Number(env.REFRESH_TOKEN_TTL_SEC || 60 * 60 * 24 * 7),
     mockPassword: env.MOCK_PASSWORD || 'password123',
+    // กันเดารหัสผ่าน: ใส่ผิดติดกันกี่ครั้งถึงล็อก และล็อกกี่นาที
+    loginMaxAttempts: Number(env.LOGIN_MAX_ATTEMPTS || 5),
+    loginLockMinutes: Number(env.LOGIN_LOCK_MINUTES || 15),
     // supabase mode
     supabaseUrl: env.SUPABASE_URL,
     supabaseAnonKey: env.SUPABASE_ANON_KEY,
@@ -86,7 +89,7 @@ export function createDeps(config) {
  *
  * @param {{ repo: object, auth: object, internalKey: string, logger?: Console }} deps
  */
-export function createApp({ repo, auth, internalKey, logger = console }) {
+export function createApp({ repo, auth, internalKey, loginGuard = createLoginGuard(), logger = console }) {
   const app = express();
   app.disable('x-powered-by');
   app.set('query parser', 'simple');
@@ -97,11 +100,11 @@ export function createApp({ repo, auth, internalKey, logger = console }) {
   app.use(internalAuth({ internalKey }));
   app.use(express.json({ limit: '100kb' }));
 
-  app.use('/auth', authRoutes({ repo, auth }));
+  app.use('/auth', authRoutes({ repo, auth, loginGuard }));
   app.use('/me', meRoutes({ repo }));
   app.use('/branches', branchRoutes({ repo }));
   app.use('/roles', roleRoutes({ repo }));
-  app.use('/users', userRoutes({ repo, auth }));
+  app.use('/users', userRoutes({ repo, auth, loginGuard }));
 
   app.use(notFoundHandler);
   app.use(errorHandler({ logger }));

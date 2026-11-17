@@ -2,7 +2,7 @@
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from './providers.jsx'
 import { AppLayout, Badge, Card, DEV_LABEL, HOME_BY_ROLE, MENU, PageHeader } from '../components/ui.jsx'
-import { LoginPage } from '../pages/LoginPage.jsx'
+import { AccountPage, LoginPage } from '../pages/LoginPage.jsx'
 import { BranchesPage, UsersPage } from '../pages/ManagePages.jsx'
 import { PrintPreviewPage } from '../pages/PrintPage.jsx'
 
@@ -18,6 +18,8 @@ function RequireAuth() {
   const { user } = useAuth()
   const location = useLocation()
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  // รหัสชั่วคราวจาก owner: ต้องเปลี่ยนรหัสผ่านก่อนใช้งานหน้าอื่น
+  if (user.must_change_password && location.pathname !== '/account') return <Navigate to="/account" replace />
   return <Outlet />
 }
 
@@ -87,6 +89,7 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { index: true, element: <HomeRedirect /> },
+          { path: '/account', element: <AccountPage /> },
           ...MENU.map((item) => ({
             path: item.path,
             element: <RequireRole roles={item.roles}>{PAGES[item.path] ?? <PlaceholderPage item={item} />}</RequireRole>,

@@ -163,7 +163,9 @@ export function AppLayout() {
         <div className="user-box">
           <Avatar name={user.full_name} color={AVATAR_COLOR[user.role]} />
           <div style={{ minWidth: 0 }}>
-            <div className="name">{user.full_name}</div>
+            <NavLink to="/account" className="name" title="บัญชีของฉัน / เปลี่ยนรหัสผ่าน">
+              {user.full_name}
+            </NavLink>
             <div className="sub">
               {ROLE_LABEL[user.role]}
               {user.branch ? ` · ${user.branch.name}` : ' · ทุกสาขา'} ·{' '}

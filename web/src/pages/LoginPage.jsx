@@ -1,9 +1,58 @@
 import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../app/providers.jsx'
-import { Alert, Button, Field, HOME_BY_ROLE, TextInput } from '../components/ui.jsx'
+import { consumeLogoutReason, PASSWORD_RULES, passwordOk } from '../lib/api.js'
+import { Alert, Badge, Button, Card, Field, HOME_BY_ROLE, PageHeader, ROLE_LABEL, ROLE_TONE, TextInput } from '../components/ui.jsx'
+
+// หน้าเกี่ยวกับการเข้าสู่ระบบของ Dev 1: login (1.2) และบัญชีของฉัน (เปลี่ยนรหัสผ่าน)
 
 const SHOW_TEST_ACCOUNTS = import.meta.env.DEV || import.meta.env.VITE_SHOW_TEST_ACCOUNTS === 'true'
+
+const LOGOUT_MESSAGE = {
+  expired: 'session หมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง',
+  disabled: 'บัญชีนี้ถูกปิดใช้งาน กรุณาติดต่อเจ้าของร้าน',
+}
+
+/** แปลง error จาก API เป็นข้อความที่ผู้ใช้เข้าใจ */
+function loginErrorText(err) {
+  if (err.code === 'INVALID_CREDENTIALS') {
+    const left = err.details?.[0]?.attempts_left
+    return left != null && left <= 3
+      ? `${err.message} (ใส่ผิดได้อีก ${left} ครั้ง ก่อนบัญชีถูกล็อกชั่วคราว)`
+      : err.message
+  }
+  if (err.code === 'VALIDATION_ERROR') return 'กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ถูกรูปแบบ'
+  return err.message
+}
+
+/** ช่องรหัสผ่าน + ปุ่มแสดง/ซ่อน + เตือน Caps Lock */
+function PasswordInput({ value, onChange, autoComplete, invalid, autoFocus }) {
+  const [show, setShow] = useState(false)
+  const [caps, setCaps] = useState(false)
+  const detectCaps = (e) => setCaps(Boolean(e.getModifierState?.('CapsLock')))
+  return (
+    <>
+      <div className="pw-wrap">
+        <TextInput
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={onChange}
+          onKeyUp={detectCaps}
+          onKeyDown={detectCaps}
+          onBlur={() => setCaps(false)}
+          autoComplete={autoComplete}
+          invalid={invalid}
+          autoFocus={autoFocus}
+          required
+        />
+        <button type="button" className="pw-toggle" onClick={() => setShow((v) => !v)} aria-label={show ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}>
+          {show ? 'ซ่อน' : 'แสดง'}
+        </button>
+      </div>
+      {caps && <em className="hint warn">Caps Lock เปิดอยู่</em>}
+    </>
+  )
+}
 
 export function LoginPage() {
   const { login, user } = useAuth()
@@ -12,20 +61,24 @@ export function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [notice] = useState(() => LOGOUT_MESSAGE[consumeLogoutReason()] || '')
   const [busy, setBusy] = useState(false)
 
-  if (user) return <Navigate to={HOME_BY_ROLE[user.role] || '/'} replace />
+  if (user) return <Navigate to={user.must_change_password ? '/account' : HOME_BY_ROLE[user.role] || '/'} replace />
 
   async function submit(e) {
     e.preventDefault()
+    if (busy) return
     setError('')
     setBusy(true)
     try {
-      const u = await login(username.trim(), password)
-      // ระบบอ่าน role จาก token แล้วพาไปหน้าที่ตรงสิทธิ์
-      navigate(location.state?.from || HOME_BY_ROLE[u.role] || '/', { replace: true })
+      const u = await login(username.trim().toLowerCase(), password)
+      // ระบบอ่าน role จาก token แล้วพาไปหน้าที่ตรงสิทธิ์ · รหัสชั่วคราวต้องเปลี่ยนก่อน
+      const target = u.must_change_password ? '/account' : location.state?.from || HOME_BY_ROLE[u.role] || '/'
+      navigate(target, { replace: true })
     } catch (err) {
-      setError(err.message)
+      setError(loginErrorText(err))
+      setPassword('')
     } finally {
       setBusy(false)
     }
@@ -59,13 +112,14 @@ export function LoginPage() {
       </section>
 
       <div className="login-form-area">
-        <form className="login-card" onSubmit={submit}>
+        <form className="login-card" onSubmit={submit} noValidate>
           <div>
             <h1>ยินดีต้อนรับกลับ</h1>
             <p className="muted" style={{ margin: '4px 0 0' }}>
               เข้าสู่ระบบด้วยชื่อผู้ใช้และรหัสผ่าน
             </p>
           </div>
+          {notice && !error && <Alert tone="info">{notice}</Alert>}
           <Alert>{error}</Alert>
           <Field label="ชื่อผู้ใช้ (username)">
             <TextInput
@@ -73,22 +127,20 @@ export function LoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
               autoCapitalize="none"
+              spellCheck={false}
               required
               autoFocus
             />
           </Field>
           <Field label="รหัสผ่าน">
-            <TextInput
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
+            <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
           </Field>
-          <Button type="submit" block disabled={busy}>
+          <Button type="submit" block disabled={busy || !username.trim() || !password}>
             {busy ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ'}
           </Button>
+          <p className="muted" style={{ margin: 0, fontSize: 12, textAlign: 'center' }}>
+            ลืมรหัสผ่าน? ติดต่อเจ้าของร้าน (Owner) เพื่อรีเซ็ตรหัสผ่าน
+          </p>
 
           {SHOW_TEST_ACCOUNTS && (
             <div className="alert alert-info">
@@ -113,5 +165,103 @@ export function LoginPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+const dateTime = (iso) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '—')
+
+// บัญชีของฉัน: ข้อมูลตัวเอง + เปลี่ยนรหัสผ่าน · ถ้า must_change_password จะถูกพามาหน้านี้ก่อนใช้งานอื่น
+export function AccountPage() {
+  const { user, changePassword } = useAuth()
+  const navigate = useNavigate()
+  const forced = user.must_change_password
+  const [form, setForm] = useState({ current: '', next: '', confirm: '' })
+  const [errors, setErrors] = useState({})
+  const [error, setError] = useState('')
+  const [done, setDone] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  const mismatch = form.confirm && form.next !== form.confirm
+
+  async function submit(e) {
+    e.preventDefault()
+    setError('')
+    setErrors({})
+    setDone(false)
+    if (!passwordOk(form.next)) return setErrors({ new_password: 'รหัสผ่านใหม่ยังไม่ตรงตามเงื่อนไข' })
+    if (mismatch) return setErrors({ confirm: 'ยืนยันรหัสผ่านไม่ตรงกัน' })
+    setBusy(true)
+    try {
+      const u = await changePassword(form.current, form.next)
+      setForm({ current: '', next: '', confirm: '' })
+      setDone(true)
+      if (forced) navigate(HOME_BY_ROLE[u.role] || '/', { replace: true })
+    } catch (err) {
+      setErrors(err.fieldErrors || {})
+      const left = err.details?.[0]?.attempts_left
+      setError(left != null ? `${err.message} (ใส่ผิดได้อีก ${left} ครั้ง)` : err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <PageHeader title="บัญชีของฉัน" subtitle="ข้อมูลผู้ใช้และการเปลี่ยนรหัสผ่าน" />
+      <div className="content account">
+        {forced && (
+          <Alert tone="warning">
+            <b>ต้องตั้งรหัสผ่านใหม่ก่อนเริ่มใช้งาน</b> — รหัสที่ได้รับจากเจ้าของร้านเป็นรหัสชั่วคราว
+          </Alert>
+        )}
+        <div className="account-grid">
+          <Card title="ข้อมูลผู้ใช้">
+            <dl className="info">
+              <dt>ชื่อ-นามสกุล</dt>
+              <dd>{user.full_name}</dd>
+              <dt>ชื่อผู้ใช้</dt>
+              <dd>{user.username}</dd>
+              <dt>Role</dt>
+              <dd>
+                <Badge tone={ROLE_TONE[user.role]}>{ROLE_LABEL[user.role]}</Badge>
+              </dd>
+              <dt>สาขา</dt>
+              <dd>{user.branch ? `${user.branch.name} (${user.branch.code})` : 'ทุกสาขา'}</dd>
+              <dt>เข้าใช้ล่าสุด</dt>
+              <dd>{dateTime(user.last_login_at)}</dd>
+            </dl>
+            <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+              ต้องการแก้ชื่อ role หรือสาขา ติดต่อเจ้าของร้าน (Owner)
+            </p>
+          </Card>
+
+          <Card title="เปลี่ยนรหัสผ่าน">
+            <form onSubmit={submit} className="stack" noValidate>
+              {done && <Alert tone="info">เปลี่ยนรหัสผ่านแล้ว อุปกรณ์อื่นที่เข้าสู่ระบบไว้จะต้องเข้าใหม่</Alert>}
+              <Alert>{error}</Alert>
+              <Field label="รหัสผ่านปัจจุบัน" error={errors.current_password}>
+                <PasswordInput value={form.current} onChange={set('current')} autoComplete="current-password" invalid={!!errors.current_password} autoFocus={forced} />
+              </Field>
+              <Field label="รหัสผ่านใหม่" error={errors.new_password}>
+                <PasswordInput value={form.next} onChange={set('next')} autoComplete="new-password" invalid={!!errors.new_password} />
+              </Field>
+              <ul className="rules">
+                {PASSWORD_RULES.map((r) => (
+                  <li key={r.label} className={r.test(form.next) ? 'ok' : ''}>
+                    {r.test(form.next) ? '✓' : '○'} {r.label}
+                  </li>
+                ))}
+              </ul>
+              <Field label="ยืนยันรหัสผ่านใหม่" error={errors.confirm || (mismatch ? 'ยืนยันรหัสผ่านไม่ตรงกัน' : '')}>
+                <PasswordInput value={form.confirm} onChange={set('confirm')} autoComplete="new-password" invalid={Boolean(mismatch)} />
+              </Field>
+              <Button type="submit" disabled={busy || !form.current || !passwordOk(form.next) || form.next !== form.confirm}>
+                {busy ? 'กำลังบันทึก…' : 'บันทึกรหัสผ่านใหม่'}
+              </Button>
+            </form>
+          </Card>
+        </div>
+      </div>
+    </>
   )
 }

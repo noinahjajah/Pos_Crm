@@ -92,6 +92,7 @@ async function seedUsers() {
       full_name: u.full_name,
       role_id: roleId[u.role],
       branch_id: u.branch_id,
+      must_change_password: false,
     });
     if (pErr) {
       await admin.auth.admin.deleteUser(data.user.id);

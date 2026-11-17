@@ -38,7 +38,9 @@ export function createMemoryRepo({ seed = true } = {}) {
 
   if (seed) {
     for (const b of SEED_BRANCHES) branches.set(b.id, { ...b, is_active: true, created_at: now() });
-    for (const u of SEED_USERS) profiles.set(u.id, { ...u, is_active: true, created_at: now() });
+    for (const u of SEED_USERS) {
+      profiles.set(u.id, { ...u, is_active: true, must_change_password: false, last_login_at: null, created_at: now() });
+    }
   }
 
   const clone = (o) => (o ? structuredClone(o) : null);
@@ -99,7 +101,7 @@ export function createMemoryRepo({ seed = true } = {}) {
       return clone([...profiles.values()].find((p) => p.username === username));
     },
     async createProfile(data) {
-      const row = { ...data, is_active: true, created_at: now() };
+      const row = { must_change_password: false, last_login_at: null, ...data, is_active: true, created_at: now() };
       profiles.set(row.id, row);
       return clone(row);
     },

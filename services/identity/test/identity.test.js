@@ -190,3 +190,87 @@ test('รีเซ็ตรหัสผ่านแล้ว login ด้วย�
   const l = await request(app).post('/auth/login').set(as()).send({ username: 'staff1', password: 'newpass123' });
   assert.equal(l.status, 200);
 });
+
+// ===================== ระบบ login เพิ่มเติม =====================
+
+test('ใส่รหัสผิดบอกจำนวนครั้งที่เหลือ และครั้งที่ 5 ถูกล็อก', async () => {
+  let res;
+  for (let i = 1; i <= 4; i++) {
+    res = await request(app).post('/auth/login').set(as()).send({ username: 'staff1', password: 'wrong' });
+    assert.equal(res.body.error.code, 'INVALID_CREDENTIALS');
+    assert.equal(res.body.error.details[0].attempts_left, 5 - i);
+  }
+  res = await request(app).post('/auth/login').set(as()).send({ username: 'staff1', password: 'wrong' });
+  assert.equal(res.status, 429);
+  assert.equal(res.body.error.code, 'ACCOUNT_LOCKED');
+  // ล็อกแล้ว รหัสถูกก็เข้าไม่ได้
+  const ok = await request(app).post('/auth/login').set(as()).send({ username: 'staff1', password: 'password123' });
+  assert.equal(ok.body.error.code, 'ACCOUNT_LOCKED');
+});
+
+test('username ที่ไม่มีอยู่ถูกล็อกเหมือนกัน (เดาไม่ได้ว่ามีบัญชีไหน)', async () => {
+  let res;
+  for (let i = 0; i < 5; i++) res = await request(app).post('/auth/login').set(as()).send({ username: 'ghost', password: 'x' });
+  assert.equal(res.body.error.code, 'ACCOUNT_LOCKED');
+});
+
+test('owner รีเซ็ตรหัส → ปลดล็อก และบังคับเปลี่ยนรหัส', async () => {
+  for (let i = 0; i < 5; i++) await request(app).post('/auth/login').set(as()).send({ username: 'staff1', password: 'wrong' });
+  await request(app).patch(`/users/${STAFF.id}`).set(as(OWNER)).send({ password: 'temp1234' }).expect(200);
+  const l = await request(app).post('/auth/login').set(as()).send({ username: 'staff1', password: 'temp1234' });
+  assert.equal(l.status, 200);
+  assert.equal(l.body.data.user.must_change_password, true);
+});
+
+test('login สำเร็จบันทึก last_login_at', async () => {
+  const l = await request(app).post('/auth/login').set(as()).send({ username: 'staff1', password: 'password123' });
+  assert.ok(l.body.data.user.last_login_at);
+  assert.equal(l.body.data.user.must_change_password, false);
+});
+
+test('ผู้ใช้ใหม่ต้องเปลี่ยนรหัสเอง → เปลี่ยนแล้ว flag หาย ได้ token ใหม่ และ refresh เดิมใช้ไม่ได้', async () => {
+  const c = await request(app)
+    .post('/users')
+    .set(as(OWNER))
+    .send({ username: 'newbie', password: 'temp1234', full_name: 'มือใหม่', role: 'staff', branch_id: RES.id });
+  assert.equal(c.body.data.must_change_password, true);
+  const newbie = { id: c.body.data.id, role: 'staff', branch_id: RES.id };
+
+  const l = await request(app).post('/auth/login').set(as()).send({ username: 'newbie', password: 'temp1234' });
+  assert.equal(l.body.data.user.must_change_password, true);
+
+  const wrong = await request(app)
+    .post('/auth/change-password')
+    .set(as(newbie))
+    .send({ current_password: 'nope', new_password: 'mypass123' });
+  assert.equal(wrong.status, 400);
+  assert.equal(wrong.body.error.code, 'WRONG_PASSWORD');
+
+  const same = await request(app)
+    .post('/auth/change-password')
+    .set(as(newbie))
+    .send({ current_password: 'temp1234', new_password: 'temp1234' });
+  assert.equal(same.status, 400);
+
+  const done = await request(app)
+    .post('/auth/change-password')
+    .set(as(newbie))
+    .send({ current_password: 'temp1234', new_password: 'mypass123' });
+  assert.equal(done.status, 200);
+  assert.equal(done.body.data.user.must_change_password, false);
+  assert.ok(done.body.data.access_token);
+
+  const old = await request(app).post('/auth/refresh').set(as()).send({ refresh_token: l.body.data.refresh_token });
+  assert.equal(old.status, 401);
+  const relog = await request(app).post('/auth/login').set(as()).send({ username: 'newbie', password: 'mypass123' });
+  assert.equal(relog.status, 200);
+});
+
+test('รหัสผ่านต้องมีตัวอักษรและตัวเลข', async () => {
+  const res = await request(app)
+    .post('/users')
+    .set(as(OWNER))
+    .send({ username: 'weak1', password: '12345678', full_name: 'x', role: 'staff', branch_id: RES.id });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error.details[0].field, 'password');
+});

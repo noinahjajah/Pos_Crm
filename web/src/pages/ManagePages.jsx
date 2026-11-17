@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { identityApi } from '../lib/api.js'
+import { identityApi, passwordOk, randomPassword } from '../lib/api.js'
 import { BRANCH_TYPE_LABEL, useAuth, useBranch } from '../app/providers.jsx'
 import { Alert, AVATAR_COLOR, Avatar, Badge, Button, Card, Field, Modal, PageHeader, ROLE_LABEL, ROLE_TONE, Select, TextInput } from '../components/ui.jsx'
 
@@ -113,6 +113,7 @@ export function UsersPage() {
                   <th>Role</th>
                   <th>สาขา</th>
                   <th>สถานะ</th>
+                  <th>เข้าใช้ล่าสุด</th>
                   {isOwner && <th style={{ textAlign: 'right' }}>จัดการ</th>}
                 </tr>
               </thead>
@@ -134,7 +135,20 @@ export function UsersPage() {
                       <Badge tone={ROLE_TONE[u.role]}>{ROLE_LABEL[u.role]}</Badge>
                     </td>
                     <td>{u.branch ? u.branch.name : <span className="muted">ทุกสาขา</span>}</td>
-                    <td>{u.is_active ? <Badge tone="success">ใช้งาน</Badge> : <Badge>ลบแล้ว</Badge>}</td>
+                    <td>
+                      {!u.is_active ? (
+                        <Badge>ลบแล้ว</Badge>
+                      ) : u.must_change_password ? (
+                        <Badge tone="warning">รอตั้งรหัสใหม่</Badge>
+                      ) : (
+                        <Badge tone="success">ใช้งาน</Badge>
+                      )}
+                    </td>
+                    <td className="muted">
+                      {u.last_login_at
+                        ? new Date(u.last_login_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })
+                        : 'ยังไม่เคยเข้า'}
+                    </td>
                     {isOwner && (
                       <td>
                         <div className="actions">
@@ -260,11 +274,20 @@ function UserForm({ user, isSelf, onClose, onSaved }) {
         </Field>
       </div>
       <Field
-        label={isNew ? 'รหัสผ่าน' : 'ตั้งรหัสผ่านใหม่'}
-        hint={isNew ? 'อย่างน้อย 8 ตัว' : 'เว้นว่างถ้าไม่เปลี่ยน · เปลี่ยนแล้วต้อง login ใหม่'}
-        error={errors.password}
+        label={isNew ? 'รหัสผ่านชั่วคราว' : 'รีเซ็ตรหัสผ่าน'}
+        hint={
+          isNew
+            ? '8 ตัวขึ้นไป มีตัวอักษรและตัวเลข · ผู้ใช้ต้องเปลี่ยนเองตอนเข้าครั้งแรก'
+            : 'เว้นว่างถ้าไม่เปลี่ยน · รีเซ็ตแล้วผู้ใช้ต้องตั้งรหัสใหม่ และปลดล็อกบัญชีให้ด้วย'
+        }
+        error={errors.password || (form.password && !passwordOk(form.password) ? 'ต้องมี 8 ตัวขึ้นไป มีตัวอักษรและตัวเลข' : '')}
       >
-        <TextInput type="password" value={form.password} onChange={set('password')} autoComplete="new-password" invalid={!!errors.password} />
+        <div className="pw-wrap">
+          <TextInput value={form.password} onChange={set('password')} autoComplete="new-password" invalid={!!errors.password} spellCheck={false} />
+          <button type="button" className="pw-toggle" onClick={() => setForm((f) => ({ ...f, password: randomPassword() }))}>
+            สุ่มรหัส
+          </button>
+        </div>
       </Field>
 
       <div className="field">

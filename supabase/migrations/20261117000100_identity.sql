@@ -45,6 +45,8 @@ create table if not exists identity.profiles (
   username   text not null unique,
   full_name  text not null,
   is_active  boolean not null default true,          -- false = ลบหรือปิดบัญชี (soft delete)
+  must_change_password boolean not null default true, -- รหัสชั่วคราวจาก owner ต้องเปลี่ยนเองตอนเข้าครั้งแรก
+  last_login_at timestamptz,
   created_at timestamptz not null default now(),
   constraint profiles_username_format check (username ~ '^[a-z0-9._-]{3,32}$'),
   -- owner ไม่มีสาขาประจำ · staff/manager ต้องมีสาขา

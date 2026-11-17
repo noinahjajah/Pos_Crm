@@ -18,7 +18,12 @@ const username = z
   .trim()
   .toLowerCase()
   .regex(/^[a-z0-9._-]{3,32}$/, 'username ใช้ a-z 0-9 . _ - ยาว 3–32 ตัว');
-const password = z.string().min(8, 'รหัสผ่านอย่างน้อย 8 ตัวอักษร').max(72);
+const password = z
+  .string()
+  .min(8, 'รหัสผ่านอย่างน้อย 8 ตัวอักษร')
+  .max(72, 'รหัสผ่านยาวไม่เกิน 72 ตัวอักษร')
+  .regex(/[A-Za-z]/, 'รหัสผ่านต้องมีตัวอักษรภาษาอังกฤษอย่างน้อย 1 ตัว')
+  .regex(/[0-9]/, 'รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว');
 const role = z.enum(['staff', 'manager', 'owner']);
 const branchType = z.enum(['restaurant', 'drinks', 'bar']);
 const optionalText = z.string().trim().max(255).nullish().transform((v) => (v ? v : null));
@@ -27,6 +32,16 @@ export const loginSchema = z.object({
   username,
   password: z.string().min(1, 'กรุณากรอกรหัสผ่าน'),
 });
+
+export const changePasswordSchema = z
+  .object({
+    current_password: z.string().min(1, 'กรุณากรอกรหัสผ่านปัจจุบัน'),
+    new_password: password,
+  })
+  .refine((v) => v.current_password !== v.new_password, {
+    path: ['new_password'],
+    message: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม',
+  });
 
 export const refreshSchema = z.object({
   refresh_token: z.string().min(1),
@@ -100,6 +115,8 @@ export async function presentUser(repo, profile, branchCache) {
     branch_id: profile.branch_id,
     branch: presentBranchRef(branch),
     is_active: profile.is_active,
+    must_change_password: Boolean(profile.must_change_password),
+    last_login_at: profile.last_login_at ?? null,
     created_at: profile.created_at,
   };
 }
@@ -111,22 +128,79 @@ export async function presentUsers(repo, profiles) {
 }
 
 // ===================== /auth =====================
-// POST /auth/login · POST /auth/refresh (public)  ·  POST /auth/logout (S M O)   (1.2)
-export function authRoutes({ repo, auth }) {
+// ===================== กันเดารหัสผ่าน =====================
+/**
+ * ล็อก username ชั่วคราวเมื่อใส่รหัสผิดติดกันหลายครั้ง (นับแยกต่อ username ไม่ขึ้นกับ IP)
+ * ใช้กับ username ที่ไม่มีอยู่จริงด้วย เพื่อไม่ให้เดาได้ว่ามีบัญชีไหนอยู่ในระบบ
+ * gateway ยังมี rate limit /auth/login 10 ครั้ง/นาที/IP อีกชั้น
+ */
+export function createLoginGuard({ maxAttempts = 5, lockMinutes = 15, now = () => Date.now() } = {}) {
+  const state = new Map(); // username -> { failed, lockedUntil }
+  return {
+    maxAttempts,
+    /** วินาทีที่ต้องรอ (0 = ไม่ได้ถูกล็อก) */
+    lockedFor(username) {
+      const s = state.get(username);
+      if (!s?.lockedUntil) return 0;
+      if (s.lockedUntil > now()) return Math.ceil((s.lockedUntil - now()) / 1000);
+      state.delete(username);
+      return 0;
+    },
+    /** บันทึกว่าใส่ผิด คืนจำนวนครั้งที่เหลือ (0 = เพิ่งถูกล็อก) */
+    fail(username) {
+      const s = state.get(username) ?? { failed: 0 };
+      s.failed += 1;
+      if (s.failed >= maxAttempts) {
+        s.failed = 0;
+        s.lockedUntil = now() + lockMinutes * 60_000;
+      }
+      state.set(username, s);
+      return s.lockedUntil ? 0 : maxAttempts - s.failed;
+    },
+    reset(username) {
+      state.delete(username);
+    },
+  };
+}
+
+const lockedError = (seconds) =>
+  new AppError(
+    429,
+    'ACCOUNT_LOCKED',
+    `ใส่รหัสผ่านผิดหลายครั้ง บัญชีถูกล็อกชั่วคราว ลองใหม่ใน ${Math.ceil(seconds / 60)} นาที`,
+    [{ retry_after_sec: seconds }],
+  );
+
+// POST /auth/login · POST /auth/refresh (public)
+// POST /auth/logout · POST /auth/change-password (S M O)   (1.2)
+export function authRoutes({ repo, auth, loginGuard }) {
   const r = Router();
-  const invalid = () => errors.unauthorized('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'INVALID_CREDENTIALS');
+
+  const wrongPassword = (username, field) => {
+    const left = loginGuard.fail(username);
+    if (left === 0) return lockedError(loginGuard.lockedFor(username));
+    const details = [{ attempts_left: left, ...(field ? { field, message: 'รหัสผ่านไม่ถูกต้อง' } : {}) }];
+    return field
+      ? new AppError(400, 'WRONG_PASSWORD', 'รหัสผ่านปัจจุบันไม่ถูกต้อง', details)
+      : new AppError(401, 'INVALID_CREDENTIALS', 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', details);
+  };
 
   r.post(
     '/login',
     validate({ body: loginSchema }),
     asyncHandler(async (req, res) => {
       const { username, password } = req.body;
+      const wait = loginGuard.lockedFor(username);
+      if (wait) throw lockedError(wait);
+
       const profile = await repo.getProfileByUsername(username);
-      // ตอบข้อความเดียวกันทุกกรณี ไม่บอกว่ามี username นี้หรือไม่
-      if (!profile || !profile.is_active) throw invalid();
-      const session = await auth.signIn(profile.id, password);
-      if (!session) throw invalid();
-      ok(res, { ...session, user: await presentUser(repo, profile) });
+      // ตอบข้อความเดียวกันทุกกรณี ไม่บอกว่ามี username นี้หรือไม่ หรือบัญชีถูกปิด
+      const session = profile?.is_active ? await auth.signIn(profile.id, password) : null;
+      if (!session) throw wrongPassword(username);
+
+      loginGuard.reset(username);
+      const updated = (await repo.updateProfile(profile.id, { last_login_at: new Date().toISOString() })) ?? profile;
+      ok(res, { ...session, user: await presentUser(repo, updated) });
     }),
   );
 
@@ -149,6 +223,31 @@ export function authRoutes({ repo, auth }) {
       const accessToken = req.get('authorization')?.replace(/^Bearer\s+/i, '');
       await auth.signOut({ userId: req.user.id, accessToken });
       ok(res, { logged_out: true });
+    }),
+  );
+
+  // เปลี่ยนรหัสผ่านของตัวเอง · ใช้ตอนเข้าครั้งแรก / หลัง owner รีเซ็ตรหัส (must_change_password)
+  // สำเร็จแล้ว session อื่นทั้งหมดถูกยกเลิก และได้ token ชุดใหม่กลับไป
+  r.post(
+    '/change-password',
+    requireUser(),
+    validate({ body: changePasswordSchema }),
+    asyncHandler(async (req, res) => {
+      const profile = await repo.getProfile(req.user.id);
+      if (!profile?.is_active) throw errors.unauthorized('บัญชีนี้ถูกปิดใช้งาน', 'ACCOUNT_DISABLED');
+      const wait = loginGuard.lockedFor(profile.username);
+      if (wait) throw lockedError(wait);
+
+      const { current_password, new_password } = req.body;
+      if (!(await auth.signIn(profile.id, current_password))) {
+        throw wrongPassword(profile.username, 'current_password');
+      }
+      loginGuard.reset(profile.username);
+      await auth.setPassword(profile.id, new_password);
+      auth.revokeSessions(profile.id);
+      const updated = await repo.updateProfile(profile.id, { must_change_password: false });
+      const session = await auth.signIn(profile.id, new_password);
+      ok(res, { ...session, user: await presentUser(repo, updated) });
     }),
   );
 
@@ -282,7 +381,7 @@ export function roleRoutes({ repo }) {
 //   POST   /users       O    เพิ่มพนักงานและกำหนด role
 //   PATCH  /users/:id   O    แก้ไข เปลี่ยน role ย้ายสาขา รีเซ็ตรหัสผ่าน
 //   DELETE /users/:id   O    soft delete + ยกเลิก session
-export function userRoutes({ repo, auth }) {
+export function userRoutes({ repo, auth, loginGuard }) {
   const r = Router();
   const owner = requireRole('owner');
 
@@ -352,7 +451,15 @@ export function userRoutes({ repo, auth }) {
         throw new AppError(409, 'USERNAME_TAKEN', `สร้างบัญชี ${username} ไม่สำเร็จ`, [{ message: e.message }]);
       }
       try {
-        const profile = await repo.createProfile({ id: userId, username, full_name, role, branch_id: branchId });
+        // รหัสที่ owner ตั้งให้เป็นรหัสชั่วคราว ผู้ใช้ต้องเปลี่ยนเองตอนเข้าครั้งแรก
+        const profile = await repo.createProfile({
+          id: userId,
+          username,
+          full_name,
+          role,
+          branch_id: branchId,
+          must_change_password: true,
+        });
         ok(res, await presentUser(repo, profile), { status: 201 });
       } catch (e) {
         await auth.deleteUser(userId).catch(() => {}); // rollback บัญชี auth ที่สร้างไปแล้ว
@@ -394,7 +501,12 @@ export function userRoutes({ repo, auth }) {
       if (nextBranch !== current.branch_id) patch.branch_id = nextBranch;
       if (is_active !== undefined && is_active !== current.is_active) patch.is_active = is_active;
 
-      if (password) await auth.setPassword(current.id, password);
+      if (password) {
+        // owner รีเซ็ตรหัส = รหัสชั่วคราว ผู้ใช้ต้องเปลี่ยนเองตอนเข้าครั้งถัดไป และปลดล็อกบัญชีด้วย
+        await auth.setPassword(current.id, password);
+        patch.must_change_password = true;
+        loginGuard?.reset(current.username);
+      }
       if (patch.is_active !== undefined) await auth.setBanned(current.id, !patch.is_active);
       const updated = Object.keys(patch).length ? await repo.updateProfile(current.id, patch) : current;
 

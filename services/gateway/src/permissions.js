@@ -16,6 +16,7 @@ export const PERMISSIONS = {
     { method: 'POST', path: '/auth/login', roles: PUBLIC }, // 1.2
     { method: 'POST', path: '/auth/refresh', roles: PUBLIC },
     { method: 'POST', path: '/auth/logout', roles: SMO },
+    { method: 'POST', path: '/auth/change-password', roles: SMO }, // เปลี่ยนรหัสผ่านตัวเอง
     { method: 'GET', path: '/me', roles: SMO }, // 1.2
     { method: 'GET', path: '/branches', roles: SMO },
     { method: 'GET', path: '/branches/:id', roles: SMO },
