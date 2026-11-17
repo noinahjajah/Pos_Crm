@@ -51,7 +51,7 @@ Pos_Crm/
 │  │  ├─ server.js             จุดเริ่มรัน
 │  │  └─ tools.mjs             npm run tokens / seed:users
 │  ├─ shared.js                โค้ดกลางทุก service: response/error, zod, อ่าน X-User-*
-│  ├─ test/                    gateway.test.js + identity.test.js
+│  ├─ test/                    gateway.test.js + identity.test.js (npm test) · e2e.mjs (npm run e2e)
 │  ├─ supabase/                migration ของ schema identity + seed 3 สาขา
 │  ├─ Dockerfile               build service ไหนก็ได้ (build arg SERVICE)
 │  ├─ docker-compose.yml       รันทั้งระบบด้วย Docker (เปิดแค่ :8080)
@@ -68,6 +68,7 @@ Pos_Crm/
 | `npm run setup` | ติดตั้งทุกอย่าง (server + web) |
 | `npm run dev` | เปิด identity, gateway และเว็บพร้อมกัน |
 | `npm test` | เทสต์ backend |
+| `npm run e2e` | ตรวจการเชื่อมต่อจริง gateway → identity → ฐานข้อมูล 36 รายการ (เปิด `npm run dev` ไว้ก่อน) |
 | `npm run tokens` | token ทดสอบ 3 role ไว้เรียก API ผ่าน gateway |
 | `npm --prefix ../web run lint` / `run build` | ตรวจโค้ดเว็บ / build เว็บ |
 
@@ -96,4 +97,5 @@ Pos_Crm/
 - [x] `npm test` — identity 27, gateway 20 ผ่าน
 - [x] เว็บ lint + build ผ่าน · CI ผ่านรวม `docker compose`
 - [x] ทดสอบกับ Supabase จริง 60 รายการ (login, สิทธิ์, สาขา, ผู้ใช้, session)
+- [x] `npm run e2e` กับ Supabase จริงผ่าน 36/36
 - [x] ทดสอบหน้าเว็บ 3 role ในเบราว์เซอร์
