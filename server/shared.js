@@ -25,7 +25,7 @@ export const errors = {
   gatewayTimeout: (message = 'service ปลายทางตอบช้าเกินกำหนด') => new AppError(504, 'SERVICE_TIMEOUT', message),
 };
 
-export function requestIdOf(req) {
+function requestIdOf(req) {
   return req.requestId || req.get?.('x-request-id') || null;
 }
 
@@ -36,7 +36,7 @@ export function ok(res, data, { status = 200, meta } = {}) {
   return res.status(status).json(body);
 }
 
-export function errorBody(err, requestId) {
+function errorBody(err, requestId) {
   return {
     error: {
       code: err.code || 'INTERNAL_ERROR',
@@ -74,7 +74,7 @@ export function errorHandler({ logger = console } = {}) {
 
 export const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-export function zodDetails(zodError) {
+function zodDetails(zodError) {
   return zodError.issues.map((i) => ({
     field: i.path.join('.') || null,
     message: i.message,
@@ -126,7 +126,7 @@ export function assertNotDevSecrets(values, env = process.env) {
 }
 
 // role และชื่อ header ที่ gateway ส่งต่อให้ service
-export const ROLES = Object.freeze({ STAFF: 'staff', MANAGER: 'manager', OWNER: 'owner' });
+const ROLES = Object.freeze({ STAFF: 'staff', MANAGER: 'manager', OWNER: 'owner' });
 export const ALL_ROLES = Object.freeze([ROLES.STAFF, ROLES.MANAGER, ROLES.OWNER]);
 
 export const HEADERS = Object.freeze({
@@ -137,7 +137,7 @@ export const HEADERS = Object.freeze({
   INTERNAL_KEY: 'x-internal-key',
 });
 
-export function safeEqual(a, b) {
+function safeEqual(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
   const ab = Buffer.from(a);
   const bb = Buffer.from(b);
@@ -180,13 +180,6 @@ export function requireRole(...roles) {
     if (!roles.includes(req.user.role)) return next(errors.forbidden());
     next();
   };
-}
-
-// สาขาที่ทำงานได้: staff/manager ถูกล็อกที่สาขาตัวเอง · owner เลือกได้ (null = ทุกสาขา)
-export function resolveBranchId(req, requested) {
-  if (!req.user) return null;
-  if (req.user.role === ROLES.OWNER) return requested || req.user.branchId || null;
-  return req.user.branchId;
 }
 
 export function branchFilter(req) {

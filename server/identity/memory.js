@@ -16,7 +16,7 @@ export const SEED_USERS = [
   { id: 'cccccccc-cccc-4ccc-8ccc-000000000001', username: 'staff1', full_name: 'พนักงานสาขาร้านอาหาร (ทดสอบ)', role: 'staff', branch_id: SEED_BRANCHES[0].id },
 ];
 
-export const ROLE_ROWS = [
+const ROLE_ROWS = [
   { id: 1, name: 'staff' },
   { id: 2, name: 'manager' },
   { id: 3, name: 'owner' },

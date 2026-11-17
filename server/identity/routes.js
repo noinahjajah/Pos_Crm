@@ -30,12 +30,12 @@ const branchType = z.enum(['restaurant', 'drinks', 'bar']);
 const optionalText = z.string().trim().max(255).nullish().transform((v) => (v ? v : null));
 
 // รูปแบบข้อมูลที่รับเข้า
-export const loginSchema = z.object({
+const loginSchema = z.object({
   username,
   password: z.string().min(1, 'กรุณากรอกรหัสผ่าน'),
 });
 
-export const changePasswordSchema = z
+const changePasswordSchema = z
   .object({
     current_password: z.string().min(1, 'กรุณากรอกรหัสผ่านปัจจุบัน'),
     new_password: password,
@@ -45,11 +45,11 @@ export const changePasswordSchema = z
     message: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม',
   });
 
-export const refreshSchema = z.object({
+const refreshSchema = z.object({
   refresh_token: z.string().min(1),
 });
 
-export const createBranchSchema = z.object({
+const createBranchSchema = z.object({
   code: z.string().trim().toUpperCase().regex(/^[A-Z0-9_-]{2,20}$/, 'รหัสสาขาใช้ A-Z 0-9 _ - ยาว 2–20 ตัว'),
   name: z.string().trim().min(1).max(100),
   branch_type: branchType,
@@ -57,16 +57,16 @@ export const createBranchSchema = z.object({
   phone: optionalText,
 });
 
-export const updateBranchSchema = createBranchSchema
+const updateBranchSchema = createBranchSchema
   .partial()
   .extend({ is_active: z.boolean().optional() })
   .refine((v) => Object.keys(v).length > 0, 'ต้องส่งอย่างน้อย 1 ช่อง');
 
-export const listBranchesQuery = z.object({
+const listBranchesQuery = z.object({
   include_inactive: zx.boolString(),
 });
 
-export const createUserSchema = z
+const createUserSchema = z
   .object({
     username,
     password,
@@ -80,7 +80,7 @@ export const createUserSchema = z
     }
   });
 
-export const updateUserSchema = z
+const updateUserSchema = z
   .object({
     full_name: z.string().trim().min(1).max(100).optional(),
     role: role.optional(),
@@ -90,18 +90,18 @@ export const updateUserSchema = z
   })
   .refine((v) => Object.keys(v).length > 0, 'ต้องส่งอย่างน้อย 1 ช่อง');
 
-export const listUsersQuery = zx.page().extend({
+const listUsersQuery = zx.page().extend({
   role: role.optional(),
   q: z.string().trim().max(50).optional(),
   include_inactive: zx.boolString(),
 });
 
-export function presentBranchRef(branch) {
+function presentBranchRef(branch) {
   return branch ? { id: branch.id, code: branch.code, name: branch.name, branch_type: branch.branch_type } : null;
 }
 
 // แปลงผู้ใช้ก่อนส่งออก (แนบข้อมูลสาขาแบบย่อ)
-export async function presentUser(repo, profile, branchCache) {
+async function presentUser(repo, profile, branchCache) {
   let branch = null;
   if (profile.branch_id) {
     branch = branchCache?.get(profile.branch_id) ?? (await repo.getBranch(profile.branch_id));
@@ -120,7 +120,7 @@ export async function presentUser(repo, profile, branchCache) {
   };
 }
 
-export async function presentUsers(repo, profiles) {
+async function presentUsers(repo, profiles) {
   const branches = await repo.listBranches({ includeInactive: true });
   const cache = new Map(branches.map((b) => [b.id, b]));
   return Promise.all(profiles.map((p) => presentUser(repo, p, cache)));

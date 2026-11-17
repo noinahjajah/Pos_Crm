@@ -23,7 +23,7 @@ command -v brew >/dev/null || /bin/bash -c "$(curl -fsSL https://raw.githubuserc
 
 ## โครงสร้างโฟลเดอร์
 
-`web/`, `เอกสาร/` และ `.gitignore` เป็นโครงเดิมของทีมใน `main` · ส่วนของ Dev 1 ที่ `main` ยังไม่มีแยกไว้ใน `server/`
+`web/`, `เอกสาร/` และ `.gitignore` เป็นโครงเดิมของทีมใน `main` (ลบไฟล์ตัวอย่างของ Vite ที่ไม่ได้ใช้ออกแล้ว) · ส่วนของ Dev 1 ที่ `main` ยังไม่มีแยกไว้ใน `server/`
 
 ```
 Pos_Crm/

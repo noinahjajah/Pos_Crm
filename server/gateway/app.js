@@ -49,7 +49,7 @@ export function buildRoutes(env = process.env) {
   ];
 }
 
-export function matchRoute(routes, fullPath) {
+function matchRoute(routes, fullPath) {
   for (const route of routes) {
     if (fullPath === route.prefix || fullPath.startsWith(`${route.prefix}/`)) {
       return { route, servicePath: fullPath.slice(route.prefix.length) || '/' };
@@ -65,7 +65,7 @@ const fail = (req, res, err) => sendError(res, err, req.gw?.requestId);
 const TRUSTED_HEADERS = [HEADERS.USER_ID, HEADERS.USER_ROLE, HEADERS.BRANCH_ID, HEADERS.INTERNAL_KEY];
 
 // — middleware ตามลำดับที่ทำงาน (ดู createApp) —
-export function requestIdMw() {
+function requestIdMw() {
   return (req, res, next) => {
     for (const h of TRUSTED_HEADERS) delete req.headers[h];
     const incoming = req.headers[HEADERS.REQUEST_ID];
@@ -77,7 +77,7 @@ export function requestIdMw() {
   };
 }
 
-export function corsMw({ corsOrigins }) {
+function corsMw({ corsOrigins }) {
   return cors({
     origin: (origin, cb) => cb(null, !origin || corsOrigins.includes('*') || corsOrigins.includes(origin)),
     allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-Request-Id'],
@@ -88,7 +88,7 @@ export function corsMw({ corsOrigins }) {
 }
 
 // จำกัดจำนวน request ต่อนาที (login เข้มกว่าปกติ)
-export function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
+function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
   const handler = (req, res) => fail(req, res, errors.tooMany());
   const general = rateLimit({ windowMs: 60_000, limit: rateLimitPerMin, standardHeaders: 'draft-7', legacyHeaders: false, handler });
   const login = rateLimit({
@@ -108,7 +108,7 @@ export function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
 const notFound = (req, res) => fail(req, res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'));
 
 // ตรวจ JWT (HS256 ของโหมดจำลอง หรือ JWKS ของ Supabase)
-export function authMw({ routes, jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
+function authMw({ routes, jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
   const secretKey = jwtSecret ? new TextEncoder().encode(jwtSecret) : null;
   const jwks = jwksUrl ? createRemoteJWKSet(new URL(jwksUrl)) : null;
   const options = { audience: jwtAudience, ...(jwtIssuer ? { issuer: jwtIssuer } : {}) };
@@ -155,7 +155,7 @@ export function authMw({ routes, jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
 }
 
 // หากฎของ path จากตารางสิทธิ์ · role ต้องอยู่ในกฎ ไม่งั้น 403 · ไม่มีกฎ → 404
-export function routeGuardMw({ permissions }) {
+function routeGuardMw({ permissions }) {
   return (req, res, next) => {
     if (req.gw.isPublic) return next();
     const { service, servicePath, user } = req.gw;
@@ -169,7 +169,7 @@ export function routeGuardMw({ permissions }) {
 }
 
 // staff/manager ใช้ได้แค่สาขาตัวเอง · owner ส่ง ?branch_id= เลือกสาขาได้
-export function branchScopeMw() {
+function branchScopeMw() {
   return (req, res, next) => {
     const { user } = req.gw;
     if (!user) return next();
@@ -189,7 +189,7 @@ export function branchScopeMw() {
 }
 
 // path ขึ้นต้น /internal ตอบ 404 เสมอ (ใช้เฉพาะ service คุยกันเอง)
-export function blockInternalMw() {
+function blockInternalMw() {
   return (req, res, next) => {
     const p = req.gw.servicePath;
     if (p === '/internal' || p.startsWith('/internal/')) return notFound(req, res);
@@ -198,7 +198,7 @@ export function blockInternalMw() {
 }
 
 // หา IP ด้วย c-ares แทน dns.lookup เพื่อไม่ให้ service ที่ยังไม่มีทำให้ gateway ค้าง
-export function fastLookup(hostname, options, callback) {
+function fastLookup(hostname, options, callback) {
   if (typeof options === 'function') [callback, options] = [options, {}];
   const family = isIP(hostname);
   if (family || hostname === 'localhost') return dns.lookup(hostname, options, callback);
@@ -221,7 +221,7 @@ export function fastLookup(hostname, options, callback) {
 const proxyAgent = new http.Agent({ keepAlive: true, lookup: fastLookup });
 
 // ส่งต่อให้ service · ล่ม → 502, ช้าเกิน → 504
-export function proxyMw({ internalKey, proxyTimeoutMs }) {
+function proxyMw({ internalKey, proxyTimeoutMs }) {
   const rewrite = (_path, req) => {
     const url = new URL(req.originalUrl || req.url, 'http://gateway');
     if (req.gw.dropBranchQuery) url.searchParams.delete('branch_id');
@@ -281,7 +281,7 @@ export function proxyMw({ internalKey, proxyTimeoutMs }) {
   };
 }
 
-export function loggingMw({ logRequests, logger = console }) {
+function loggingMw({ logRequests, logger = console }) {
   return (req, res, next) => {
     if (!logRequests) return next();
     res.on('finish', () => {
@@ -317,7 +317,7 @@ async function hostResolves(hostname, timeoutMs) {
 }
 
 // /health รวมสถานะทุก service (cache 5 วินาที)
-export function healthHandler({ routes, cacheMs = 5000, timeoutMs = 2000 }) {
+function healthHandler({ routes, cacheMs = 5000, timeoutMs = 2000 }) {
   let cached = null;
   let cachedAt = 0;
   let inflight = null;
