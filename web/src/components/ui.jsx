@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth, useBranch } from '../app/providers.jsx'
 
@@ -116,6 +117,43 @@ export function SidePanel({ title, onClose, footer, children }) {
   )
 }
 
+/** state ของฟอร์ม + ส่งข้อมูล: แสดง error รายช่อง (fieldErrors) และข้อความรวม */
+export function useForm(initial) {
+  const [form, setForm] = useState(initial)
+  const [errors, setErrors] = useState({})
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  const reset = (next = initial) => {
+    setForm(next)
+    setErrors({})
+    setError('')
+  }
+  async function submit(action, errorText = (e) => e.message) {
+    setBusy(true)
+    setErrors({})
+    setError('')
+    try {
+      await action()
+    } catch (e) {
+      setErrors(e.fieldErrors || {})
+      setError(errorText(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return { form, setForm, set, errors, setErrors, error, setError, busy, submit, reset }
+}
+
+/** ตัวเลือกสาขาใน <Select> */
+export function BranchOptions({ branches }) {
+  return branches.map((b) => (
+    <option key={b.id} value={b.id}>
+      {b.name} ({b.code})
+    </option>
+  ))
+}
+
 /** ช่องเฟส 2 (สีม่วงเส้นประ) ตาม Prototype */
 export function PhaseNote({ title, children }) {
   return (
@@ -195,11 +233,7 @@ export function PageHeader({ title, subtitle, actions, showBranchSwitch = false 
           aria-label="เลือกสาขา"
         >
           <option value="">ทุกสาขา</option>
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name} ({b.code})
-            </option>
-          ))}
+          <BranchOptions branches={branches} />
         </Select>
       )}
       {showBranchSwitch && !canSwitch && user.branch && <Badge tone="info">{user.branch.name}</Badge>}

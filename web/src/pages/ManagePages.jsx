@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { identityApi, passwordOk, randomPassword } from '../lib/api.js'
 import { BRANCH_TYPE_LABEL, useAuth, useBranch } from '../app/providers.jsx'
-import { Alert, AVATAR_COLOR, Avatar, Badge, Button, Card, Field, PageHeader, PhaseNote, SidePanel, ROLE_LABEL, ROLE_TONE, Select, TextInput } from '../components/ui.jsx'
+import { Alert, AVATAR_COLOR, Avatar, Badge, BranchOptions, Button, Card, Field, PageHeader, PhaseNote, SidePanel, ROLE_LABEL, ROLE_TONE, Select, TextInput, useForm } from '../components/ui.jsx'
 
 // หน้าจัดการของ Dev 1: ผู้ใช้ (1.3, 1.5) และสาขา (1.6)
 
@@ -212,26 +212,21 @@ const ROLE_OPTIONS = [
 function UserForm({ user, isSelf, onClose, onSaved }) {
   const { branches, selectedBranchId } = useBranch()
   const isNew = !user
-  const [form, setForm] = useState({
+  const { form, setForm, set, errors, error, busy, submit } = useForm({
     username: user?.username ?? '',
     full_name: user?.full_name ?? '',
     role: user?.role ?? 'staff',
-    // ผู้ใช้ใหม่: ตั้งเป็นสาขาที่เลือกดูอยู่ (ถ้ามี)
-    branch_id: user?.branch_id ?? (selectedBranchId || branches[0]?.id || ''),
+    branch_id: user?.branch_id ?? '',
     password: '',
     is_active: user?.is_active ?? true,
   })
-  const [errors, setErrors] = useState({})
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  async function save() {
-    setBusy(true)
-    setErrors({})
-    setError('')
-    const branch_id = form.role === 'owner' ? null : form.branch_id || null
-    try {
+  // ผู้ใช้ใหม่: ค่าเริ่มต้นเป็นสาขาที่เลือกดูอยู่ (รายการสาขาอาจโหลดเสร็จหลังเปิดฟอร์ม)
+  const branchValue = form.branch_id || (isNew ? selectedBranchId || branches[0]?.id || '' : '')
+
+  function save() {
+    const branch_id = form.role === 'owner' ? null : branchValue || null
+    return submit(async () => {
       if (isNew) {
         await identityApi.createUser({
           username: form.username,
@@ -247,12 +242,7 @@ function UserForm({ user, isSelf, onClose, onSaved }) {
         await identityApi.updateUser(user.id, body)
       }
       onSaved()
-    } catch (e) {
-      setErrors(e.fieldErrors || {})
-      setError(e.message)
-    } finally {
-      setBusy(false)
-    }
+    })
   }
 
   return (
@@ -320,13 +310,9 @@ function UserForm({ user, isSelf, onClose, onSaved }) {
 
       {form.role !== 'owner' && (
         <Field label="สาขาที่รับผิดชอบ" error={errors.branch_id} hint={form.role === 'manager' ? 'Manager เห็นและจัดการได้เฉพาะสาขานี้' : ''}>
-          <Select value={form.branch_id} onChange={set('branch_id')}>
+          <Select value={branchValue} onChange={set('branch_id')}>
             <option value="">— เลือกสาขา —</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name} ({b.code})
-              </option>
-            ))}
+            <BranchOptions branches={branches} />
           </Select>
         </Field>
       )}
@@ -502,16 +488,11 @@ export function BranchesPage() {
 }
 
 function BranchForm({ branch, onCancel, onSaved }) {
-  const [form, setForm] = useState(() => (branch ? { ...EMPTY, ...branch, address: branch.address || '', phone: branch.phone || '' } : EMPTY))
-  const [errors, setErrors] = useState({})
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  const { form, set, errors, error, busy, submit, reset } = useForm(
+    branch ? { ...EMPTY, ...branch, address: branch.address || '', phone: branch.phone || '' } : EMPTY,
+  )
 
-  async function save() {
-    setBusy(true)
-    setErrors({})
-    setError('')
+  function save() {
     const body = {
       code: form.code.trim().toUpperCase(),
       name: form.name.trim(),
@@ -519,17 +500,12 @@ function BranchForm({ branch, onCancel, onSaved }) {
       address: form.address.trim() || null,
       phone: form.phone.trim() || null,
     }
-    try {
+    return submit(async () => {
       if (branch) await identityApi.updateBranch(branch.id, body)
       else await identityApi.createBranch(body)
-      setForm(EMPTY)
+      reset(EMPTY)
       onSaved()
-    } catch (e) {
-      setErrors(e.fieldErrors || {})
-      setError(e.message)
-    } finally {
-      setBusy(false)
-    }
+    })
   }
 
   return (
@@ -564,9 +540,7 @@ function BranchForm({ branch, onCancel, onSaved }) {
           <Button
             variant="secondary"
             onClick={() => {
-              setForm(EMPTY)
-              setErrors({})
-              setError('')
+              reset(EMPTY)
               onCancel()
             }}
           >

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../app/providers.jsx'
 import { clearLogoutReason, PASSWORD_RULES, passwordOk, peekLogoutReason } from '../lib/api.js'
-import { Alert, Badge, Button, Card, Field, HOME_BY_ROLE, PageHeader, ROLE_LABEL, ROLE_TONE, TextInput } from '../components/ui.jsx'
+import { Alert, Badge, Button, Card, Field, HOME_BY_ROLE, PageHeader, ROLE_LABEL, ROLE_TONE, TextInput, useForm } from '../components/ui.jsx'
 
 // หน้าเกี่ยวกับการเข้าสู่ระบบของ Dev 1: login (1.2) และบัญชีของฉัน (เปลี่ยนรหัสผ่าน)
 
@@ -185,12 +185,8 @@ export function AccountPage() {
   const { user, changePassword } = useAuth()
   const navigate = useNavigate()
   const forced = user.must_change_password
-  const [form, setForm] = useState({ current: '', next: '', confirm: '' })
-  const [errors, setErrors] = useState({})
-  const [error, setError] = useState('')
+  const { form, set, errors, setErrors, error, setError, busy, submit: send, reset } = useForm({ current: '', next: '', confirm: '' })
   const [done, setDone] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const mismatch = form.confirm && form.next !== form.confirm
 
   async function submit(e) {
@@ -200,19 +196,18 @@ export function AccountPage() {
     setDone(false)
     if (!passwordOk(form.next)) return setErrors({ new_password: 'รหัสผ่านใหม่ยังไม่ตรงตามเงื่อนไข' })
     if (mismatch) return setErrors({ confirm: 'ยืนยันรหัสผ่านไม่ตรงกัน' })
-    setBusy(true)
-    try {
-      const u = await changePassword(form.current, form.next)
-      setForm({ current: '', next: '', confirm: '' })
-      setDone(true)
-      if (forced) navigate(HOME_BY_ROLE[u.role] || '/', { replace: true })
-    } catch (err) {
-      setErrors(err.fieldErrors || {})
-      const left = err.details?.[0]?.attempts_left
-      setError(left != null ? `${err.message} (ใส่ผิดได้อีก ${left} ครั้ง)` : err.message)
-    } finally {
-      setBusy(false)
-    }
+    await send(
+      async () => {
+        const u = await changePassword(form.current, form.next)
+        reset()
+        setDone(true)
+        if (forced) navigate(HOME_BY_ROLE[u.role] || '/', { replace: true })
+      },
+      (err) => {
+        const left = err.details?.[0]?.attempts_left
+        return left != null ? `${err.message} (ใส่ผิดได้อีก ${left} ครั้ง)` : err.message
+      },
+    )
   }
 
   return (
