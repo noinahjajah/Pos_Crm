@@ -2,6 +2,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
+import { supabaseUrl } from '../shared.js';
 
 const envFile = new URL('../.env', import.meta.url);
 if (existsSync(envFile)) {
@@ -39,7 +40,7 @@ else {
 
 async function makeTokens() {
   need('SUPABASE_URL', 'SUPABASE_ANON_KEY');
-  const client = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+  const client = createClient(supabaseUrl(env.SUPABASE_URL), env.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
   console.log('# token จริงจาก Supabase (อายุตามที่ตั้งในโปรเจกต์ ปกติ 1 ชั่วโมง)\n');
   for (const u of TEST_USERS) {
     const { data, error } = await client.auth.signInWithPassword({ email: `${u.username}@${domain}`, password });
@@ -56,7 +57,7 @@ async function makeTokens() {
 
 async function seedUsers() {
   need('SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY');
-  const admin = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+  const admin = createClient(supabaseUrl(env.SUPABASE_URL), env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
   const db = admin.schema('identity');
   const { data: roles, error: rolesErr } = await db.from('roles').select('id, name');
   if (rolesErr) throw rolesErr;

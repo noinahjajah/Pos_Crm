@@ -114,6 +114,16 @@ export const zx = {
 
 export { z };
 
+// SUPABASE_URL ให้อยู่ในรูป https://xxx.supabase.co เสมอ (ตัดช่องว่าง เครื่องหมายคำพูด / ท้าย · ใส่ https:// หรือแปลง project ref ให้)
+export function supabaseUrl(raw) {
+  let v = String(raw ?? '').trim().replace(/^['"]|['"]$/g, '').trim().replace(/\/+$/, '');
+  if (!v) return undefined;
+  if (/^[a-z0-9]{20}$/.test(v)) v = `${v}.supabase.co`;
+  if (!/^https?:\/\//i.test(v)) v = `https://${v}`;
+  const url = new URL(v);
+  return url.origin;
+}
+
 // กันลืมเปลี่ยนรหัสตัวอย่างตอนขึ้นระบบจริง (ตรวจเฉพาะ production)
 export function assertNotDevSecrets(values, env = process.env) {
   if (env.NODE_ENV !== 'production' || env.ALLOW_DEV_SECRETS === 'true') return;

@@ -2,7 +2,7 @@
 
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { assertNotDevSecrets, errorHandler, internalAuth, notFoundHandler, requestId } from '../shared.js';
+import { assertNotDevSecrets, errorHandler, internalAuth, notFoundHandler, requestId, supabaseUrl } from '../shared.js';
 import { authRoutes, branchRoutes, createLoginGuard, meRoutes, roleRoutes, userRoutes } from './routes.js';
 import { createSupabaseAuth, createSupabaseRepo } from './supabase.js';
 
@@ -15,9 +15,9 @@ export function loadConfig(overrides = {}) {
     usernameEmailDomain: env.USERNAME_EMAIL_DOMAIN || 'pos.local',
     loginMaxAttempts: Number(env.LOGIN_MAX_ATTEMPTS || 5),
     loginLockMinutes: Number(env.LOGIN_LOCK_MINUTES || 15),
-    supabaseUrl: env.SUPABASE_URL,
-    supabaseAnonKey: env.SUPABASE_ANON_KEY,
-    supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+    supabaseUrl: supabaseUrl(env.SUPABASE_URL),
+    supabaseAnonKey: env.SUPABASE_ANON_KEY?.trim().replace(/^['"]|['"]$/g, ''),
+    supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY?.trim().replace(/^['"]|['"]$/g, ''),
     ...overrides,
   };
   const missing = [

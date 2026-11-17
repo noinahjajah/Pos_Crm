@@ -9,7 +9,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { ALL_ROLES, AppError, HEADERS, assertNotDevSecrets, errorHandler, errors, sendError } from '../shared.js';
+import { ALL_ROLES, AppError, HEADERS, assertNotDevSecrets, errorHandler, errors, sendError, supabaseUrl } from '../shared.js';
 import { compilePermissions, findRule, PERMISSIONS } from './permissions.js';
 
 const env = process.env;
@@ -19,7 +19,7 @@ export function loadConfig(overrides = {}) {
   const config = {
     port: Number(env.PORT || env.GATEWAY_PORT || 8080),
     internalKey: env.INTERNAL_KEY,
-    jwksUrl: env.SUPABASE_JWKS_URL || (env.SUPABASE_URL ? `${env.SUPABASE_URL}/auth/v1/.well-known/jwks.json` : undefined),
+    jwksUrl: env.SUPABASE_JWKS_URL?.trim() || (env.SUPABASE_URL?.trim() ? `${supabaseUrl(env.SUPABASE_URL)}/auth/v1/.well-known/jwks.json` : undefined),
     jwtIssuer: env.JWT_ISSUER || undefined,
     jwtAudience: env.JWT_AUDIENCE || 'authenticated',
     corsOrigins: (env.CORS_ORIGINS || 'http://localhost:5173').split(',').map((s) => s.trim()).filter(Boolean),
