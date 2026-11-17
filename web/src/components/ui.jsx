@@ -176,19 +176,19 @@ export function AppLayout() {
         <div className="sidebar-spacer" />
         <div className="user-box">
           <Avatar name={user.full_name} color={AVATAR_COLOR[user.role]} />
-          <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ minWidth: 0 }}>
             <NavLink to="/account" className="name" title="บัญชีของฉัน / เปลี่ยนรหัสผ่าน">
               {user.full_name}
             </NavLink>
             <div className="sub">
               {ROLE_LABEL[user.role]}
-              {user.branch ? ` · ${user.branch.name}` : ' · ทุกสาขา'}
+              {user.branch ? ` · ${user.branch.name}` : ' · ทุกสาขา'} ·{' '}
+              <button type="button" className="linklike" onClick={logout}>
+                ออกจากระบบ
+              </button>
             </div>
           </div>
         </div>
-        <button type="button" className="logout-btn" onClick={logout}>
-          ออกจากระบบ
-        </button>
       </aside>
       <div className="main">
         <Outlet />
