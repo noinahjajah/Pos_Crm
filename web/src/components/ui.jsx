@@ -1,5 +1,4 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth, useBranch } from '../app/providers.jsx'
 
@@ -114,28 +113,6 @@ export function SidePanel({ title, onClose, footer, children }) {
       <div className="side-panel-body">{children}</div>
       {footer && <div className="side-panel-foot">{footer}</div>}
     </aside>
-  )
-}
-
-export function Modal({ title, onClose, children, footer }) {
-  useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-  return (
-    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
-        <div className="modal-head">
-          <h3>{title}</h3>
-          <button className="icon-btn" onClick={onClose} aria-label="ปิด">
-            ✕
-          </button>
-        </div>
-        <div className="modal-body">{children}</div>
-        {footer && <div className="modal-foot">{footer}</div>}
-      </div>
-    </div>
   )
 }
 
