@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { identityApi, passwordOk, randomPassword } from '../lib/api.js'
-import { BRANCH_TYPE_LABEL, useAuth, useBranch } from '../app/providers.jsx'
-import { Alert, AVATAR_COLOR, Avatar, Badge, BranchOptions, Button, Card, Field, PageHeader, PhaseNote, SidePanel, ROLE_LABEL, ROLE_TONE, Select, TextInput, useForm } from '../components/ui.jsx'
+import { identityApi, passwordOk, randomPassword } from '../api.js'
+import { BRANCH_TYPE_LABEL, useAuth, useBranch, useNotice } from '../providers.jsx'
+import { Alert, AVATAR_COLOR, Avatar, Badge, BranchOptions, Button, Card, Field, PageHeader, PhaseNote, SidePanel, ROLE_LABEL, ROLE_TONE, Select, TextInput, useForm } from '../ui.jsx'
 
 const LIMIT = 20
 
 export function UsersPage() {
   const { user: me } = useAuth()
   const { selectedBranchId } = useBranch()
+  const { toast, confirm } = useNotice()
   const isOwner = me.role === 'owner'
 
   const [rows, setRows] = useState([])
@@ -44,12 +45,18 @@ export function UsersPage() {
   }, [load])
 
   async function remove(u) {
-    if (!confirm(`ลบผู้ใช้ ${u.full_name} (${u.username})?\nบัญชีจะถูกปิดและออกจากระบบทุกเครื่อง`)) return
+    const ok = await confirm({
+      title: `ลบผู้ใช้ ${u.full_name}?`,
+      message: `${u.username} จะถูกปิดบัญชีและออกจากระบบทุกเครื่อง`,
+      confirmLabel: 'ลบผู้ใช้',
+    })
+    if (!ok) return
     try {
       await identityApi.deleteUser(u.id)
+      toast(`ลบผู้ใช้ ${u.username} แล้ว`)
       load()
     } catch (e) {
-      setError(e.message)
+      toast(e.message, 'error')
     }
   }
 
@@ -186,8 +193,9 @@ export function UsersPage() {
               user={editing === 'new' ? null : editing}
               isSelf={editing !== 'new' && editing.id === me.id}
               onClose={() => setEditing(null)}
-              onSaved={() => {
+              onSaved={(message) => {
                 setEditing(null)
+                toast(message)
                 load()
               }}
             />
@@ -222,20 +230,20 @@ function UserForm({ user, isSelf, onClose, onSaved }) {
     const branch_id = form.role === 'owner' ? null : branchValue || null
     return submit(async () => {
       if (isNew) {
-        await identityApi.createUser({
+        const { data } = await identityApi.createUser({
           username: form.username,
           password: form.password,
           full_name: form.full_name,
           role: form.role,
           branch_id,
         })
-      } else {
-        const body = { full_name: form.full_name, role: form.role, branch_id }
-        if (form.password) body.password = form.password
-        if (form.is_active !== user.is_active) body.is_active = form.is_active
-        await identityApi.updateUser(user.id, body)
+        return onSaved(`เพิ่มผู้ใช้ ${data.username} แล้ว · ต้องเปลี่ยนรหัสผ่านตอนเข้าครั้งแรก`)
       }
-      onSaved()
+      const body = { full_name: form.full_name, role: form.role, branch_id }
+      if (form.password) body.password = form.password
+      if (form.is_active !== user.is_active) body.is_active = form.is_active
+      await identityApi.updateUser(user.id, body)
+      onSaved(`บันทึกข้อมูล ${user.username} แล้ว`)
     })
   }
 
@@ -325,6 +333,7 @@ const EMPTY = { code: '', name: '', branch_type: 'restaurant', address: '', phon
 
 export function BranchesPage() {
   const { reload: reloadSwitcher, selectBranch } = useBranch()
+  const { toast, confirm } = useNotice()
   const navigate = useNavigate()
   const formRef = useRef(null)
   const [branches, setBranches] = useState([])
@@ -370,21 +379,28 @@ export function BranchesPage() {
   }
 
   async function close(b) {
-    if (!confirm(`ปิดสาขา ${b.name} (${b.code})?\nพนักงานในสาขานี้ต้องถูกย้ายหรือลบก่อน`)) return
+    const ok = await confirm({
+      title: `ปิดสาขา ${b.name}?`,
+      message: `${b.code} · พนักงานในสาขานี้ต้องถูกย้ายหรือลบก่อน`,
+      confirmLabel: 'ปิดสาขา',
+    })
+    if (!ok) return
     try {
       await identityApi.deleteBranch(b.id)
+      toast(`ปิดสาขา ${b.name} แล้ว`)
       afterChange()
     } catch (e) {
-      setError(e.message)
+      toast(e.message, 'error')
     }
   }
 
   async function reopen(b) {
     try {
       await identityApi.updateBranch(b.id, { is_active: true })
+      toast(`เปิดสาขา ${b.name} อีกครั้งแล้ว`)
       afterChange()
     } catch (e) {
-      setError(e.message)
+      toast(e.message, 'error')
     }
   }
 
@@ -468,8 +484,9 @@ export function BranchesPage() {
             key={editing?.id ?? 'new'}
             branch={editing}
             onCancel={() => setEditing(null)}
-            onSaved={() => {
+            onSaved={(message) => {
               setEditing(null)
+              toast(message)
               afterChange()
             }}
           />
@@ -496,7 +513,7 @@ function BranchForm({ branch, onCancel, onSaved }) {
       if (branch) await identityApi.updateBranch(branch.id, body)
       else await identityApi.createBranch(body)
       reset(EMPTY)
-      onSaved()
+      onSaved(branch ? `บันทึกสาขา ${body.name} แล้ว` : `เพิ่มสาขา ${body.name} แล้ว`)
     })
   }
 

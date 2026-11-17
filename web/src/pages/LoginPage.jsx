@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../app/providers.jsx'
-import { clearLogoutReason, PASSWORD_RULES, passwordOk, peekLogoutReason } from '../lib/api.js'
-import { Alert, Badge, Button, Card, Field, HOME_BY_ROLE, PageHeader, ROLE_LABEL, ROLE_TONE, TextInput, useForm } from '../components/ui.jsx'
+import { useAuth, useNotice } from '../providers.jsx'
+import { clearLogoutReason, PASSWORD_RULES, passwordOk, peekLogoutReason } from '../api.js'
+import { Alert, Badge, Button, Card, Field, HOME_BY_ROLE, PageHeader, ROLE_LABEL, ROLE_TONE, TextInput, useForm } from '../ui.jsx'
 
 const TEST_ACCOUNTS = [
   { username: 'owner', role: 'owner', dest: 'แดชบอร์ดรวมทุกสาขา' },
@@ -57,6 +57,7 @@ function PasswordInput({ value, onChange, autoComplete, invalid, autoFocus }) {
 
 export function LoginPage() {
   const { login, user } = useAuth()
+  const { toast } = useNotice()
   const navigate = useNavigate()
   const location = useLocation()
   const [username, setUsername] = useState('')
@@ -75,6 +76,7 @@ export function LoginPage() {
     setBusy(true)
     try {
       const u = await login(username.trim().toLowerCase(), password)
+      toast(`ยินดีต้อนรับ ${u.full_name}`)
       const target = u.must_change_password ? '/account' : location.state?.from || HOME_BY_ROLE[u.role] || '/'
       navigate(target, { replace: true })
     } catch (err) {
@@ -178,22 +180,21 @@ export function AccountPage() {
   const { user, changePassword } = useAuth()
   const navigate = useNavigate()
   const forced = user.must_change_password
+  const { toast } = useNotice()
   const { form, set, errors, setErrors, error, setError, busy, submit: send, reset } = useForm({ current: '', next: '', confirm: '' })
-  const [done, setDone] = useState(false)
   const mismatch = form.confirm && form.next !== form.confirm
 
   async function submit(e) {
     e.preventDefault()
     setError('')
     setErrors({})
-    setDone(false)
     if (!passwordOk(form.next)) return setErrors({ new_password: 'รหัสผ่านใหม่ยังไม่ตรงตามเงื่อนไข' })
     if (mismatch) return setErrors({ confirm: 'ยืนยันรหัสผ่านไม่ตรงกัน' })
     await send(
       async () => {
         const u = await changePassword(form.current, form.next)
         reset()
-        setDone(true)
+        toast('เปลี่ยนรหัสผ่านแล้ว อุปกรณ์อื่นที่เข้าสู่ระบบไว้จะต้องเข้าใหม่')
         if (forced) navigate(HOME_BY_ROLE[u.role] || '/', { replace: true })
       },
       (err) => {
@@ -235,7 +236,6 @@ export function AccountPage() {
 
           <Card title="เปลี่ยนรหัสผ่าน">
             <form onSubmit={submit} className="stack" noValidate>
-              {done && <Alert tone="info">เปลี่ยนรหัสผ่านแล้ว อุปกรณ์อื่นที่เข้าสู่ระบบไว้จะต้องเข้าใหม่</Alert>}
               <Alert>{error}</Alert>
               <Field label="รหัสผ่านปัจจุบัน" error={errors.current_password}>
                 <PasswordInput value={form.current} onChange={set('current')} autoComplete="current-password" invalid={!!errors.current_password} autoFocus={forced} />

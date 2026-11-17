@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { useAuth, useBranch } from '../app/providers.jsx'
+import { useAuth, useBranch, useNotice } from './providers.jsx'
 
 export const MENU = [
   { path: '/dashboard', label: 'แดชบอร์ด', labelByRole: { owner: 'ภาพรวมทุกสาขา', manager: 'แดชบอร์ดสาขา' }, roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.34–1.37' },
@@ -153,6 +153,7 @@ export const AVATAR_COLOR = { owner: '#6b3fd6', manager: '#2e6b5a', staff: '#8a8
 
 export function AppLayout() {
   const { user, logout } = useAuth()
+  const { toast } = useNotice()
   const items = menuFor(user.role)
 
   return (
@@ -183,7 +184,14 @@ export function AppLayout() {
             <div className="sub">
               {ROLE_LABEL[user.role]}
               {user.branch ? ` · ${user.branch.name}` : ' · ทุกสาขา'} ·{' '}
-              <button type="button" className="linklike" onClick={logout}>
+              <button
+                type="button"
+                className="linklike"
+                onClick={() => {
+                  logout()
+                  toast('ออกจากระบบแล้ว', 'info')
+                }}
+              >
                 ออกจากระบบ
               </button>
             </div>

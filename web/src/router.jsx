@@ -1,9 +1,9 @@
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from './providers.jsx'
-import { AppLayout, Badge, Card, DEV_LABEL, HOME_BY_ROLE, MENU, PageHeader } from '../components/ui.jsx'
-import { AccountPage, LoginPage } from '../pages/LoginPage.jsx'
-import { BranchesPage, UsersPage } from '../pages/ManagePages.jsx'
-import { PrintPreviewPage } from '../pages/PrintPage.jsx'
+import { AppLayout, Badge, Card, DEV_LABEL, HOME_BY_ROLE, MENU, PageHeader } from './ui.jsx'
+import { AccountPage, LoginPage } from './pages/LoginPage.jsx'
+import { BranchesPage, UsersPage } from './pages/ManagePages.jsx'
+import { PrintPreviewPage } from './pages/PrintPage.jsx'
 
 const PAGES = {
   '/branches': <BranchesPage />,
@@ -40,7 +40,7 @@ function PlaceholderPage({ item }) {
           <p style={{ margin: 0, lineHeight: 1.6 }}>
             เส้นทาง <code>{item.path}</code> และสิทธิ์ตาม role พร้อมแล้ว ({user.role} เข้าได้)
             <br />
-            {DEV_LABEL[item.dev]} สร้างหน้าใน <code>web/src/pages/</code> แล้วผูกใน <code>web/src/app/router.jsx</code> แทนหน้านี้
+            {DEV_LABEL[item.dev]} สร้างหน้าใน <code>web/src/pages/</code> แล้วผูกใน <code>web/src/router.jsx</code> แทนหน้านี้
           </p>
         </Card>
       </div>

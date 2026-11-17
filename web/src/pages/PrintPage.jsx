@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { flushSync } from 'react-dom'
-import { useAuth, useBranch } from '../app/providers.jsx'
-import { Button, Card, PageHeader } from '../components/ui.jsx'
+import { useAuth, useBranch } from '../providers.jsx'
+import { Button, Card, PageHeader } from '../ui.jsx'
 
 export const VAT_RATE = 0.07
 
