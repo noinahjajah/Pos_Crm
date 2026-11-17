@@ -38,17 +38,25 @@ Pos_Crm/
 │  │  ├─ ManagePages.jsx       จัดการผู้ใช้ + จัดการสาขา
 │  │  └─ PrintPage.jsx         ใบเข้าครัว + ใบเสร็จ (Dev 3 ใช้ KitchenTicket, Receipt)
 │  └─ nginx.conf               ใช้ตอนรันเว็บใน Docker (ส่ง /api ต่อให้ gateway)
-├─ server/                     ← backend ของ Dev 1 (ใหม่ ไม่มีใน main)
-│  ├─ services/
-│  │  ├─ gateway/              API Gateway :8080 · src/permissions.js = ตารางสิทธิ์ ← Dev 2/3 เพิ่มสิทธิ์ที่นี่
-│  │  ├─ identity/             login / ผู้ใช้ / role / สาขา :3001 · tools.mjs = npm run tokens / seed:users
-│  │  └─ catalog/ pos/ payment/  (ยังไม่มี) Dev 2 / Dev 3 สร้างแบบเดียวกับ identity
-│  ├─ packages/shared/         โค้ดกลางที่ทุก service ใช้: response/error, zod, อ่าน X-User-*
+├─ server/                     ← backend ของ Dev 1 (ใหม่ ไม่มีใน main) · package เดียว
+│  ├─ gateway/                 API Gateway :8080
+│  │  ├─ app.js                middleware 10 ตัวตาม spec + proxy ไป service
+│  │  ├─ permissions.js        ตารางสิทธิ์ {method, path, roles} ← Dev 2/3 เพิ่มสิทธิ์ที่นี่
+│  │  └─ server.js             จุดเริ่มรัน
+│  ├─ identity/                login / ผู้ใช้ / role / สาขา :3001
+│  │  ├─ app.js                ประกอบ service + อ่าน .env
+│  │  ├─ routes.js             ทุก endpoint ของ identity
+│  │  ├─ supabase.js           ต่อฐานข้อมูลจริง (DATA_MODE=supabase)
+│  │  ├─ memory.js             ข้อมูลจำลอง (DATA_MODE=memory)
+│  │  ├─ server.js             จุดเริ่มรัน
+│  │  └─ tools.mjs             npm run tokens / seed:users
+│  ├─ shared.js                โค้ดกลางทุก service: response/error, zod, อ่าน X-User-*
+│  ├─ test/                    gateway.test.js + identity.test.js
 │  ├─ supabase/                migration ของ schema identity + seed 3 สาขา
-│  ├─ Dockerfile               build ทุก service ฝั่ง Node
+│  ├─ Dockerfile               build service ไหนก็ได้ (build arg SERVICE)
 │  ├─ docker-compose.yml       รันทั้งระบบด้วย Docker (เปิดแค่ :8080)
 │  ├─ .env.example             ตัวอย่างค่าตั้งค่า คัดลอกเป็น server/.env (ห้ามใส่ key จริง)
-│  └─ package.json             npm run setup / dev / test / tokens
+│  └─ package.json             package เดียวของ backend: setup / dev / test / tokens
 ├─ เอกสาร/                      ← spec เฟส 1 + ภาพ ERD ของทีม
 └─ .github/workflows/ci.yml    ← CI ตรวจ server + web + docker
 ```
@@ -64,16 +72,16 @@ Pos_Crm/
 | `npm --prefix ../web run lint` / `run build` | ตรวจโค้ดเว็บ / build เว็บ |
 
 ### Dev 2 / Dev 3 ใช้ต่อยังไง
-- สิทธิ์ของ endpoint: เพิ่มใน `server/services/gateway/src/permissions.js`
-- service ใหม่: สร้าง `server/services/<ชื่อ>` ใช้ `@pos/shared` (`internalAuth()`, `requireRole()`, `branchFilter()`, `validate()`, `ok()`)
+- สิทธิ์ของ endpoint: เพิ่มใน `server/gateway/permissions.js`
+- service ใหม่: สร้างโฟลเดอร์ `server/<ชื่อ>/server.js` (เช่น `server/catalog/`) ใช้ `../shared.js` (`internalAuth()`, `requireRole()`, `branchFilter()`, `validate()`, `ok()`)
 - หน้าเว็บ: สร้างใน `web/src/pages/` แล้วผูกใน `web/src/app/router.jsx` (`PAGES`)
 - ใบพิมพ์: `KitchenTicket`, `Receipt`, `usePrintSlip` จาก `web/src/pages/PrintPage.jsx`
 - token ทดสอบ 3 role: `npm run tokens` (ในโฟลเดอร์ `server`)
 
 ## มีอะไรบ้าง
-- `server/services/identity` :3001 — login / refresh / logout / เปลี่ยนรหัสผ่าน, ล็อกบัญชีเมื่อใส่ผิด 5 ครั้ง, `GET /me`, สาขา, role, ผู้ใช้ (owner จัดการ, manager ดูเฉพาะสาขาตัวเอง)
-- `server/services/gateway` :8080 — middleware 10 ตัว, ตารางสิทธิ์ `{method, path, roles}` ครบทุก service, branch scope, บล็อก `/internal/*`, 502/504
-- `server/packages/shared` — response/error มาตรฐาน, zod, อ่าน `X-User-*` + `X-Internal-Key`
+- `server/identity/` :3001 — login / refresh / logout / เปลี่ยนรหัสผ่าน, ล็อกบัญชีเมื่อใส่ผิด 5 ครั้ง, `GET /me`, สาขา, role, ผู้ใช้ (owner จัดการ, manager ดูเฉพาะสาขาตัวเอง)
+- `server/gateway/` :8080 — middleware 10 ตัว, ตารางสิทธิ์ `{method, path, roles}` ครบทุก service, branch scope, บล็อก `/internal/*`, 502/504
+- `server/shared.js` — response/error มาตรฐาน, zod, อ่าน `X-User-*` + `X-Internal-Key`
 - `server/supabase/` — schema identity + custom access token hook + seed 3 สาขา
 - `server/Dockerfile`, `server/docker-compose.yml` (เปิดแค่ 8080), `server/.env.example`
 - `web/` — login, เมนูตาม role, จัดการผู้ใช้/สาขา, บัญชีของฉัน, แจ้งเตือนในระบบ, ใบเข้าครัวและใบเสร็จ 80mm (สูตร VAT 1.24) · หน้าของ Dev 2/3 เป็นหน้ารอพร้อมสิทธิ์
@@ -82,7 +90,7 @@ Pos_Crm/
 - เพิ่ม `GET /branches/:id` และ `GET /users/:id` (ไม่มีใน spec)
 - ปิดสาขาที่ยังมีผู้ใช้อยู่ไม่ได้ → 409 `BRANCH_HAS_ACTIVE_USERS`
 - ใส่ `GET /pos/kitchen/stream` (S M) ไว้ในตารางสิทธิ์ก่อน (ประเด็นเปิด 9.4)
-- โครงสร้าง: เว็บอยู่ `web/` ตามโครงเดิม · backend อยู่ `server/` (npm workspaces: `services/<ชื่อ>` + `packages/shared`)
+- โครงสร้าง: เว็บอยู่ `web/` ตามโครงเดิม · backend อยู่ `server/` เป็น package เดียว (1 package.json, 1 lock) แต่ละ service เป็นโฟลเดอร์ `server/<ชื่อ>/`
 
 ## ทดสอบ
 - [x] `npm test` — identity 27, gateway 20 ผ่าน

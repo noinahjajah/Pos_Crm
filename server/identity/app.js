@@ -2,7 +2,7 @@
 
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { assertNotDevSecrets, errorHandler, internalAuth, notFoundHandler, requestId } from '@pos/shared';
+import { assertNotDevSecrets, errorHandler, internalAuth, notFoundHandler, requestId } from '../shared.js';
 import { authRoutes, branchRoutes, createLoginGuard, meRoutes, roleRoutes, userRoutes } from './routes.js';
 import { createMemoryAuth, createMemoryRepo, SEED_USERS } from './memory.js';
 import { createSupabaseAuth, createSupabaseRepo } from './supabase.js';

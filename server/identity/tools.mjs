@@ -2,9 +2,9 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { SignJWT } from 'jose';
-import { SEED_USERS } from './src/memory.js';
+import { SEED_USERS } from './memory.js';
 
-const envFile = new URL('../../.env', import.meta.url);
+const envFile = new URL('../.env', import.meta.url);
 if (existsSync(envFile)) {
   for (const line of readFileSync(envFile, 'utf8').split('\n')) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);

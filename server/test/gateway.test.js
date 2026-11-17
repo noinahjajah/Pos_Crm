@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import request from 'supertest';
 import { SignJWT } from 'jose';
-import { createApp } from '../src/app.js';
+import { createApp } from '../gateway/app.js';
 
 const SECRET = 'test-secret-test-secret-test-secret';
 const KEY = 'internal-test-key';
@@ -213,9 +213,9 @@ test('path แปลก (.. / %2F) → 400 ไม่ส่งต่อให้ 
   assert.equal(b.status, 400);
 });
 
-import { PERMISSIONS } from '../src/permissions.js';
-import { createApp as createIdentityApp } from '../../identity/src/app.js';
-import { createMemoryAuth, createMemoryRepo, SEED_USERS, SEED_BRANCHES } from '../../identity/src/memory.js';
+import { PERMISSIONS } from '../gateway/permissions.js';
+import { createApp as createIdentityApp } from '../identity/app.js';
+import { createMemoryAuth, createMemoryRepo, SEED_USERS, SEED_BRANCHES } from '../identity/memory.js';
 
 async function startStack() {
   const repo = createMemoryRepo();

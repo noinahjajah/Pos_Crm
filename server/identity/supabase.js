@@ -1,6 +1,6 @@
 // โหมดจริง (DATA_MODE=supabase): ข้อมูลอยู่ใน schema identity · login ด้วย Supabase Auth
 
-import { AppError } from '@pos/shared';
+import { AppError } from '../shared.js';
 
 export function createSupabaseRepo(adminClient) {
   const db = adminClient.schema('identity');

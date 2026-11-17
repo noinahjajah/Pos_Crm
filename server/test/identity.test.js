@@ -3,8 +3,8 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import { createApp } from '../src/app.js';
-import { createMemoryAuth, createMemoryRepo, SEED_BRANCHES, SEED_USERS } from '../src/memory.js';
+import { createApp } from '../identity/app.js';
+import { createMemoryAuth, createMemoryRepo, SEED_BRANCHES, SEED_USERS } from '../identity/memory.js';
 
 const KEY = 'test-internal-key';
 const [OWNER, MANAGER, STAFF] = SEED_USERS;

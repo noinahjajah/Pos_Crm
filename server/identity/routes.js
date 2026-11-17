@@ -12,7 +12,7 @@ import {
   validate,
   z,
   zx,
-} from '@pos/shared';
+} from '../shared.js';
 
 const username = z
   .string()

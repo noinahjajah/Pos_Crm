@@ -1,29 +1,11 @@
-# Dockerfile กลางของทุก service ฝั่ง Node · เลือก service ด้วย build arg SERVICE
-
-FROM node:22-alpine AS manifests
-WORKDIR /src
-COPY . .
-RUN mkdir -p /out \
- && cp package.json package-lock.json /out/ \
- && for f in packages/*/package.json services/*/package.json; do \
-      mkdir -p "/out/$(dirname "$f")" && cp "$f" "/out/$f"; \
-    done
-
-# ติดตั้งเฉพาะ dependency ของ service ที่เลือก
-FROM node:22-alpine AS deps
-ARG SERVICE
-WORKDIR /app
-COPY --from=manifests /out ./
-RUN npm ci --omit=dev --workspace "services/${SERVICE}" --include-workspace-root=false --ignore-scripts
-
-# image สำหรับรันจริง
+# Dockerfile กลางของ backend · เลือก service ด้วย build arg SERVICE (gateway / identity / ...)
 FROM node:22-alpine
 ARG SERVICE
-ENV NODE_ENV=production
+ENV NODE_ENV=production SERVICE=${SERVICE}
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY packages/shared ./packages/shared
-COPY services/${SERVICE} ./services/${SERVICE}
-WORKDIR /app/services/${SERVICE}
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts
+COPY shared.js ./
+COPY ${SERVICE} ./${SERVICE}
 USER node
-CMD ["node", "src/server.js"]
+CMD ["sh", "-c", "node ${SERVICE}/server.js"]
