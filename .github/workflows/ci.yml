@@ -1,0 +1,68 @@
+# CI: เทสต์ backend, ตรวจ+build เว็บ, ลองรันด้วย Docker
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    name: backend (gateway + identity)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  web:
+    name: web (lint + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  docker:
+    name: docker compose (build + login ผ่าน gateway)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: เตรียม .env (โหมดจำลอง)
+        run: cp .env.example .env
+      - name: build + up (เปิดแค่ gateway :8080)
+        run: docker compose up --build -d
+      - name: รอ gateway พร้อม
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8080/health -o /dev/null -w '%{http_code}' && break
+            curl -s http://localhost:8080/health | grep -q '"identity":"ok"' && break
+            sleep 2
+          done
+          curl -s http://localhost:8080/health
+      - name: login ผ่าน gateway → me
+        run: |
+          TOKEN=$(curl -sf -X POST http://localhost:8080/api/v1/identity/auth/login \
+            -H 'Content-Type: application/json' -d '{"username":"owner","password":"password123"}' \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).data.access_token))')
+          curl -sf http://localhost:8080/api/v1/identity/me -H "Authorization: Bearer $TOKEN"
+          ! curl -sf http://localhost:3001/health
+      - name: log เมื่อพัง
+        if: failure()
+        run: docker compose logs
+      - if: always()
+        run: docker compose down
