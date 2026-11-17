@@ -38,14 +38,13 @@ before(async () => {
   upstreamUrl = `http://127.0.0.1:${upstream.address().port}`;
 
   const routes = [
-    { name: 'identity', prefix: '/api/v1/identity', target: upstreamUrl },
+    { name: 'identity', prefix: '/api/v1/identity', target: upstreamUrl, public: ['/auth/login'] },
     { name: 'catalog', prefix: '/api/v1/catalog', target: upstreamUrl },
     { name: 'pos', prefix: '/api/v1/pos', target: 'http://127.0.0.1:1' },
     { name: 'payment', prefix: '/api/v1/payment', target: upstreamUrl },
   ];
   const permissions = {
     identity: [
-      { method: 'POST', path: '/auth/login', roles: 'public' },
       { method: 'GET', path: '/me', roles: ['staff', 'manager', 'owner'] },
       { method: 'GET', path: '/users', roles: ['manager', 'owner'] },
       { method: 'POST', path: '/users', roles: ['owner'] },
@@ -166,9 +165,9 @@ test('staff ที่ไม่มีสาขาใน token → 403 NO_BRANCH',
   assert.equal(res.body.error.code, 'NO_BRANCH');
 });
 
-test('/internal/* ตอบ 404 เสมอ แม้เป็น owner', async () => {
+test('/internal/* ตอบ 404 เสมอ แม้เป็น owner (ไม่มี token ถูกกันที่ Auth ก่อน)', async () => {
   const anon = await request(gw).post('/api/v1/catalog/internal/stocks/deduct');
-  assert.equal(anon.status, 404);
+  assert.equal(anon.status, 401);
   const owner = await request(gw).post('/api/v1/catalog/internal/stocks/deduct').set(await bearer('owner', null));
   assert.equal(owner.status, 404);
 });
@@ -239,7 +238,7 @@ async function startStack() {
       logRequests: false,
     },
     {
-      routes: [{ name: 'identity', prefix: '/api/v1/identity', target }],
+      routes: [{ name: 'identity', prefix: '/api/v1/identity', target, public: ['/auth/login', '/auth/refresh'] }],
       permissions: { identity: PERMISSIONS.identity },
       logger: { log() {}, error() {} },
     },
@@ -263,7 +262,7 @@ test('integration: ทุก endpoint ในตารางสิทธิ์ข
     };
     const sampleId = SEED_BRANCHES[0].id;
     for (const rule of PERMISSIONS.identity) {
-      if (rule.roles === 'public' || rule.path === '/auth/logout' || rule.method === 'DELETE') continue;
+      if (rule.path === '/auth/logout' || rule.method === 'DELETE') continue;
       const path = `/api/v1/identity${rule.path.replace(':id', sampleId)}`;
       for (const role of ['owner', 'manager', 'staff']) {
         const res = await request(app)[rule.method.toLowerCase()](path).set(tokens[role]).send({});

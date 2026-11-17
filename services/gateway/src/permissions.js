@@ -1,4 +1,4 @@
-// ตารางสิทธิ์ของทุก endpoint: แก้สิทธิ์ที่ไฟล์นี้ไฟล์เดียว (Dev 2/3 เพิ่มของตัวเองได้)
+// ตารางสิทธิ์ { method, path, roles } ตาม spec ข้อ 4 (path public อยู่ใน buildRoutes ของ app.js) · Dev 2/3 เพิ่มของตัวเองที่นี่
 
 const S = 'staff';
 const M = 'manager';
@@ -6,12 +6,9 @@ const O = 'owner';
 const SMO = [S, M, O];
 const MO = [M, O];
 const SM = [S, M];
-const PUBLIC = 'public';
 
 export const PERMISSIONS = {
   identity: [
-    { method: 'POST', path: '/auth/login', roles: PUBLIC },
-    { method: 'POST', path: '/auth/refresh', roles: PUBLIC },
     { method: 'POST', path: '/auth/logout', roles: SMO },
     { method: 'POST', path: '/auth/change-password', roles: SMO },
     { method: 'GET', path: '/me', roles: SMO },

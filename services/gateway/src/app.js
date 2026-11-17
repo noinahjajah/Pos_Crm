@@ -42,7 +42,7 @@ export function loadConfig(overrides = {}) {
 // service ปลายทาง: /api/v1/<ชื่อ service>/... → URL ของ service
 export function buildRoutes(env = process.env) {
   return [
-    { name: 'identity', prefix: '/api/v1/identity', target: env.IDENTITY_URL || 'http://identity:3001' },
+    { name: 'identity', prefix: '/api/v1/identity', target: env.IDENTITY_URL || 'http://identity:3001', public: ['/auth/login', '/auth/refresh'] },
     { name: 'catalog', prefix: '/api/v1/catalog', target: env.CATALOG_URL || 'http://catalog:3002' },
     { name: 'pos', prefix: '/api/v1/pos', target: env.POS_URL || 'http://pos:3003' },
     { name: 'payment', prefix: '/api/v1/payment', target: env.PAYMENT_URL || 'http://payment:3004' },
@@ -105,28 +105,10 @@ export function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
   ];
 }
 
-// หา service และกฎสิทธิ์ของ path นี้ · กัน path แปลก ๆ เช่น ".." → 400
-export function resolveRouteMw({ routes, permissions }) {
-  return (req, res, next) => {
-    if (/(^|\/)\.\.?(\/|$)|%2e|%2f|%5c|\\/i.test(req.path)) {
-      return fail(req, res, errors.badRequest('path ไม่ถูกต้อง'));
-    }
-    const match = matchRoute(routes, req.path);
-    if (!match) return fail(req, res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'));
-    const { route, servicePath } = match;
-    if (servicePath === '/internal' || servicePath.startsWith('/internal/')) {
-      return fail(req, res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'));
-    }
-    const { rule, methodMismatch } = findRule(permissions, route.name, req.method, servicePath);
-    if (methodMismatch) return fail(req, res, new AppError(405, 'METHOD_NOT_ALLOWED', 'ไม่รองรับ method นี้'));
-    if (!rule) return fail(req, res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'));
-    Object.assign(req.gw, { route, servicePath, rule, service: route.name });
-    next();
-  };
-}
+const notFound = (req, res) => fail(req, res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'));
 
 // ตรวจ JWT (HS256 ของโหมดจำลอง หรือ JWKS ของ Supabase)
-export function authMw({ jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
+export function authMw({ routes, jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
   const secretKey = jwtSecret ? new TextEncoder().encode(jwtSecret) : null;
   const jwks = jwksUrl ? createRemoteJWKSet(new URL(jwksUrl)) : null;
   const options = { audience: jwtAudience, ...(jwtIssuer ? { issuer: jwtIssuer } : {}) };
@@ -142,7 +124,12 @@ export function authMw({ jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
   }
 
   return async (req, res, next) => {
-    if (req.gw.rule.roles === 'public') return next();
+    if (/(^|\/)\.\.?(\/|$)|%2e|%2f|%5c|\\/i.test(req.path)) return fail(req, res, errors.badRequest('path ไม่ถูกต้อง'));
+    const match = matchRoute(routes, req.path);
+    if (!match) return notFound(req, res);
+    const { route, servicePath } = match;
+    Object.assign(req.gw, { route, servicePath, service: route.name, isPublic: (route.public || []).includes(servicePath) });
+    if (req.gw.isPublic) return next();
     const header = req.headers.authorization || '';
     const [scheme, token] = header.split(' ');
     if (scheme?.toLowerCase() !== 'bearer' || !token) {
@@ -167,12 +154,16 @@ export function authMw({ jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
   };
 }
 
-// role ต้องอยู่ในกฎของ path นี้ ไม่งั้น 403
-export function routeGuardMw() {
+// หากฎของ path จากตารางสิทธิ์ · role ต้องอยู่ในกฎ ไม่งั้น 403 · ไม่มีกฎ → 404
+export function routeGuardMw({ permissions }) {
   return (req, res, next) => {
-    const { rule, user } = req.gw;
-    if (rule.roles === 'public') return next();
+    if (req.gw.isPublic) return next();
+    const { service, servicePath, user } = req.gw;
+    const { rule, methodMismatch } = findRule(permissions, service, req.method, servicePath);
+    if (methodMismatch) return fail(req, res, new AppError(405, 'METHOD_NOT_ALLOWED', 'ไม่รองรับ method นี้'));
+    if (!rule) return notFound(req, res);
     if (!rule.roles.includes(user.role)) return fail(req, res, errors.forbidden());
+    req.gw.rule = rule;
     next();
   };
 }
@@ -193,6 +184,15 @@ export function branchScopeMw() {
     if (!user.branchId) return fail(req, res, errors.forbidden('บัญชีนี้ยังไม่ได้ผูกกับสาขา', 'NO_BRANCH'));
     req.gw.branchId = user.branchId;
     req.gw.dropBranchQuery = requested !== undefined;
+    next();
+  };
+}
+
+// path ขึ้นต้น /internal ตอบ 404 เสมอ (ใช้เฉพาะ service คุยกันเอง)
+export function blockInternalMw() {
+  return (req, res, next) => {
+    const p = req.gw.servicePath;
+    if (p === '/internal' || p.startsWith('/internal/')) return notFound(req, res);
     next();
   };
 }
@@ -277,7 +277,7 @@ export function proxyMw({ internalKey, proxyTimeoutMs }) {
   const streaming = make(true);
   return (req, res, next) => {
     setInternalHeaders(req);
-    return (req.gw.rule.stream ? streaming : normal)(req, res, next);
+    return (req.gw.rule?.stream ? streaming : normal)(req, res, next);
   };
 }
 
@@ -357,16 +357,16 @@ export function createApp(config, { routes = buildRoutes(), permissions = PERMIS
   app.set('trust proxy', config.trustProxy);
   const compiled = compilePermissions(permissions);
 
-  app.use(requestIdMw());
-  app.use(loggingMw({ logRequests: config.logRequests, logger }));
-  app.use(corsMw(config));
+  app.use(requestIdMw()); // 1. Request ID
+  app.use(loggingMw({ logRequests: config.logRequests, logger })); // 10. Logging (เริ่มจับเวลาตั้งแต่ต้น บันทึกตอนตอบเสร็จ)
+  app.use(corsMw(config)); // 2. CORS
   app.get('/health', healthHandler({ routes }));
-  app.use(rateLimitMw(config));
-  app.use(resolveRouteMw({ routes, permissions: compiled }));
-  app.use(authMw(config));
-  app.use(routeGuardMw());
-  app.use(branchScopeMw());
-  app.use(proxyMw(config));
+  app.use(rateLimitMw(config)); // 3. Rate limit
+  app.use(authMw({ ...config, routes })); // 4. Auth
+  app.use(routeGuardMw({ permissions: compiled })); // 5. Route guard
+  app.use(branchScopeMw()); // 6. Branch scope
+  app.use(blockInternalMw()); // 7. Block internal
+  app.use(proxyMw(config)); // 8. Proxy + 9. Error format
 
   app.use((req, res) => sendError(res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'), req.gw?.requestId));
   app.use(errorHandler({ logger }));
