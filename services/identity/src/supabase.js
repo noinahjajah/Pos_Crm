@@ -1,15 +1,6 @@
 import { AppError } from '@pos/shared';
 
-// =====================================================================
-// DATA_MODE=supabase — ใช้ Supabase Auth + schema identity จริง
-// =====================================================================
-
-/**
- * เก็บข้อมูลใน Supabase schema `identity` (DATA_MODE=supabase)
- * ใช้ service role key ฝั่ง server เท่านั้น
- *
- * ต้องเพิ่ม `identity` ใน Dashboard → Project Settings → API → Exposed schemas
- */
+/** เก็บข้อมูลใน Supabase schema `identity` (DATA_MODE=supabase) */
 export function createSupabaseRepo(adminClient) {
   const db = adminClient.schema('identity');
 
@@ -141,16 +132,7 @@ export function createSupabaseRepo(adminClient) {
   };
 }
 
-/**
- * ระบบ login จริงด้วย Supabase Auth (DATA_MODE=supabase)
- * - ผู้ใช้ login ด้วย username → แปลงเป็นอีเมล <username>@<USERNAME_EMAIL_DOMAIN>
- * - claim user_role / branch_id ถูกใส่โดย identity.custom_access_token_hook
- *
- * @param {{ anonClient: import('@supabase/supabase-js').SupabaseClient,
- *           adminClient: import('@supabase/supabase-js').SupabaseClient,
- *           emailOf: (username: string) => string,
- *           repo: any }} deps
- */
+/** ระบบ login จริงด้วย Supabase Auth (DATA_MODE=supabase) */
 export function createSupabaseAuth({ anonClient, adminClient, emailOf, repo }) {
   const toSession = (s) => ({
     access_token: s.access_token,
@@ -199,11 +181,8 @@ export function createSupabaseAuth({ anonClient, adminClient, emailOf, repo }) {
       if (error) throw new Error(error.message);
     },
 
-    // Supabase admin API ยกเลิก session ด้วย user id ตรง ๆ ไม่ได้
-    // เปลี่ยน role/สาขา: claim ใหม่จะมีผลตอน refresh token รอบถัดไป (access token หมดอายุตาม JWT expiry)
     revokeSessions() {},
 
-    // ลบผู้ใช้ = ban ใน Supabase Auth → refresh/login ไม่ได้อีก
     async setBanned(userId, isBanned) {
       const { error } = await adminClient.auth.admin.updateUserById(userId, {
         ban_duration: isBanned ? '876000h' : 'none',
@@ -211,7 +190,6 @@ export function createSupabaseAuth({ anonClient, adminClient, emailOf, repo }) {
       if (error) throw new Error(error.message);
     },
 
-    // ใช้ตอนสร้างผู้ใช้แล้วบันทึก profile ไม่สำเร็จ (rollback)
     async deleteUser(userId) {
       await adminClient.auth.admin.deleteUser(userId);
     },

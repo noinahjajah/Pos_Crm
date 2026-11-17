@@ -1,4 +1,4 @@
-# ===== Dependencies =====
+# Dependencies
 node_modules/
 .pnp
 .pnp.js
@@ -6,7 +6,7 @@ node_modules/
 !.yarn/patches
 !.yarn/releases
 
-# ===== Build output =====
+# Build output
 dist/
 dist-ssr/
 build/
@@ -14,7 +14,7 @@ coverage/
 .vite/
 *.tsbuildinfo
 
-# ===== Environment / secrets =====
+# Environment / secrets
 .env
 .env.*
 !.env.example
@@ -24,7 +24,7 @@ coverage/
 *.crt
 *.p12
 
-# ===== Logs =====
+# Logs
 logs/
 *.log
 npm-debug.log*
@@ -33,7 +33,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# ===== Runtime / cache =====
+# Runtime / cache
 .cache/
 .eslintcache
 .npm/
@@ -43,16 +43,16 @@ temp/
 *.seed
 *.pid.lock
 
-# ===== Database (local dev) =====
+# Database (local dev)
 *.sqlite
 *.sqlite3
 *.db
 uploads/
 
-# ===== Docker =====
+# Docker
 docker-compose.override.yml
 
-# ===== Editor / IDE =====
+# Editor / IDE
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
@@ -63,7 +63,7 @@ docker-compose.override.yml
 *.sln
 *.sw?
 
-# ===== OS =====
+# OS
 .DS_Store
 Thumbs.db
 desktop.ini

@@ -39,7 +39,7 @@ before(async () => {
   const routes = [
     { name: 'identity', prefix: '/api/v1/identity', target: upstreamUrl },
     { name: 'catalog', prefix: '/api/v1/catalog', target: upstreamUrl },
-    { name: 'pos', prefix: '/api/v1/pos', target: 'http://127.0.0.1:1' }, // ล่ม
+    { name: 'pos', prefix: '/api/v1/pos', target: 'http://127.0.0.1:1' },
     { name: 'payment', prefix: '/api/v1/payment', target: upstreamUrl },
   ];
   const permissions = {
@@ -213,10 +213,6 @@ test('path แปลก (.. / %2F) → 400 ไม่ส่งต่อให้ 
   assert.equal(b.status, 400);
 });
 
-// =====================================================================
-// integration: gateway + identity ตัวจริง (memory mode) ต่อกันผ่าน HTTP
-// ตรวจว่าตารางสิทธิ์ใน permissions.js ตรงกับ route ที่ identity มีจริง
-// =====================================================================
 import { PERMISSIONS } from '../src/permissions.js';
 import { createApp as createIdentityApp } from '../../identity/src/app.js';
 import { createMemoryAuth, createMemoryRepo, SEED_USERS, SEED_BRANCHES } from '../../identity/src/memory.js';
@@ -302,7 +298,6 @@ test('integration: flow ผู้ใช้ใหม่ผ่าน gateway — �
       .send({ current_password: 'temp1234', new_password: 'flow2026x' });
     assert.equal(changed.status, 200);
 
-    // manager ใหม่เห็นผู้ใช้เฉพาะสาขาเครื่องดื่ม
     const users = await request(app)
       .get('/api/v1/identity/users')
       .set({ Authorization: `Bearer ${changed.body.data.access_token}` });

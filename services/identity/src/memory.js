@@ -1,13 +1,6 @@
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { SignJWT } from 'jose';
 
-// =====================================================================
-// DATA_MODE=memory — ยังไม่ต่อ Supabase: เก็บข้อมูลในหน่วยความจำ + ออก JWT เอง
-// =====================================================================
-
-// ข้อมูลตั้งต้นที่ใช้ร่วมกันระหว่าง memory mode, สคริปต์ seed ผู้ใช้ และสคริปต์ออก token ทดสอบ
-// id สาขาตรงกับ supabase/seed/identity_branches.sql
-
 export const SEED_BRANCHES = [
   { id: '11111111-1111-4111-8111-111111111111', code: 'RES01', name: 'สาขาร้านอาหาร', branch_type: 'restaurant', address: null, phone: null },
   { id: '22222222-2222-4222-8222-222222222222', code: 'DRK01', name: 'สาขาเครื่องดื่ม', branch_type: 'drinks', address: null, phone: null },
@@ -27,10 +20,7 @@ export const ROLE_ROWS = [
   { id: 3, name: 'owner' },
 ];
 
-/**
- * เก็บ branches / roles / profiles ในหน่วยความจำ (DATA_MODE=memory)
- * interface เดียวกับ supabaseRepo — route ไม่ต้องรู้ว่าใช้ตัวไหน
- */
+/** เก็บ branches / roles / profiles ในหน่วยความจำ (DATA_MODE=memory) */
 export function createMemoryRepo({ seed = true } = {}) {
   const now = () => new Date().toISOString();
   const branches = new Map();
@@ -48,12 +38,10 @@ export function createMemoryRepo({ seed = true } = {}) {
   return {
     kind: 'memory',
 
-    // ---------- roles ----------
     async listRoles() {
       return ROLE_ROWS.map((r) => ({ ...r }));
     },
 
-    // ---------- branches ----------
     async listBranches({ id, includeInactive = false } = {}) {
       return [...branches.values()]
         .filter((b) => (id ? b.id === id : true))
@@ -82,7 +70,6 @@ export function createMemoryRepo({ seed = true } = {}) {
       return [...profiles.values()].filter((p) => p.branch_id === branchId && p.is_active).length;
     },
 
-    // ---------- profiles ----------
     async listProfiles({ branchId, role, q, includeInactive = false, page = 1, limit = 20 } = {}) {
       const needle = q?.toLowerCase();
       const all = [...profiles.values()]
@@ -114,16 +101,11 @@ export function createMemoryRepo({ seed = true } = {}) {
   };
 }
 
-/**
- * ระบบ login จำลอง (DATA_MODE=memory) — ไม่ต่อ Supabase
- * ออก access token แบบ HS256 ที่มี claim เหมือน Supabase + custom access token hook
- * (sub, role=authenticated, aud=authenticated, user_role, branch_id)
- * gateway จึงตรวจได้ด้วย JWT_SECRET ตัวเดียวกัน
- */
+/** ระบบ login จำลอง (DATA_MODE=memory) — ไม่ต่อ Supabase */
 export function createMemoryAuth({ repo, jwtSecret, accessTokenTtlSec = 900, refreshTokenTtlSec = 604800, seedUserIds = [], seedPassword }) {
   const key = new TextEncoder().encode(jwtSecret);
-  const passwords = new Map(); // userId -> hash
-  const refreshTokens = new Map(); // token -> { userId, expiresAt }
+  const passwords = new Map();
+  const refreshTokens = new Map();
   const banned = new Set();
 
   const hash = (password) => {
@@ -168,7 +150,7 @@ export function createMemoryAuth({ repo, jwtSecret, accessTokenTtlSec = 900, ref
 
     async refresh(refreshToken) {
       const entry = refreshTokens.get(refreshToken);
-      refreshTokens.delete(refreshToken); // ใช้ได้ครั้งเดียว (rotation)
+      refreshTokens.delete(refreshToken);
       if (!entry || entry.expiresAt < Date.now() || banned.has(entry.userId)) return null;
       return { userId: entry.userId, session: await issueSession(entry.userId) };
     },
@@ -204,7 +186,6 @@ export function createMemoryAuth({ repo, jwtSecret, accessTokenTtlSec = 900, ref
     },
   };
 
-  // ตั้งรหัสผ่านของผู้ใช้ทดสอบ
   if (seedPassword) for (const id of seedUserIds) passwords.set(id, hash(seedPassword));
 
   return auth;

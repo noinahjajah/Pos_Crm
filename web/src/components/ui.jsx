@@ -3,27 +3,21 @@ import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth, useBranch } from '../app/providers.jsx'
 
-// ===================== เมนูตาม role (1.2) =====================
-// เมนูตาม role (1.2) — ใช้ทั้งสร้าง sidebar และกันเข้าหน้า (route guard ฝั่งเว็บ)
-// owner: เจ้าของงานแต่ละหน้า (dev1 / dev2 / dev3) — หน้าที่ยังไม่ใช่ของ Dev 1 แสดงเป็นหน้าว่างรอเพื่อนทำ
+// เมนูตาม role (1.2)
 
 export const MENU = [
-  // ----- Dev 2: catalog + payment + รายงาน -----
   { path: '/dashboard', label: 'แดชบอร์ด', labelByRole: { owner: 'ภาพรวมทุกสาขา', manager: 'แดชบอร์ดสาขา' }, roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.34–1.37' },
   { path: '/menus', label: 'เมนู ตัวเลือก สต็อก', roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.14–1.22' },
   { path: '/menu-availability', label: 'เปิด/ปิดขายเมนู', roles: ['staff'], dev: 'dev2', reqs: '1.15' },
   { path: '/expenses', label: 'รายจ่าย', roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.32–1.33' },
 
-  // ----- Dev 1: สาขา ผู้ใช้ -----
   { path: '/branches', label: 'จัดการสาขา', roles: ['owner'], dev: 'dev1' },
   { path: '/users', label: 'ผู้ใช้งาน', labelByRole: { manager: 'พนักงานในสาขา' }, roles: ['manager', 'owner'], dev: 'dev1' },
 
-  // ----- Dev 3: pos -----
   { path: '/tables', label: 'ผังโต๊ะ', roles: ['staff', 'manager'], dev: 'dev3', reqs: '1.7–1.13' },
   { path: '/kitchen', label: 'จอครัว', roles: ['staff', 'manager'], dev: 'dev3', reqs: '1.9–1.10' },
   { path: '/approvals', label: 'คำขออนุมัติ', labelByRole: { staff: 'คำขอของฉัน' }, roles: ['staff', 'manager', 'owner'], dev: 'dev3', reqs: '1.27–1.31' },
 
-  // ----- Dev 1: layout ใบพิมพ์ (1.10) -----
   { path: '/print', label: 'ตัวอย่างใบพิมพ์', roles: ['staff', 'manager', 'owner'], dev: 'dev1' },
 ]
 
@@ -39,7 +33,7 @@ export const HOME_BY_ROLE = { owner: '/dashboard', manager: '/dashboard', staff:
 export const ROLE_LABEL = { owner: 'Owner', manager: 'Manager', staff: 'Staff' }
 export const ROLE_TONE = { owner: 'phase', manager: 'info', staff: 'neutral' }
 
-// ===================== ชิ้นส่วน UI =====================
+// ชิ้นส่วน UI
 export function Button({ variant = 'primary', size, block, className = '', ...props }) {
   const cls = ['btn', `btn-${variant}`, size === 'sm' && 'btn-sm', block && 'btn-block', className].filter(Boolean).join(' ')
   return <button type="button" className={cls} {...props} />
@@ -164,7 +158,7 @@ export function PhaseNote({ title, children }) {
   )
 }
 
-// ===================== Layout: sidebar + แถบหัว =====================
+// Layout: sidebar + แถบหัว
 export const AVATAR_COLOR = { owner: '#6b3fd6', manager: '#2e6b5a', staff: '#8a857c' }
 
 export function AppLayout() {

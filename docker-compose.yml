@@ -1,10 +1,4 @@
 # POS CRM — Docker Compose ทั้งระบบ
-# เปิดออกนอกแค่ gateway :8080 · service อื่นอยู่ใน network ภายในเท่านั้น
-#
-#   cp .env.example .env
-#   docker compose up --build                 # gateway + identity (งาน Dev 1)
-#   docker compose --profile all up --build   # ทุก service (เมื่อ Dev 2/3 เพิ่มโฟลเดอร์ services/catalog, pos, payment แล้ว)
-#   docker compose --profile web up --build   # + เว็บที่ http://localhost:5173
 
 x-node-service: &node-service
   env_file: .env
@@ -46,7 +40,7 @@ services:
       timeout: 3s
       retries: 3
 
-  # ----- service ของ Dev 2 / Dev 3 (เปิดด้วย --profile all) -----
+  # service ของ Dev 2 / Dev 3 (เปิดด้วย --profile all)
   catalog:
     <<: *node-service
     profiles: [all]
@@ -95,7 +89,7 @@ services:
       timeout: 3s
       retries: 3
 
-  # ----- เว็บ (เปิดด้วย --profile web) — nginx เสิร์ฟไฟล์ build และส่ง /api ต่อให้ gateway -----
+  # เว็บ (เปิดด้วย --profile web) — nginx เสิร์ฟไฟล์ build และส่ง /api ต่อให้ gateway
   web:
     profiles: [web]
     build:

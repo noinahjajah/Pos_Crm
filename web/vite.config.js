@@ -8,7 +8,6 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       port: 5173,
-      // ตอน dev ส่ง /api ต่อให้ gateway (ไม่ต้องตั้ง CORS)
       proxy: {
         '/api': { target: env.VITE_GATEWAY_URL || 'http://localhost:8080', changeOrigin: true },
       },

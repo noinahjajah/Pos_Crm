@@ -4,13 +4,10 @@ import { identityApi, passwordOk, randomPassword } from '../lib/api.js'
 import { BRANCH_TYPE_LABEL, useAuth, useBranch } from '../app/providers.jsx'
 import { Alert, AVATAR_COLOR, Avatar, Badge, BranchOptions, Button, Card, Field, PageHeader, PhaseNote, SidePanel, ROLE_LABEL, ROLE_TONE, Select, TextInput, useForm } from '../components/ui.jsx'
 
-// หน้าจัดการของ Dev 1: ผู้ใช้ (1.3, 1.5) และสาขา (1.6)
-
-// ===================== ผู้ใช้ =====================
+// ผู้ใช้
 const LIMIT = 20
 
 // ผู้ใช้ (1.3, 1.5)
-// owner: เพิ่ม/แก้ไข/ลบ ได้ทุกสาขา · manager: ดูรายชื่อพนักงานสาขาตัวเองอย่างเดียว
 export function UsersPage() {
   const { user: me } = useAuth()
   const { selectedBranchId } = useBranch()
@@ -23,7 +20,7 @@ export function UsersPage() {
   const [role, setRole] = useState('')
   const [showInactive, setShowInactive] = useState(false)
   const [error, setError] = useState('')
-  const [editing, setEditing] = useState(null) // null | 'new' | user
+  const [editing, setEditing] = useState(null)
 
   const load = useCallback(async () => {
     setError('')
@@ -44,7 +41,7 @@ export function UsersPage() {
   }, [page, q, role, showInactive, isOwner, selectedBranchId])
 
   useEffect(() => {
-    const t = setTimeout(load, 250) // หน่วงตอนพิมพ์ค้นหา
+    const t = setTimeout(load, 250)
     return () => clearTimeout(t)
   }, [load])
 
@@ -221,7 +218,6 @@ function UserForm({ user, isSelf, onClose, onSaved }) {
     is_active: user?.is_active ?? true,
   })
 
-  // ผู้ใช้ใหม่: ค่าเริ่มต้นเป็นสาขาที่เลือกดูอยู่ (รายการสาขาอาจโหลดเสร็จหลังเปิดฟอร์ม)
   const branchValue = form.branch_id || (isNew ? selectedBranchId || branches[0]?.id || '' : '')
 
   function save() {
@@ -327,7 +323,7 @@ function UserForm({ user, isSelf, onClose, onSaved }) {
   )
 }
 
-// ===================== สาขา =====================
+// สาขา
 const EMPTY = { code: '', name: '', branch_type: 'restaurant', address: '', phone: '' }
 
 // จัดการสาขา — owner เท่านั้น (1.6)
@@ -336,10 +332,10 @@ export function BranchesPage() {
   const navigate = useNavigate()
   const formRef = useRef(null)
   const [branches, setBranches] = useState([])
-  const [stats, setStats] = useState({}) // branch_id → { manager, staff }
+  const [stats, setStats] = useState({})
   const [showClosed, setShowClosed] = useState(false)
   const [error, setError] = useState('')
-  const [editing, setEditing] = useState(null) // null = เพิ่มใหม่ | branch = แก้ไข
+  const [editing, setEditing] = useState(null)
 
   function startEdit(b) {
     setEditing(b)
@@ -368,7 +364,7 @@ export function BranchesPage() {
   }, [showClosed])
 
   useEffect(() => {
-    const t = setTimeout(load, 0) // โหลดหลัง render (ไม่ setState ใน effect ตรง ๆ)
+    const t = setTimeout(load, 0)
     return () => clearTimeout(t)
   }, [load])
 

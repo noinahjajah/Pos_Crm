@@ -18,7 +18,6 @@ function RequireAuth() {
   const { user } = useAuth()
   const location = useLocation()
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
-  // รหัสชั่วคราวจาก owner: ต้องเปลี่ยนรหัสผ่านก่อนใช้งานหน้าอื่น
   if (user.must_change_password && location.pathname !== '/account') return <Navigate to="/account" replace />
   return <Outlet />
 }
@@ -35,9 +34,7 @@ function HomeRedirect() {
   return <Navigate to={HOME_BY_ROLE[user.role] || '/print'} replace />
 }
 
-// ===================== หน้าว่างรอเพื่อน / 403 / 404 =====================
-// หน้าที่เป็นงานของ Dev 2 / Dev 3 — Dev 1 ทำแค่เส้นทางและสิทธิ์ตาม role ไว้ให้
-// เพื่อนแทนที่ component นี้ใน src/app/router.jsx ด้วยหน้าจริง
+// หน้าว่างรอเพื่อน / 403 / 404
 function PlaceholderPage({ item }) {
   const { user } = useAuth()
   return (
@@ -79,7 +76,7 @@ function ForbiddenPage() {
   )
 }
 
-// ===================== เส้นทาง =====================
+// เส้นทาง
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   {

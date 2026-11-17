@@ -5,10 +5,7 @@ import { authRoutes, branchRoutes, createLoginGuard, meRoutes, roleRoutes, userR
 import { createMemoryAuth, createMemoryRepo, SEED_USERS } from './memory.js';
 import { createSupabaseAuth, createSupabaseRepo } from './supabase.js';
 
-// ===================== config =====================
-// ค่าตั้งของ identity service (อ่านจาก environment)
-// DATA_MODE=memory  → ไม่ต่อ Supabase เก็บข้อมูลในหน่วยความจำ + ออก JWT เอง (ใช้ทดสอบ/พัฒนา)
-// DATA_MODE=supabase → ใช้ Supabase Auth + schema identity จริง
+// config
 
 const env = process.env;
 
@@ -18,15 +15,12 @@ export function loadConfig(overrides = {}) {
     dataMode: env.DATA_MODE || 'memory',
     internalKey: env.INTERNAL_KEY,
     usernameEmailDomain: env.USERNAME_EMAIL_DOMAIN || 'pos.local',
-    // memory mode
     jwtSecret: env.JWT_SECRET,
     accessTokenTtlSec: Number(env.ACCESS_TOKEN_TTL_SEC || 900),
     refreshTokenTtlSec: Number(env.REFRESH_TOKEN_TTL_SEC || 60 * 60 * 24 * 7),
     mockPassword: env.MOCK_PASSWORD || 'password123',
-    // กันเดารหัสผ่าน: ใส่ผิดติดกันกี่ครั้งถึงล็อก และล็อกกี่นาที
     loginMaxAttempts: Number(env.LOGIN_MAX_ATTEMPTS || 5),
     loginLockMinutes: Number(env.LOGIN_LOCK_MINUTES || 15),
-    // supabase mode
     supabaseUrl: env.SUPABASE_URL,
     supabaseAnonKey: env.SUPABASE_ANON_KEY,
     supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
@@ -58,7 +52,7 @@ export function loadConfig(overrides = {}) {
   return config;
 }
 
-// ===================== ประกอบ repo + auth ตาม DATA_MODE =====================
+// ประกอบ repo + auth ตาม DATA_MODE
 export function createDeps(config) {
   if (config.dataMode === 'supabase') {
     const opts = { auth: { persistSession: false, autoRefreshToken: false } };
@@ -86,13 +80,7 @@ export function createDeps(config) {
   return { repo, auth };
 }
 
-// ===================== express app =====================
-/**
- * สร้าง express app ของ identity service
- * gateway ตัด prefix /api/v1/identity ออกก่อนส่งมา เช่น /api/v1/identity/users → /users
- *
- * @param {{ repo: object, auth: object, internalKey: string, logger?: Console }} deps
- */
+// express app
 export function createApp({ repo, auth, internalKey, loginGuard = createLoginGuard(), logger = console }) {
   const app = express();
   app.disable('x-powered-by');

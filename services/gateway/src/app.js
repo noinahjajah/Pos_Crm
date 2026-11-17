@@ -10,15 +10,13 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { ALL_ROLES, AppError, HEADERS, assertNotDevSecrets, errorHandler, errors, sendError } from '@pos/shared';
 import { compilePermissions, findRule, PERMISSIONS } from './permissions.js';
 
-// ===================== config =====================
-// ค่าตั้งของ gateway (อ่านจาก environment)
+// config
 const env = process.env;
 
 export function loadConfig(overrides = {}) {
   const config = {
     port: Number(env.PORT || env.GATEWAY_PORT || 8080),
     internalKey: env.INTERNAL_KEY,
-    // ตรวจ JWT ของ Supabase: แบบใหม่ใช้ JWKS (ES256/RS256) · แบบเก่า/โหมดจำลองใช้ JWT secret (HS256)
     jwtSecret: env.JWT_SECRET || env.SUPABASE_JWT_SECRET,
     jwksUrl: env.SUPABASE_JWKS_URL || (env.SUPABASE_URL ? `${env.SUPABASE_URL}/auth/v1/.well-known/jwks.json` : undefined),
     jwtIssuer: env.JWT_ISSUER || undefined,
@@ -39,9 +37,7 @@ export function loadConfig(overrides = {}) {
   return config;
 }
 
-// ===================== service ปลายทาง =====================
-// service ปลายทาง: gateway ตัด prefix ออกก่อนส่งต่อ
-// เช่น /api/v1/pos/orders → pos เห็น /orders
+// service ปลายทาง
 
 export function buildRoutes(env = process.env) {
   return [
@@ -62,17 +58,13 @@ export function matchRoute(routes, fullPath) {
   return null;
 }
 
-// =====================================================================
-// middleware 10 ตัวของ gateway (spec ข้อ 2) — ลำดับที่ใช้จริงอยู่ใน app.js
-// =====================================================================
-
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const fail = (req, res, err) => sendError(res, err, req.gw?.requestId);
 
 // header ที่ client ห้ามส่งเอง (gateway เป็นคนใส่เท่านั้น)
 const TRUSTED_HEADERS = [HEADERS.USER_ID, HEADERS.USER_ROLE, HEADERS.BRANCH_ID, HEADERS.INTERNAL_KEY];
 
-// ---------- 1. Request ID ----------
+// 1. Request ID
 export function requestIdMw() {
   return (req, res, next) => {
     for (const h of TRUSTED_HEADERS) delete req.headers[h];
@@ -85,7 +77,7 @@ export function requestIdMw() {
   };
 }
 
-// ---------- 2. CORS ----------
+// 2. CORS
 export function corsMw({ corsOrigins }) {
   return cors({
     origin: (origin, cb) => cb(null, !origin || corsOrigins.includes('*') || corsOrigins.includes(origin)),
@@ -96,7 +88,7 @@ export function corsMw({ corsOrigins }) {
   });
 }
 
-// ---------- 3. Rate limit ----------
+// 3. Rate limit
 export function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
   const handler = (req, res) => fail(req, res, errors.tooMany());
   const general = rateLimit({ windowMs: 60_000, limit: rateLimitPerMin, standardHeaders: 'draft-7', legacyHeaders: false, handler });
@@ -114,12 +106,9 @@ export function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
   ];
 }
 
-// ---------- (ก่อน 4) หา service และ rule จากตารางสิทธิ์ ----------
-// ---------- 7. Block internal ----------
-// ทำก่อน Auth เพื่อให้ /internal/* ตอบ 404 เสมอ ไม่ว่าจะ login หรือไม่
+// (ก่อน 4) หา service และ rule จากตารางสิทธิ์
 export function resolveRouteMw({ routes, permissions }) {
   return (req, res, next) => {
-    // กัน path แปลก ๆ หลุดผ่านตารางสิทธิ์ไปถึง service (เช่น /users/.. หรือ %2F ที่ถอดเป็น / ทีหลัง)
     if (/(^|\/)\.\.?(\/|$)|%2e|%2f|%5c|\\/i.test(req.path)) {
       return fail(req, res, errors.badRequest('path ไม่ถูกต้อง'));
     }
@@ -137,7 +126,7 @@ export function resolveRouteMw({ routes, permissions }) {
   };
 }
 
-// ---------- 4. Auth ----------
+// 4. Auth
 export function authMw({ jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
   const secretKey = jwtSecret ? new TextEncoder().encode(jwtSecret) : null;
   const jwks = jwksUrl ? createRemoteJWKSet(new URL(jwksUrl)) : null;
@@ -179,7 +168,7 @@ export function authMw({ jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
   };
 }
 
-// ---------- 5. Route guard ----------
+// 5. Route guard
 export function routeGuardMw() {
   return (req, res, next) => {
     const { rule, user } = req.gw;
@@ -189,9 +178,7 @@ export function routeGuardMw() {
   };
 }
 
-// ---------- 6. Branch scope ----------
-// S, M: ใช้สาขาจาก token เสมอ (ตัด ?branch_id= ที่ client ส่งทิ้ง)
-// O: ?branch_id= = ดูสาขาเดียว · ไม่ส่ง = ทุกสาขา
+// 6. Branch scope
 export function branchScopeMw() {
   return (req, res, next) => {
     const { user } = req.gw;
@@ -211,9 +198,7 @@ export function branchScopeMw() {
   };
 }
 
-// ---------- DNS ที่ไม่ใช้ thread pool ----------
-// ใช้ c-ares (dns.resolve) แทน dns.lookup เพื่อไม่ให้ชื่อ service ที่ยังไม่มี / DNS ช้า ไปจอง thread pool
-// จนทุก request ของ gateway ค้าง · IP และ localhost ใช้ lookup ตามปกติ (ไม่ต้องถาม DNS)
+// DNS ที่ไม่ใช้ thread pool
 export function fastLookup(hostname, options, callback) {
   if (typeof options === 'function') [callback, options] = [options, {}];
   const family = isIP(hostname);
@@ -236,7 +221,7 @@ export function fastLookup(hostname, options, callback) {
 
 const proxyAgent = new http.Agent({ keepAlive: true, lookup: fastLookup });
 
-// ---------- 8. Proxy + 9. Error format (service ล่ม → 502, ช้า → 504) ----------
+// 8. Proxy + 9. Error format (service ล่ม → 502, ช้า → 504)
 export function proxyMw({ internalKey, proxyTimeoutMs }) {
   const rewrite = (_path, req) => {
     const url = new URL(req.originalUrl || req.url, 'http://gateway');
@@ -244,9 +229,6 @@ export function proxyMw({ internalKey, proxyTimeoutMs }) {
     return req.gw.servicePath + url.search;
   };
 
-  // ใส่ header ภายในลง req.headers ก่อนส่งต่อ (http-proxy คัดลอกไปเอง)
-  // ไม่ใช้ proxyReq.setHeader เพราะบาง Node (เช่น 26 บน Windows) ส่ง header ไปก่อน event proxyReq
-  // ทำให้ setHeader พังเงียบ ๆ และ service ได้ request ที่ไม่มี X-Internal-Key
   const setInternalHeaders = (req) => {
     const { user, branchId, requestId } = req.gw;
     req.headers['x-request-id'] = requestId;
@@ -260,7 +242,6 @@ export function proxyMw({ internalKey, proxyTimeoutMs }) {
 
   const onProxyReq = (stream) => (proxyReq, req) => {
     if (!stream) {
-      // timeout ของ gateway เอง เพื่อแยก 504 (ช้า) ออกจาก 502 (ล่ม)
       const timer = setTimeout(() => {
         req.gw.timedOut = true;
         proxyReq.destroy(new Error('upstream timeout'));
@@ -300,8 +281,7 @@ export function proxyMw({ internalKey, proxyTimeoutMs }) {
   };
 }
 
-// ---------- 10. Logging ----------
-// ลงทะเบียนต้น pipeline แต่เขียน log ตอน response จบ (จึงได้ status และเวลาจริง)
+// 10. Logging
 export function loggingMw({ logRequests, logger = console }) {
   return (req, res, next) => {
     if (!logRequests) return next();
@@ -326,11 +306,7 @@ export function loggingMw({ logRequests, logger = console }) {
   };
 }
 
-// ---------- health รวมสถานะทุก service ----------
-// ระวัง: dns.lookup (ที่ fetch/http ใช้) ทำงานบน thread pool ของ Node ซึ่งมีแค่ 4 thread
-// ถ้าชื่อ service ยังไม่มี (เช่น catalog ที่ Dev 2 ยังไม่ขึ้น) การ lookup ใน docker อาจค้างนาน
-// แล้วจอง thread จน proxy ไปหา identity ไม่ได้ → login ค้าง 504
-// จึงตรวจชื่อด้วย dns.resolve (c-ares ไม่ใช้ thread pool) ก่อน และจำผลไว้ 5 วินาที
+// health รวมสถานะทุก service
 async function hostResolves(hostname, timeoutMs) {
   if (isIP(hostname) || hostname === 'localhost') return true;
   const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('dns timeout')), timeoutMs));
@@ -375,32 +351,25 @@ export function healthHandler({ routes, cacheMs = 5000, timeoutMs = 2000 }) {
   };
 }
 
-// ===================== express app =====================
-/**
- * ลำดับ middleware ที่ใช้จริง
- *   1 Request ID → 10 Logging (ผูก hook ตอนจบ) → 2 CORS → 3 Rate limit
- *   → 7 Block internal + หา rule → 4 Auth → 5 Route guard → 6 Branch scope → 8 Proxy
- *   → 9 Error format (ใน proxy error handler และ errorHandler ท้ายสุด)
- * gateway ไม่ parse body เพื่อส่ง stream ต่อให้ service ตรง ๆ
- */
+// express app
 export function createApp(config, { routes = buildRoutes(), permissions = PERMISSIONS, logger = console } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.trustProxy);
   const compiled = compilePermissions(permissions);
 
-  app.use(requestIdMw()); // 1
-  app.use(loggingMw({ logRequests: config.logRequests, logger })); // 10
-  app.use(corsMw(config)); // 2
+  app.use(requestIdMw());
+  app.use(loggingMw({ logRequests: config.logRequests, logger }));
+  app.use(corsMw(config));
   app.get('/health', healthHandler({ routes }));
-  app.use(rateLimitMw(config)); // 3
-  app.use(resolveRouteMw({ routes, permissions: compiled })); // 7
-  app.use(authMw(config)); // 4
-  app.use(routeGuardMw()); // 5
-  app.use(branchScopeMw()); // 6
-  app.use(proxyMw(config)); // 8 + 9
+  app.use(rateLimitMw(config));
+  app.use(resolveRouteMw({ routes, permissions: compiled }));
+  app.use(authMw(config));
+  app.use(routeGuardMw());
+  app.use(branchScopeMw());
+  app.use(proxyMw(config));
 
   app.use((req, res) => sendError(res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'), req.gw?.requestId));
-  app.use(errorHandler({ logger })); // 9
+  app.use(errorHandler({ logger }));
   return app;
 }

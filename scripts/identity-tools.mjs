@@ -1,14 +1,4 @@
 #!/usr/bin/env node
-// เครื่องมือของ identity (Dev 1)
-//
-//   npm run tokens       ออก access token ทดสอบ 3 role (staff, manager, owner) ด้วย JWT_SECRET
-//                        ให้ Dev 2 / Dev 3 เรียก service ของตัวเองผ่าน gateway ได้ก่อน login เสร็จ
-//                        เพิ่ม -- --hours 24 เพื่อกำหนดอายุ token
-//   npm run seed:users   สร้างผู้ใช้ทดสอบ 3 role ใน Supabase จริง (ใช้ตอนพร้อมต่อ Supabase แล้วเท่านั้น)
-//                        ต้องรัน migration + supabase/seed.sql ก่อน และตั้ง SUPABASE_URL,
-//                        SUPABASE_SERVICE_ROLE_KEY, SEED_PASSWORD
-//
-// อ่านค่าจากไฟล์ .env ที่ root ถ้ามี (ไม่ต้องลง dotenv)
 
 import { existsSync, readFileSync } from 'node:fs';
 import { SignJWT } from 'jose';

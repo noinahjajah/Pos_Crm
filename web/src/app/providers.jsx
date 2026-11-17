@@ -2,7 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getSession, identityApi, onSessionChange, setSession } from '../lib/api.js'
 
-// ===================== Auth: session ผู้ใช้ =====================
+// Auth: session ผู้ใช้
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
@@ -10,7 +10,6 @@ export function AuthProvider({ children }) {
 
   useEffect(() => onSessionChange(setLocal), [])
 
-  // โหลดข้อมูลตัวเองใหม่ตอนเปิดเว็บ (role/สาขาอาจถูกเปลี่ยนโดย owner)
   useEffect(() => {
     if (!getSession()) return
     identityApi
@@ -32,12 +31,10 @@ export function AuthProvider({ children }) {
     try {
       await identityApi.logout()
     } catch {
-      /* ออกจากระบบฝั่งเว็บต่อแม้เรียก API ไม่สำเร็จ */
     }
     setSession(null)
   }, [])
 
-  // เปลี่ยนรหัสผ่านตัวเอง: ได้ token ชุดใหม่กลับมา (session เดิมถูกยกเลิก)
   const changePassword = useCallback(async (current, next) => {
     const { data } = await identityApi.changePassword(current, next)
     setSession(data)
@@ -57,9 +54,7 @@ export function useAuth() {
   return ctx
 }
 
-// ===================== สาขาที่เลือก (owner) =====================
-// owner เห็นได้ทุกสาขา และเลือกดูทีละสาขาได้ (1.4)
-// staff / manager ถูกล็อกที่สาขาตัวเองโดย gateway อยู่แล้ว
+// สาขาที่เลือก (owner)
 const BranchContext = createContext(null)
 const KEY = 'pos.selectedBranch'
 
@@ -85,7 +80,7 @@ export function BranchProvider({ children }) {
   }, [user])
 
   useEffect(() => {
-    const t = setTimeout(reload, 0) // โหลดหลัง render (ไม่ setState ใน effect ตรง ๆ)
+    const t = setTimeout(reload, 0)
     return () => clearTimeout(t)
   }, [reload])
 
@@ -94,12 +89,10 @@ export function BranchProvider({ children }) {
     try {
       localStorage.setItem(KEY, id)
     } catch {
-      /* ignore */
     }
   }, [])
 
   const isOwner = user?.role === 'owner'
-  // สาขาที่เลือกถูกปิดไปแล้ว → กลับไปดูทุกสาขา
   const visible = useMemo(() => (user ? branches : []), [user, branches])
   const validSelected = isOwner && visible.some((b) => b.id === selected) ? selected : ''
 

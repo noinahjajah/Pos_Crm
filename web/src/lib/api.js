@@ -1,7 +1,4 @@
 // client กลางสำหรับเรียก API ผ่าน gateway
-// - แนบ access token อัตโนมัติ
-// - token หมดอายุ → ขอใหม่ด้วย refresh token 1 ครั้ง แล้วเรียกซ้ำ
-// - error ทุกตัวเป็น ApiError ที่มี status / code / message / details ตาม spec ข้อ 7
 
 const BASE = import.meta.env.VITE_API_URL ?? '/api/v1'
 const STORAGE_KEY = 'pos.session'
@@ -20,7 +17,7 @@ export class ApiError extends Error {
   }
 }
 
-// ---------- session (เก็บใน localStorage) ----------
+// session (เก็บใน localStorage)
 function readSession() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null
@@ -50,7 +47,6 @@ export function clearLogoutReason() {
   try {
     sessionStorage.removeItem('pos.logoutReason')
   } catch {
-    /* ignore */
   }
 }
 
@@ -58,7 +54,6 @@ function endSession(reason) {
   try {
     if (reason) sessionStorage.setItem('pos.logoutReason', reason)
   } catch {
-    /* ignore */
   }
   setSession(null)
 }
@@ -70,13 +65,11 @@ function apply(next) {
 }
 
 export function setSession(next) {
-  // จำเวลาหมดอายุของ access token ไว้ ใช้ต่ออายุล่วงหน้า
   if (next && !next.expires_at && next.expires_in) next = { ...next, expires_at: Date.now() + next.expires_in * 1000 }
   try {
     if (next) localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
     else localStorage.removeItem(STORAGE_KEY)
   } catch {
-    /* ไม่มี localStorage — ใช้ในหน่วยความจำต่อ */
   }
   apply(next)
 }
@@ -102,7 +95,7 @@ export function onSessionChange(fn) {
   return () => listeners.delete(fn)
 }
 
-// ---------- request ----------
+// request
 function buildUrl(path, query) {
   const url = `${BASE}${path}`
   if (!query) return url
@@ -145,7 +138,6 @@ async function refreshSession() {
       return true
     })
     .catch((err) => {
-      // refresh token ใช้ได้ครั้งเดียว: ถ้าแท็บอื่นต่ออายุไปก่อนแล้ว ให้ใช้ session ของแท็บนั้น
       const latest = readSession()
       if (latest?.refresh_token && latest.refresh_token !== session?.refresh_token) {
         apply(latest)
@@ -160,10 +152,7 @@ async function refreshSession() {
   return refreshing
 }
 
-/**
- * เรียก API ผ่าน gateway
- * @returns {Promise<{data: any, meta?: any}>}
- */
+/** เรียก API ผ่าน gateway */
 export async function api(path, options = {}) {
   try {
     return await rawRequest(path, { ...options, token: session?.access_token })
@@ -177,7 +166,7 @@ export async function api(path, options = {}) {
   }
 }
 
-// ---------- กติการหัสผ่าน (ตรงกับฝั่ง identity) ----------
+// กติการหัสผ่าน (ตรงกับฝั่ง identity)
 export const PASSWORD_RULES = [
   { test: (p) => p.length >= 8, label: 'อย่างน้อย 8 ตัวอักษร' },
   { test: (p) => /[A-Za-z]/.test(p), label: 'มีตัวอักษรภาษาอังกฤษ' },
@@ -193,7 +182,7 @@ export function randomPassword() {
   return `${body}${(bytes[0] % 8) + 2}${chars[bytes[1] % 23]}`
 }
 
-// ---------- identity ----------
+// identity
 export const identityApi = {
   login: (username, password) =>
     rawRequest('/identity/auth/login', { method: 'POST', body: { username, password } }),

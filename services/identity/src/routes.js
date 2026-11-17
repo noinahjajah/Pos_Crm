@@ -12,7 +12,7 @@ import {
   zx,
 } from '@pos/shared';
 
-// ===================== schema ของ request =====================
+// schema ของ request
 const username = z
   .string()
   .trim()
@@ -94,8 +94,7 @@ export const listUsersQuery = zx.page().extend({
   include_inactive: zx.boolString(),
 });
 
-// ===================== แปลงข้อมูลก่อนส่งออก =====================
-// แปลงข้อมูลก่อนส่งออก (ไม่มีข้อมูลลับ)
+// แปลงข้อมูลก่อนส่งออก
 
 export function presentBranchRef(branch) {
   return branch ? { id: branch.id, code: branch.code, name: branch.name, branch_type: branch.branch_type } : null;
@@ -127,15 +126,9 @@ export async function presentUsers(repo, profiles) {
   return Promise.all(profiles.map((p) => presentUser(repo, p, cache)));
 }
 
-// ===================== /auth =====================
-// ===================== กันเดารหัสผ่าน =====================
-/**
- * ล็อก username ชั่วคราวเมื่อใส่รหัสผิดติดกันหลายครั้ง (นับแยกต่อ username ไม่ขึ้นกับ IP)
- * ใช้กับ username ที่ไม่มีอยู่จริงด้วย เพื่อไม่ให้เดาได้ว่ามีบัญชีไหนอยู่ในระบบ
- * gateway ยังมี rate limit /auth/login 10 ครั้ง/นาที/IP อีกชั้น
- */
+// /auth
 export function createLoginGuard({ maxAttempts = 5, lockMinutes = 15, now = () => Date.now() } = {}) {
-  const state = new Map(); // username -> { failed, lockedUntil }
+  const state = new Map();
   return {
     maxAttempts,
     /** วินาทีที่ต้องรอ (0 = ไม่ได้ถูกล็อก) */
@@ -172,7 +165,6 @@ const lockedError = (seconds) =>
   );
 
 // POST /auth/login · POST /auth/refresh (public)
-// POST /auth/logout · POST /auth/change-password (S M O)   (1.2)
 export function authRoutes({ repo, auth, loginGuard }) {
   const r = Router();
 
@@ -194,7 +186,6 @@ export function authRoutes({ repo, auth, loginGuard }) {
       if (wait) throw lockedError(wait);
 
       const profile = await repo.getProfileByUsername(username);
-      // ตอบข้อความเดียวกันทุกกรณี ไม่บอกว่ามี username นี้หรือไม่ หรือบัญชีถูกปิด
       const session = profile?.is_active ? await auth.signIn(profile.id, password) : null;
       if (!session) throw wrongPassword(username);
 
@@ -226,8 +217,6 @@ export function authRoutes({ repo, auth, loginGuard }) {
     }),
   );
 
-  // เปลี่ยนรหัสผ่านของตัวเอง · ใช้ตอนเข้าครั้งแรก / หลัง owner รีเซ็ตรหัส (must_change_password)
-  // สำเร็จแล้ว session อื่นทั้งหมดถูกยกเลิก และได้ token ชุดใหม่กลับไป
   r.post(
     '/change-password',
     requireUser(),
@@ -244,7 +233,6 @@ export function authRoutes({ repo, auth, loginGuard }) {
       }
       loginGuard.reset(profile.username);
       await auth.setPassword(profile.id, new_password);
-      // ยกเลิก session ทุกเครื่อง (รวมถึง session ที่เพิ่งใช้ตรวจรหัสเดิม) แล้วออก token ชุดใหม่
       await auth.signOut({ userId: profile.id, accessToken: req.get('authorization')?.replace(/^Bearer\s+/i, '') });
       const updated = await repo.updateProfile(profile.id, { must_change_password: false });
       const session = await auth.signIn(profile.id, new_password);
@@ -255,8 +243,7 @@ export function authRoutes({ repo, auth, loginGuard }) {
   return r;
 }
 
-// ===================== /me =====================
-// GET /me (S M O) — ข้อมูลตัวเอง role สาขา ใช้ซ่อน/แสดงเมนูฝั่งเว็บ (1.2)
+// /me
 export function meRoutes({ repo }) {
   const r = Router();
   r.get(
@@ -271,13 +258,7 @@ export function meRoutes({ repo }) {
   return r;
 }
 
-// ===================== /branches =====================
-// สาขา (1.3, 1.4, 1.6)
-//   GET    /branches       S M O  staff/manager เห็นเฉพาะสาขาตัวเอง
-//   GET    /branches/:id   S M O
-//   POST   /branches       O
-//   PATCH  /branches/:id   O      แก้ไข หรือเปิด/ปิดสาขา (is_active)
-//   DELETE /branches/:id   O      soft delete (is_active = false)
+// /branches
 export function branchRoutes({ repo }) {
   const r = Router();
   const owner = requireRole('owner');
@@ -351,7 +332,6 @@ export function branchRoutes({ repo }) {
 }
 
 // ปิดสาขาที่ยังมีพนักงานใช้งานอยู่ไม่ได้ ต้องย้ายหรือลบผู้ใช้ก่อน
-// (กันกรณีพนักงาน login เข้าสาขาที่ปิดไปแล้ว)
 async function assertNoActiveUsers(repo, branchId) {
   const count = await repo.countActiveUsersInBranch(branchId);
   if (count > 0) {
@@ -361,8 +341,7 @@ async function assertNoActiveUsers(repo, branchId) {
   }
 }
 
-// ===================== /roles =====================
-// GET /roles (M O)
+// /roles
 export function roleRoutes({ repo }) {
   const r = Router();
   r.get(
@@ -375,13 +354,7 @@ export function roleRoutes({ repo }) {
   return r;
 }
 
-// ===================== /users =====================
-// ผู้ใช้ (1.3, 1.5)
-//   GET    /users       M O  manager เห็นเฉพาะสาขาตัวเอง (ดูได้อย่างเดียว)
-//   GET    /users/:id   M O
-//   POST   /users       O    เพิ่มพนักงานและกำหนด role
-//   PATCH  /users/:id   O    แก้ไข เปลี่ยน role ย้ายสาขา รีเซ็ตรหัสผ่าน
-//   DELETE /users/:id   O    soft delete + ยกเลิก session
+// /users
 export function userRoutes({ repo, auth, loginGuard }) {
   const r = Router();
   const owner = requireRole('owner');
@@ -407,7 +380,6 @@ export function userRoutes({ repo, auth, loginGuard }) {
     validate({ query: listUsersQuery }),
     asyncHandler(async (req, res) => {
       const { page, limit, role, q, include_inactive } = req.validQuery;
-      // manager: X-Branch-Id = สาขาตัวเองเสมอ · owner: X-Branch-Id = ?branch_id= ที่เลือก (ว่าง = ทุกสาขา)
       const branchId = req.user.branchId || undefined;
       const { items, total } = await repo.listProfiles({
         branchId,
@@ -452,7 +424,6 @@ export function userRoutes({ repo, auth, loginGuard }) {
         throw new AppError(409, 'USERNAME_TAKEN', `สร้างบัญชี ${username} ไม่สำเร็จ`, [{ message: e.message }]);
       }
       try {
-        // รหัสที่ owner ตั้งให้เป็นรหัสชั่วคราว ผู้ใช้ต้องเปลี่ยนเองตอนเข้าครั้งแรก
         const profile = await repo.createProfile({
           id: userId,
           username,
@@ -463,7 +434,7 @@ export function userRoutes({ repo, auth, loginGuard }) {
         });
         ok(res, await presentUser(repo, profile), { status: 201 });
       } catch (e) {
-        await auth.deleteUser(userId).catch(() => {}); // rollback บัญชี auth ที่สร้างไปแล้ว
+        await auth.deleteUser(userId).catch(() => {});
         throw e;
       }
     }),
@@ -493,7 +464,6 @@ export function userRoutes({ repo, auth, loginGuard }) {
         if (!nextBranch) {
           throw errors.badRequest('ข้อมูลไม่ถูกต้อง', [{ field: 'branch_id', message: 'staff และ manager ต้องระบุสาขา' }]);
         }
-        // ย้ายสาขา หรือเปิดบัญชีที่ลบไปแล้วกลับมา → สาขาต้องยังเปิดอยู่
         if (nextBranch !== current.branch_id || (is_active === true && !current.is_active)) {
           await assertBranchUsable(nextBranch);
         }
@@ -506,7 +476,6 @@ export function userRoutes({ repo, auth, loginGuard }) {
       if (is_active !== undefined && is_active !== current.is_active) patch.is_active = is_active;
 
       if (password) {
-        // owner รีเซ็ตรหัส = รหัสชั่วคราว ผู้ใช้ต้องเปลี่ยนเองตอนเข้าครั้งถัดไป และปลดล็อกบัญชีด้วย
         await auth.setPassword(current.id, password);
         patch.must_change_password = true;
         loginGuard?.reset(current.username);
@@ -514,7 +483,6 @@ export function userRoutes({ repo, auth, loginGuard }) {
       if (patch.is_active !== undefined) await auth.setBanned(current.id, !patch.is_active);
       const updated = Object.keys(patch).length ? await repo.updateProfile(current.id, patch) : current;
 
-      // role/สาขาเปลี่ยน หรือรีเซ็ตรหัสผ่าน → ยกเลิก session เดิม ให้ login ใหม่ได้ claim ใหม่
       if (patch.role || 'branch_id' in patch || password) auth.revokeSessions(current.id);
 
       ok(res, await presentUser(repo, updated));
@@ -529,7 +497,6 @@ export function userRoutes({ repo, auth, loginGuard }) {
       const current = await repo.getProfile(req.params.id);
       if (!current || !current.is_active) throw errors.notFound('ไม่พบผู้ใช้');
       if (current.id === req.user.id) throw errors.conflict('CANNOT_DELETE_SELF', 'ลบบัญชีของตัวเองไม่ได้');
-      // soft delete: เก็บ id ไว้ เพราะ service อื่นอ้างถึง (เช่น ผู้ขอ/ผู้อนุมัติใน approvals)
       const updated = await repo.updateProfile(current.id, { is_active: false });
       await auth.setBanned(current.id, true);
       ok(res, await presentUser(repo, updated));

@@ -4,12 +4,7 @@ import { flushSync } from 'react-dom'
 import { useAuth, useBranch } from '../app/providers.jsx'
 import { Button, Card, PageHeader } from '../components/ui.jsx'
 
-// ===================== คำนวณยอดบิล =====================
-// คำนวณยอดบิลตาม spec 1.24 (ราคาเมนูยังไม่รวม VAT)
-//   vat   = (subtotal − discount) × 7%
-//   total = subtotal − discount + vat
-// pos (Dev 3) เป็นคนคำนวณจริงแล้วส่ง subtotal / discount_amount / vat_amount / total มา
-// ฟังก์ชันนี้ใช้กับข้อมูลตัวอย่างในหน้าพิมพ์ และใช้ตรวจว่าตัวเลขที่ได้รับตรงกัน
+// คำนวณยอดบิล
 
 export const VAT_RATE = 0.07
 
@@ -32,20 +27,11 @@ export function calcBill(items, discountAmount = 0) {
 export const baht = (n) =>
   Number(n ?? 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-// ===================== ใบออร์เดอร์เข้าครัว =====================
+// ใบออร์เดอร์เข้าครัว
 const time = (iso) =>
   new Date(iso).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 
-/**
- * ใบออร์เดอร์เข้าครัว (1.10) — Dev 1 ทำ layout, Dev 3 ส่งข้อมูลจาก POST /orders/:id/tickets
- * แสดง: โต๊ะ เวลา รายการ ตัวเลือก หมายเหตุ · ไม่แสดงราคา · ตัวใหญ่อ่านง่ายในครัว
- *
- * @param {{ ticket: {
- *   ticket_no: string, round: number, created_at: string, table_names: string[],
- *   staff_name?: string, guest_count?: number,
- *   items: { name: string, quantity: number, options?: {name: string}[], note?: string }[]
- * }, printTarget?: boolean }} props
- */
+/** ใบออร์เดอร์เข้าครัว (1.10) — Dev 1 ทำ layout, Dev 3 ส่งข้อมูลจาก POST /orders/:id/tickets */
 export function KitchenTicket({ ticket, printTarget = false }) {
   const totalQty = ticket.items.reduce((s, i) => s + i.quantity, 0)
   return (
@@ -97,28 +83,13 @@ export function KitchenTicket({ ticket, printTarget = false }) {
   )
 }
 
-// ===================== ใบเสร็จ =====================
+// ใบเสร็จ
 const dateTime = (iso) =>
   new Date(iso).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
 const METHOD_LABEL = { cash: 'เงินสด', promptpay: 'QR พร้อมเพย์' }
 
-/**
- * ใบเสร็จรับเงิน / ใบกำกับภาษีอย่างย่อ (1.10, 1.23, 1.24)
- * ตัวเลขยอดเงินมาจาก pos (GET /orders/:id) และ payment (POST /payments) — layout นี้ไม่คำนวณใหม่
- *   ก่อน VAT = subtotal − discount_amount
- *   VAT 7%  = vat_amount
- *   สุทธิ   = total
- *
- * @param {{
- *   branch: { name: string, code: string, address?: string|null, phone?: string|null },
- *   order: { receipt_no: string, paid_at: string, table_names: string[], cashier_name?: string,
- *            items: { name: string, quantity: number, unit_price: number, options?: {name: string, extra_price: number}[] }[],
- *            subtotal: number, discount_amount: number, vat_amount: number, total: number },
- *   payment?: { method: 'cash'|'promptpay', cash_received?: number, change_amount?: number },
- *   printTarget?: boolean
- * }} props
- */
+/** ใบเสร็จรับเงิน / ใบกำกับภาษีอย่างย่อ (1.10, 1.23, 1.24) */
 export function Receipt({ branch, order, payment, printTarget = false }) {
   const beforeVat = order.subtotal - order.discount_amount
   const qty = order.items.reduce((s, i) => s + i.quantity, 0)
@@ -212,14 +183,7 @@ export function Receipt({ branch, order, payment, printTarget = false }) {
   )
 }
 
-// ===================== สั่งพิมพ์ =====================
-/**
- * ใช้พิมพ์ใบใดใบหนึ่งบนหน้า (Dev 3 ใช้ในหน้าสั่งอาหาร / รับเงินได้เลย)
- * @example
- * const [target, print] = usePrintSlip()
- * <Receipt ... printTarget={target === 'receipt'} />
- * <button onClick={() => print('receipt')}>พิมพ์ใบเสร็จ</button>
- */
+// สั่งพิมพ์
 export function usePrintSlip() {
   const [target, setTarget] = useState(null)
   const print = (which) => {
@@ -230,8 +194,7 @@ export function usePrintSlip() {
   return [target, print]
 }
 
-// ===================== หน้าตัวอย่างใบพิมพ์ =====================
-// ข้อมูลตัวอย่าง (รูปแบบเดียวกับที่ pos จะส่งมา) — Dev 3 เปลี่ยนเป็นข้อมูลจริงจาก API
+// หน้าตัวอย่างใบพิมพ์
 const ITEMS = [
   { name: 'ข้าวผัดกะเพราหมูกรอบ', quantity: 2, unit_price: 80, options: [{ name: 'ไข่ดาว', extra_price: 10 }] },
   { name: 'ต้มยำกุ้งน้ำข้น', quantity: 1, unit_price: 180 },

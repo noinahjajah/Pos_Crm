@@ -66,7 +66,6 @@ export function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  // อ่านแบบไม่ลบใน initializer (StrictMode เรียกซ้ำได้) แล้วค่อยลบหลังแสดงผล
   const [notice] = useState(() => LOGOUT_MESSAGE[peekLogoutReason()] || '')
   const [busy, setBusy] = useState(false)
   useEffect(() => clearLogoutReason(), [])
@@ -80,7 +79,6 @@ export function LoginPage() {
     setBusy(true)
     try {
       const u = await login(username.trim().toLowerCase(), password)
-      // ระบบอ่าน role จาก token แล้วพาไปหน้าที่ตรงสิทธิ์ · รหัสชั่วคราวต้องเปลี่ยนก่อน
       const target = u.must_change_password ? '/account' : location.state?.from || HOME_BY_ROLE[u.role] || '/'
       navigate(target, { replace: true })
     } catch (err) {
@@ -180,7 +178,6 @@ export function LoginPage() {
 
 const dateTime = (iso) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '—')
 
-// บัญชีของฉัน: ข้อมูลตัวเอง + เปลี่ยนรหัสผ่าน · ถ้า must_change_password จะถูกพามาหน้านี้ก่อนใช้งานอื่น
 export function AccountPage() {
   const { user, changePassword } = useAuth()
   const navigate = useNavigate()

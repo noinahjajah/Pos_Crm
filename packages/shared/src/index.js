@@ -1,18 +1,9 @@
 import { timingSafeEqual, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
-// ===================== response / error (spec ข้อ 7) =====================
-// รูปแบบ response มาตรฐานของทุก service (spec ข้อ 7)
-//   สำเร็จ: { "data": ..., "meta": { ... } }
-//   ผิดพลาด: { "error": { "code", "message", "details" }, "request_id": "..." }
+// response / error
 
 export class AppError extends Error {
-  /**
-   * @param {number} status HTTP status
-   * @param {string} code   รหัส error เช่น VALIDATION_ERROR, FORBIDDEN
-   * @param {string} message ข้อความอ่านง่าย (ภาษาไทยได้)
-   * @param {unknown[]} [details]
-   */
   constructor(status, code, message, details = []) {
     super(message);
     this.name = 'AppError';
@@ -66,10 +57,7 @@ export function notFoundHandler(req, res) {
   sendError(res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'), requestIdOf(req));
 }
 
-/**
- * middleware จัดการ error ตัวสุดท้ายของทุก service
- * error ที่ไม่ใช่ AppError จะไม่ส่งรายละเอียดภายในออกไป
- */
+/** middleware จัดการ error ตัวสุดท้ายของทุก service */
 export function errorHandler({ logger = console } = {}) {
   // eslint-disable-next-line no-unused-vars
   return (err, req, res, _next) => {
@@ -90,8 +78,7 @@ export function errorHandler({ logger = console } = {}) {
 /** ห่อ handler แบบ async ให้ส่ง error ต่อไปที่ errorHandler */
 export const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-// ===================== validate (zod) =====================
-/** แปลง ZodError เป็น details ที่อ่านง่าย */
+// validate (zod)
 export function zodDetails(zodError) {
   return zodError.issues.map((i) => ({
     field: i.path.join('.') || null,
@@ -99,13 +86,7 @@ export function zodDetails(zodError) {
   }));
 }
 
-/**
- * middleware ตรวจ body / query / params ด้วย zod
- * ค่าที่ผ่านการตรวจจะถูกแทนลงใน req.body / req.validQuery / req.params
- *
- * @example
- * router.post('/users', validate({ body: createUserSchema }), handler)
- */
+/** middleware ตรวจ body / query / params ด้วย zod */
 export function validate({ body, query, params } = {}) {
   return (req, _res, next) => {
     for (const [key, schema] of [['body', body], ['query', query], ['params', params]]) {
@@ -114,7 +95,6 @@ export function validate({ body, query, params } = {}) {
       if (!result.success) {
         return next(errors.badRequest('ข้อมูลไม่ถูกต้อง', zodDetails(result.error)));
       }
-      // Express 5 ทำให้ req.query เป็น getter แก้ไม่ได้ จึงเก็บค่าที่ผ่านแล้วไว้ที่ validQuery
       if (key === 'query') req.validQuery = result.data;
       else req[key] = result.data;
     }
@@ -140,11 +120,6 @@ export const zx = {
 
 export { z };
 
-/**
- * กันลืมเปลี่ยนค่าตัวอย่างจาก .env.example ตอนขึ้นระบบจริง (NODE_ENV=production + DATA_MODE=supabase)
- * โหมดจำลอง (DATA_MODE=memory) ใช้ทดสอบเท่านั้น จึงยอมให้ใช้ค่าตัวอย่างได้แม้รันใน docker
- * @param {Record<string, string|undefined>} values ชื่อตัวแปร → ค่า
- */
 export function assertNotDevSecrets(values, env = process.env) {
   if (env.NODE_ENV !== 'production' || env.DATA_MODE !== 'supabase' || env.ALLOW_DEV_SECRETS === 'true') return;
   const weak = Object.entries(values)
@@ -155,11 +130,11 @@ export function assertNotDevSecrets(values, env = process.env) {
   }
 }
 
-// ===================== header X-User-* / สิทธิ์ / สาขา =====================
+// header X-User-* / สิทธิ์ / สาขา
 export const ROLES = Object.freeze({ STAFF: 'staff', MANAGER: 'manager', OWNER: 'owner' });
 export const ALL_ROLES = Object.freeze([ROLES.STAFF, ROLES.MANAGER, ROLES.OWNER]);
 
-/** header ที่ gateway ส่งต่อให้ service (spec ข้อ 2) */
+/** header ที่ gateway ส่งต่อให้ service */
 export const HEADERS = Object.freeze({
   REQUEST_ID: 'x-request-id',
   USER_ID: 'x-user-id',
@@ -185,14 +160,7 @@ export function requestId() {
   };
 }
 
-/**
- * service ทุกตัวต้องใช้ middleware นี้
- * - ต้องมี X-Internal-Key ถูกต้อง ไม่งั้นตอบ 401 (service ไม่รับ request จากนอก gateway)
- * - อ่าน X-User-Id / X-User-Role / X-Branch-Id เป็น req.user
- *   (path public เช่น /auth/login จะไม่มี X-User-* → req.user = null)
- *
- * @param {{ internalKey: string, publicPaths?: string[] }} opts
- */
+/** service ทุกตัวต้องใช้ middleware นี้ */
 export function internalAuth({ internalKey, publicPaths = ['/health'] }) {
   if (!internalKey) throw new Error('internalAuth: ต้องกำหนด INTERNAL_KEY');
   return (req, _res, next) => {
@@ -222,14 +190,7 @@ export function requireRole(...roles) {
   };
 }
 
-/**
- * สาขาที่ request นี้ทำงานได้ (spec ข้อ 2 กติกาสาขา)
- * - staff / manager: ใช้ X-Branch-Id จาก token เสมอ ไม่สนใจ branch_id ที่ client ส่ง
- * - owner: ใช้ branch_id ที่ส่งมา (body/query) ถ้าไม่ส่ง = null (ทุกสาขา)
- *
- * @param {import('express').Request} req
- * @param {string|null|undefined} requested branch_id จาก body หรือ query
- */
+/** สาขาที่ request นี้ทำงานได้ */
 export function resolveBranchId(req, requested) {
   if (!req.user) return null;
   if (req.user.role === ROLES.OWNER) return requested || req.user.branchId || null;

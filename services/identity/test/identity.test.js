@@ -191,7 +191,7 @@ test('รีเซ็ตรหัสผ่านแล้ว login ด้วย�
   assert.equal(l.status, 200);
 });
 
-// ===================== ระบบ login เพิ่มเติม =====================
+// ระบบ login เพิ่มเติม
 
 test('ใส่รหัสผิดบอกจำนวนครั้งที่เหลือ และครั้งที่ 5 ถูกล็อก', async () => {
   let res;
@@ -203,7 +203,6 @@ test('ใส่รหัสผิดบอกจำนวนครั้งท�
   res = await request(app).post('/auth/login').set(as()).send({ username: 'staff1', password: 'wrong' });
   assert.equal(res.status, 429);
   assert.equal(res.body.error.code, 'ACCOUNT_LOCKED');
-  // ล็อกแล้ว รหัสถูกก็เข้าไม่ได้
   const ok = await request(app).post('/auth/login').set(as()).send({ username: 'staff1', password: 'password123' });
   assert.equal(ok.body.error.code, 'ACCOUNT_LOCKED');
 });
