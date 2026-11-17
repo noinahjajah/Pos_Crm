@@ -1,0 +1,194 @@
+// ของกลางที่ทุก service ใช้ร่วมกัน: รูปแบบ response/error, ตรวจข้อมูลด้วย zod, อ่านผู้ใช้จาก header ของ gateway
+
+import { timingSafeEqual, randomUUID } from 'node:crypto';
+import { z } from 'zod';
+
+// error ที่ส่งให้ client ได้ (มี status, code, ข้อความ)
+export class AppError extends Error {
+  constructor(status, code, message, details = []) {
+    super(message);
+    this.name = 'AppError';
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
+export const errors = {
+  badRequest: (message = 'ข้อมูลไม่ถูกต้อง', details) => new AppError(400, 'VALIDATION_ERROR', message, details),
+  unauthorized: (message = 'กรุณาเข้าสู่ระบบ', code = 'UNAUTHORIZED') => new AppError(401, code, message),
+  forbidden: (message = 'ไม่มีสิทธิ์ทำรายการนี้', code = 'FORBIDDEN') => new AppError(403, code, message),
+  notFound: (message = 'ไม่พบข้อมูล', code = 'NOT_FOUND') => new AppError(404, code, message),
+  conflict: (code, message, details) => new AppError(409, code, message, details),
+  tooMany: (message = 'เรียกถี่เกินไป กรุณาลองใหม่ภายหลัง') => new AppError(429, 'RATE_LIMITED', message),
+  badGateway: (message = 'service ปลายทางไม่ตอบสนอง') => new AppError(502, 'SERVICE_UNAVAILABLE', message),
+  gatewayTimeout: (message = 'service ปลายทางตอบช้าเกินกำหนด') => new AppError(504, 'SERVICE_TIMEOUT', message),
+};
+
+export function requestIdOf(req) {
+  return req.requestId || req.get?.('x-request-id') || null;
+}
+
+// ตอบกลับสำเร็จ: { data, meta }
+export function ok(res, data, { status = 200, meta } = {}) {
+  const body = { data };
+  if (meta) body.meta = meta;
+  return res.status(status).json(body);
+}
+
+export function errorBody(err, requestId) {
+  return {
+    error: {
+      code: err.code || 'INTERNAL_ERROR',
+      message: err.message || 'เกิดข้อผิดพลาดภายในระบบ',
+      details: err.details || [],
+    },
+    request_id: requestId ?? null,
+  };
+}
+
+export function sendError(res, err, requestId) {
+  return res.status(err.status || 500).json(errorBody(err, requestId));
+}
+
+export function notFoundHandler(req, res) {
+  sendError(res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'), requestIdOf(req));
+}
+
+// ตัวจับ error สุดท้ายของทุก service · error ที่ไม่คาดคิดจะไม่เผยรายละเอียดภายใน
+export function errorHandler({ logger = console } = {}) {
+  return (err, req, res, _next) => {
+    if (err?.type === 'entity.parse.failed') {
+      return sendError(res, errors.badRequest('รูปแบบ JSON ไม่ถูกต้อง'), requestIdOf(req));
+    }
+    if (err?.type === 'entity.too.large') {
+      return sendError(res, new AppError(413, 'PAYLOAD_TOO_LARGE', 'ข้อมูลที่ส่งมาใหญ่เกินไป'), requestIdOf(req));
+    }
+    if (err instanceof AppError) {
+      return sendError(res, err, requestIdOf(req));
+    }
+    logger.error?.(`[${requestIdOf(req) ?? '-'}]`, err);
+    return sendError(res, new AppError(500, 'INTERNAL_ERROR', 'เกิดข้อผิดพลาดภายในระบบ'), requestIdOf(req));
+  };
+}
+
+export const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
+export function zodDetails(zodError) {
+  return zodError.issues.map((i) => ({
+    field: i.path.join('.') || null,
+    message: i.message,
+  }));
+}
+
+// ตรวจ body / query / params ด้วย zod (query ที่ผ่านแล้วอยู่ที่ req.validQuery เพราะ Express 5 แก้ req.query ไม่ได้)
+export function validate({ body, query, params } = {}) {
+  return (req, _res, next) => {
+    for (const [key, schema] of [['body', body], ['query', query], ['params', params]]) {
+      if (!schema) continue;
+      const result = schema.safeParse(req[key] ?? {});
+      if (!result.success) {
+        return next(errors.badRequest('ข้อมูลไม่ถูกต้อง', zodDetails(result.error)));
+      }
+      if (key === 'query') req.validQuery = result.data;
+      else req[key] = result.data;
+    }
+    next();
+  };
+}
+
+export const zx = {
+  uuid: () => z.string().uuid({ message: 'ต้องเป็น uuid' }),
+  idParam: () => z.object({ id: z.string().uuid({ message: 'id ต้องเป็น uuid' }) }),
+  page: () =>
+    z.object({
+      page: z.coerce.number().int().min(1).default(1),
+      limit: z.coerce.number().int().min(1).max(100).default(20),
+    }),
+  boolString: () =>
+    z
+      .enum(['true', 'false'])
+      .optional()
+      .transform((v) => v === 'true'),
+};
+
+export { z };
+
+// กันลืมเปลี่ยนรหัสตัวอย่างตอนขึ้นระบบจริง (ตรวจเฉพาะ production + supabase)
+export function assertNotDevSecrets(values, env = process.env) {
+  if (env.NODE_ENV !== 'production' || env.DATA_MODE !== 'supabase' || env.ALLOW_DEV_SECRETS === 'true') return;
+  const weak = Object.entries(values)
+    .filter(([, v]) => v && (/change-me|dev-only|please-change/i.test(v) || v.length < 32))
+    .map(([k]) => k);
+  if (weak.length) {
+    throw new Error(`ค่า ${weak.join(', ')} ยังเป็นค่าตัวอย่างหรือสั้นเกินไป (ต้องยาว 32 ตัวขึ้นไป) ห้ามใช้ใน production`);
+  }
+}
+
+// role และชื่อ header ที่ gateway ส่งต่อให้ service
+export const ROLES = Object.freeze({ STAFF: 'staff', MANAGER: 'manager', OWNER: 'owner' });
+export const ALL_ROLES = Object.freeze([ROLES.STAFF, ROLES.MANAGER, ROLES.OWNER]);
+
+export const HEADERS = Object.freeze({
+  REQUEST_ID: 'x-request-id',
+  USER_ID: 'x-user-id',
+  USER_ROLE: 'x-user-role',
+  BRANCH_ID: 'x-branch-id',
+  INTERNAL_KEY: 'x-internal-key',
+});
+
+export function safeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return timingSafeEqual(ab, bb);
+}
+
+export function requestId() {
+  return (req, res, next) => {
+    req.requestId = req.get(HEADERS.REQUEST_ID) || randomUUID();
+    res.set('X-Request-Id', req.requestId);
+    next();
+  };
+}
+
+// ทุก service ต้องใช้: รับเฉพาะ request จาก gateway (X-Internal-Key) แล้วอ่าน X-User-* เป็น req.user
+export function internalAuth({ internalKey, publicPaths = ['/health'] }) {
+  if (!internalKey) throw new Error('internalAuth: ต้องกำหนด INTERNAL_KEY');
+  return (req, _res, next) => {
+    if (publicPaths.includes(req.path)) return next();
+    if (!safeEqual(req.get(HEADERS.INTERNAL_KEY), internalKey)) {
+      return next(errors.unauthorized('ไม่อนุญาตให้เรียก service โดยตรง', 'INTERNAL_KEY_INVALID'));
+    }
+    const id = req.get(HEADERS.USER_ID);
+    const role = req.get(HEADERS.USER_ROLE);
+    const branchId = req.get(HEADERS.BRANCH_ID) || null;
+    req.user = id && role ? { id, role, branchId } : null;
+    next();
+  };
+}
+
+export function requireUser() {
+  return (req, _res, next) => (req.user ? next() : next(errors.unauthorized()));
+}
+
+// ตรวจ role ซ้ำในตัว service อีกชั้น เผื่อ gateway ตั้งค่าพลาด
+export function requireRole(...roles) {
+  return (req, _res, next) => {
+    if (!req.user) return next(errors.unauthorized());
+    if (!roles.includes(req.user.role)) return next(errors.forbidden());
+    next();
+  };
+}
+
+// สาขาที่ทำงานได้: staff/manager ถูกล็อกที่สาขาตัวเอง · owner เลือกได้ (null = ทุกสาขา)
+export function resolveBranchId(req, requested) {
+  if (!req.user) return null;
+  if (req.user.role === ROLES.OWNER) return requested || req.user.branchId || null;
+  return req.user.branchId;
+}
+
+export function branchFilter(req) {
+  return req.user?.branchId || null;
+}

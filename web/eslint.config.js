@@ -1,3 +1,5 @@
+// กติกาตรวจโค้ดของเว็บ
+
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
@@ -17,5 +19,6 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: { 'no-empty': ['error', { allowEmptyCatch: true }], 'react-refresh/only-export-components': 'off' },
   },
 ])

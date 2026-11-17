@@ -1,0 +1,22 @@
+{
+  "name": "@pos/identity",
+  "version": "0.1.0",
+  "private": true,
+  "description": "identity service :3001 — login, ผู้ใช้, role, สาขา (Dev 1)",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --env-file-if-exists=../../.env --watch src/server.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "@pos/shared": "*",
+    "@supabase/supabase-js": "^2.49.1",
+    "express": "^5.1.0",
+    "jose": "^5.9.6"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}
