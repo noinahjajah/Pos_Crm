@@ -114,9 +114,9 @@ export const zx = {
 
 export { z };
 
-// กันลืมเปลี่ยนรหัสตัวอย่างตอนขึ้นระบบจริง (ตรวจเฉพาะ production + supabase)
+// กันลืมเปลี่ยนรหัสตัวอย่างตอนขึ้นระบบจริง (ตรวจเฉพาะ production)
 export function assertNotDevSecrets(values, env = process.env) {
-  if (env.NODE_ENV !== 'production' || env.DATA_MODE !== 'supabase' || env.ALLOW_DEV_SECRETS === 'true') return;
+  if (env.NODE_ENV !== 'production' || env.ALLOW_DEV_SECRETS === 'true') return;
   const weak = Object.entries(values)
     .filter(([, v]) => v && (/change-me|dev-only|please-change/i.test(v) || v.length < 32))
     .map(([k]) => k);

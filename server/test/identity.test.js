@@ -4,18 +4,20 @@ import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import { createApp } from '../identity/app.js';
-import { createMemoryAuth, createMemoryRepo, SEED_BRANCHES, SEED_USERS } from '../identity/memory.js';
+import { createMemoryAuth, createMemoryRepo, SEED_BRANCHES, SEED_USERS } from './fake-supabase.js';
+import { makeKeys } from './keys.js';
 
 const KEY = 'test-internal-key';
 const [OWNER, MANAGER, STAFF] = SEED_USERS;
 const [RES, DRK] = SEED_BRANCHES;
 
 let app;
+const keys = await makeKeys();
 beforeEach(() => {
   const repo = createMemoryRepo();
   const auth = createMemoryAuth({
     repo,
-    jwtSecret: 'test-secret-test-secret-test-secret',
+    signingKey: keys.privateKey,
     seedUserIds: SEED_USERS.map((u) => u.id),
     seedPassword: 'password123',
   });

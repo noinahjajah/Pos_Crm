@@ -41,15 +41,26 @@ jobs:
       - run: npm run build
 
   docker:
-    name: docker compose (build + login ผ่าน gateway)
+    name: docker compose + Supabase จริง
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: server
     steps:
       - uses: actions/checkout@v4
-      - name: เตรียม .env (โหมดจำลอง)
-        run: cp .env.example .env
+      - name: เตรียม .env (Supabase จริง จาก GitHub Secrets)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          test -n "$SUPABASE_URL" || { echo "ไม่มี GitHub Secrets ของ Supabase"; exit 1; }
+          cp .env.example .env
+          sed -i "s|^INTERNAL_KEY=.*|INTERNAL_KEY=$(openssl rand -hex 32)|" .env
+          sed -i "s|^SUPABASE_URL=.*|SUPABASE_URL=$SUPABASE_URL|" .env
+          sed -i "s|^SUPABASE_ANON_KEY=.*|SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY|" .env
+          sed -i "s|^SUPABASE_SERVICE_ROLE_KEY=.*|SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY|" .env
+          sed -i "s|^LOGIN_RATE_LIMIT_PER_MIN=.*|LOGIN_RATE_LIMIT_PER_MIN=100|" .env
       - name: build + up (เปิดแค่ gateway :8080 + เว็บ)
         run: docker compose --profile web up --build -d
       - name: รอ gateway พร้อม
@@ -72,6 +83,8 @@ jobs:
           curl -sf http://localhost:5173/ | grep -q '<div id="root">'
           curl -sf -X POST http://localhost:5173/api/v1/identity/auth/login \
             -H 'Content-Type: application/json' -d '{"username":"owner","password":"password123"}' -o /dev/null
+      - name: e2e กับ Supabase จริง (36 รายการ)
+        run: node test/e2e.mjs http://localhost:8080/api/v1
       - name: log เมื่อพัง
         if: failure()
         run: docker compose logs

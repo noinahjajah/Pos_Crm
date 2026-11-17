@@ -154,7 +154,7 @@ export function LoginPage() {
 
           {SHOW_TEST_ACCOUNTS && (
             <div className="test-accounts">
-              <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>บัญชีทดสอบ (โหมดจำลอง) · รหัสผ่าน password123</div>
+              <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>บัญชีทดสอบใน Supabase · รหัสผ่าน password123</div>
               {TEST_ACCOUNTS.map((a) => (
                 <button
                   type="button"

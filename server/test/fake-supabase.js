@@ -1,4 +1,4 @@
-// โหมดจำลอง (DATA_MODE=memory): เก็บข้อมูลในหน่วยความจำ ไม่ต้องต่อ Supabase · ปิดเซิร์ฟเวอร์แล้วข้อมูลหาย
+// ใช้ในเทสต์เท่านั้น: ตัวแทน Supabase ในหน่วยความจำ ให้ npm test รันได้โดยไม่แตะฐานข้อมูลจริง · แอปจริงใช้ identity/supabase.js เสมอ
 
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { SignJWT } from 'jose';
@@ -104,8 +104,8 @@ export function createMemoryRepo({ seed = true } = {}) {
 }
 
 // ระบบ login จำลอง: ออก token แบบเดียวกับ Supabase
-export function createMemoryAuth({ repo, jwtSecret, accessTokenTtlSec = 900, refreshTokenTtlSec = 604800, seedUserIds = [], seedPassword }) {
-  const key = new TextEncoder().encode(jwtSecret);
+export function createMemoryAuth({ repo, signingKey, accessTokenTtlSec = 900, refreshTokenTtlSec = 604800, seedUserIds = [], seedPassword }) {
+  const key = signingKey;
   const passwords = new Map();
   const refreshTokens = new Map();
   const banned = new Set();
@@ -130,7 +130,7 @@ export function createMemoryAuth({ repo, jwtSecret, accessTokenTtlSec = 900, ref
       branch_id: active ? profile.branch_id : null,
       username: profile?.username,
     })
-      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .setProtectedHeader({ alg: 'ES256', typ: 'JWT', kid: 'test' })
       .setSubject(userId)
       .setAudience('authenticated')
       .setIssuer('pos-crm-identity-mock')

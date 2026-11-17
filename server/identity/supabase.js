@@ -1,4 +1,4 @@
-// โหมดจริง (DATA_MODE=supabase): ข้อมูลอยู่ใน schema identity · login ด้วย Supabase Auth
+// อ่าน/เขียนฐานข้อมูล Supabase: ข้อมูลอยู่ใน schema identity · login ด้วย Supabase Auth
 
 import { AppError } from '../shared.js';
 

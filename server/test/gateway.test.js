@@ -5,9 +5,11 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import request from 'supertest';
 import { SignJWT } from 'jose';
+import { makeKeys } from './keys.js';
 import { createApp } from '../gateway/app.js';
 
-const SECRET = 'test-secret-test-secret-test-secret';
+const KEYS = await makeKeys();
+const OTHER_KEYS = await makeKeys();
 const KEY = 'internal-test-key';
 const BRANCH_A = '11111111-1111-4111-8111-111111111111';
 const BRANCH_B = '22222222-2222-4222-8222-222222222222';
@@ -57,7 +59,7 @@ before(async () => {
   gw = createApp(
     {
       internalKey: KEY,
-      jwtSecret: SECRET,
+      jwks: KEYS.jwks,
       jwtAudience: 'authenticated',
       corsOrigins: ['http://localhost:5173'],
       rateLimitPerMin: 1000,
@@ -72,14 +74,14 @@ before(async () => {
 
 after(() => upstream.close());
 
-async function token(role, branchId, { expired = false, secret = SECRET } = {}) {
+async function token(role, branchId, { expired = false, keys = KEYS } = {}) {
   return new SignJWT({ role: 'authenticated', user_role: role, branch_id: branchId })
-    .setProtectedHeader({ alg: 'HS256' })
+    .setProtectedHeader({ alg: 'ES256', kid: 'test' })
     .setSubject(`user-${role}`)
     .setAudience('authenticated')
     .setIssuedAt()
     .setExpirationTime(expired ? Math.floor(Date.now() / 1000) - 10 : '5m')
-    .sign(new TextEncoder().encode(secret));
+    .sign(keys.privateKey);
 }
 const bearer = async (...a) => ({ Authorization: `Bearer ${await token(...a)}` });
 
@@ -91,8 +93,8 @@ test('ไม่มี token → 401 TOKEN_MISSING พร้อม request_id', a
   assert.equal(res.headers['x-request-id'], res.body.request_id);
 });
 
-test('token ผิด secret → 401, หมดอายุ → TOKEN_EXPIRED', async () => {
-  const bad = await request(gw).get('/api/v1/identity/me').set(await bearer('staff', BRANCH_A, { secret: 'x'.repeat(40) }));
+test('token เซ็นด้วย key อื่น → 401, หมดอายุ → TOKEN_EXPIRED', async () => {
+  const bad = await request(gw).get('/api/v1/identity/me').set(await bearer('staff', BRANCH_A, { keys: OTHER_KEYS }));
   assert.equal(bad.body.error.code, 'TOKEN_INVALID');
   const exp = await request(gw).get('/api/v1/identity/me').set(await bearer('staff', BRANCH_A, { expired: true }));
   assert.equal(exp.body.error.code, 'TOKEN_EXPIRED');
@@ -215,11 +217,11 @@ test('path แปลก (.. / %2F) → 400 ไม่ส่งต่อให้ 
 
 import { PERMISSIONS } from '../gateway/permissions.js';
 import { createApp as createIdentityApp } from '../identity/app.js';
-import { createMemoryAuth, createMemoryRepo, SEED_USERS, SEED_BRANCHES } from '../identity/memory.js';
+import { createMemoryAuth, createMemoryRepo, SEED_USERS, SEED_BRANCHES } from './fake-supabase.js';
 
 async function startStack() {
   const repo = createMemoryRepo();
-  const auth = createMemoryAuth({ repo, jwtSecret: SECRET, seedUserIds: SEED_USERS.map((u) => u.id), seedPassword: 'password123' });
+  const auth = createMemoryAuth({ repo, signingKey: KEYS.privateKey, seedUserIds: SEED_USERS.map((u) => u.id), seedPassword: 'password123' });
   const identity = createIdentityApp({ repo, auth, internalKey: KEY, logger: { error() {} } });
   const server = await new Promise((resolve) => {
     const s = identity.listen(0, () => resolve(s));
@@ -228,7 +230,7 @@ async function startStack() {
   const app = createApp(
     {
       internalKey: KEY,
-      jwtSecret: SECRET,
+      jwks: KEYS.jwks,
       jwtAudience: 'authenticated',
       corsOrigins: ['*'],
       rateLimitPerMin: 10_000,

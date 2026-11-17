@@ -7,7 +7,7 @@ import { isIP } from 'node:net';
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify } from 'jose';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { ALL_ROLES, AppError, HEADERS, assertNotDevSecrets, errorHandler, errors, sendError } from '../shared.js';
 import { compilePermissions, findRule, PERMISSIONS } from './permissions.js';
@@ -19,7 +19,6 @@ export function loadConfig(overrides = {}) {
   const config = {
     port: Number(env.PORT || env.GATEWAY_PORT || 8080),
     internalKey: env.INTERNAL_KEY,
-    jwtSecret: env.JWT_SECRET || env.SUPABASE_JWT_SECRET,
     jwksUrl: env.SUPABASE_JWKS_URL || (env.SUPABASE_URL ? `${env.SUPABASE_URL}/auth/v1/.well-known/jwks.json` : undefined),
     jwtIssuer: env.JWT_ISSUER || undefined,
     jwtAudience: env.JWT_AUDIENCE || 'authenticated',
@@ -33,9 +32,9 @@ export function loadConfig(overrides = {}) {
   };
   const missing = [];
   if (!config.internalKey) missing.push('INTERNAL_KEY');
-  if (!config.jwtSecret && !config.jwksUrl) missing.push('JWT_SECRET หรือ SUPABASE_URL/SUPABASE_JWKS_URL');
+  if (!config.jwks && !config.jwksUrl) missing.push('SUPABASE_URL');
   if (missing.length) throw new Error(`gateway: ขาด environment variable: ${missing.join(', ')}`);
-  assertNotDevSecrets({ INTERNAL_KEY: config.internalKey, JWT_SECRET: config.jwtSecret });
+  assertNotDevSecrets({ INTERNAL_KEY: config.internalKey });
   return config;
 }
 
@@ -107,21 +106,11 @@ function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
 
 const notFound = (req, res) => fail(req, res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'));
 
-// ตรวจ JWT (HS256 ของโหมดจำลอง หรือ JWKS ของ Supabase)
-function authMw({ routes, jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
-  const secretKey = jwtSecret ? new TextEncoder().encode(jwtSecret) : null;
-  const jwks = jwksUrl ? createRemoteJWKSet(new URL(jwksUrl)) : null;
+// ตรวจ JWT ของ Supabase ด้วย JWKS (public key ของโปรเจกต์)
+function authMw({ routes, jwks: keySet, jwksUrl, jwtIssuer, jwtAudience }) {
+  const jwks = keySet || createRemoteJWKSet(new URL(jwksUrl));
   const options = { audience: jwtAudience, ...(jwtIssuer ? { issuer: jwtIssuer } : {}) };
-
-  async function verify(token) {
-    const { alg } = decodeProtectedHeader(token);
-    if (alg === 'HS256') {
-      if (!secretKey) throw new Error('HS256 token แต่ไม่ได้ตั้ง JWT_SECRET');
-      return (await jwtVerify(token, secretKey, { ...options, algorithms: ['HS256'] })).payload;
-    }
-    if (!jwks) throw new Error(`ไม่รองรับ alg ${alg} (ไม่ได้ตั้ง SUPABASE_JWKS_URL)`);
-    return (await jwtVerify(token, jwks, options)).payload;
-  }
+  const verify = async (token) => (await jwtVerify(token, jwks, options)).payload;
 
   return async (req, res, next) => {
     if (/(^|\/)\.\.?(\/|$)|%2e|%2f|%5c|\\/i.test(req.path)) return fail(req, res, errors.badRequest('path ไม่ถูกต้อง'));

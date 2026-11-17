@@ -4,21 +4,22 @@
 
 **Windows** (เปิด PowerShell แล้ววางบรรทัดเดียว)
 ```powershell
-winget install -e --id Git.Git --accept-source-agreements --accept-package-agreements; winget install -e --id OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements; $env:Path=[Environment]::GetEnvironmentVariable('Path','Machine')+';'+[Environment]::GetEnvironmentVariable('Path','User'); git clone -b dev1-identity https://github.com/noinahjajah/Pos_Crm.git; cd Pos_Crm\server; Copy-Item .env.example .env; npm.cmd run setup; Start-Process powershell -ArgumentList '-NoExit','-Command','npm.cmd run dev'; Start-Sleep 12; Start-Process http://localhost:5173
+winget install -e --id Git.Git --accept-source-agreements --accept-package-agreements; winget install -e --id OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements; $env:Path=[Environment]::GetEnvironmentVariable('Path','Machine')+';'+[Environment]::GetEnvironmentVariable('Path','User'); git clone -b dev1-identity https://github.com/noinahjajah/Pos_Crm.git; cd Pos_Crm\server; Copy-Item .env.example .env; npm.cmd run setup; Start-Process notepad .env -Wait; Start-Process powershell -ArgumentList '-NoExit','-Command','npm.cmd run dev'; Start-Sleep 12; Start-Process http://localhost:5173
 ```
 
 **Mac** (เปิด Terminal แล้ววาง)
 ```bash
-command -v brew >/dev/null || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"; brew install git node; git clone -b dev1-identity https://github.com/noinahjajah/Pos_Crm.git && cd Pos_Crm/server && cp .env.example .env && npm run setup && (sleep 12 && open http://localhost:5173 &) && npm run dev
+command -v brew >/dev/null || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"; brew install git node; git clone -b dev1-identity https://github.com/noinahjajah/Pos_Crm.git && cd Pos_Crm/server && cp .env.example .env && npm run setup && open -W -a TextEdit .env && (sleep 12 && open http://localhost:5173 &) && npm run dev
 ```
+
+ระหว่างติดตั้งจะเปิดไฟล์ `server/.env` ให้ใส่ key ของ Supabase (ขอจาก Dev 1) แล้วบันทึกปิดไฟล์ ระบบจะเปิดต่อเอง
 
 เปิด http://localhost:5173 · login `owner` / `manager1` / `staff1` รหัส `password123`
 
 ครั้งต่อไป: เข้าโฟลเดอร์ `Pos_Crm/server` แล้วรัน `npm run dev` คำสั่งเดียว เปิดครบทั้ง identity, gateway และเว็บ (Windows ใช้ `npm.cmd run dev`)
 
 ### ต่อ Supabase
-- ค่าเริ่มต้นเป็น `DATA_MODE=memory` ใช้ได้ทันที ข้อมูลหายเมื่อปิดเซิร์ฟเวอร์
-- ใช้ฐานข้อมูลจริง: ใส่ `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` ใน `server/.env` แล้วตั้ง `DATA_MODE=supabase` (ขอ key จาก Dev 1 ทางส่วนตัว · key ถูกเก็บไว้ใน GitHub Secrets ของ repo ด้วย ใช้ได้ใน GitHub Actions เท่านั้น)
+- ระบบใช้ฐานข้อมูลจริงของทีมเสมอ (ไม่มีโหมดจำลองแล้ว) · ต้องใส่ `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` ใน `server/.env` ก่อนรัน (ขอ key จาก Dev 1 ทางส่วนตัว · key ถูกเก็บไว้ใน GitHub Secrets ของ repo ด้วย ใช้ได้ใน GitHub Actions เท่านั้น)
 - schema `identity`, hook และผู้ใช้ทดสอบตั้งไว้ในโปรเจกต์ Supabase ของทีมแล้ว
 
 ## โครงสร้างโฟลเดอร์
@@ -46,12 +47,11 @@ Pos_Crm/
 │  ├─ identity/                login / ผู้ใช้ / role / สาขา :3001
 │  │  ├─ app.js                ประกอบ service + อ่าน .env
 │  │  ├─ routes.js             ทุก endpoint ของ identity
-│  │  ├─ supabase.js           ต่อฐานข้อมูลจริง (DATA_MODE=supabase)
-│  │  ├─ memory.js             ข้อมูลจำลอง (DATA_MODE=memory)
+│  │  ├─ supabase.js           อ่าน/เขียนฐานข้อมูล Supabase
 │  │  ├─ server.js             จุดเริ่มรัน
 │  │  └─ tools.mjs             npm run tokens / seed:users
 │  ├─ shared.js                โค้ดกลางทุก service: response/error, zod, อ่าน X-User-*
-│  ├─ test/                    gateway.test.js + identity.test.js (npm test) · e2e.mjs (npm run e2e)
+│  ├─ test/                    npm test (ใช้ fake-supabase.js แทนฐานข้อมูล ไม่แตะของจริง) · e2e.mjs = npm run e2e กับ Supabase จริง
 │  ├─ supabase/                migration ของ schema identity + seed 3 สาขา
 │  ├─ Dockerfile               build service ไหนก็ได้ (build arg SERVICE)
 │  ├─ docker-compose.yml       รันทั้งระบบด้วย Docker (เปิดแค่ :8080)
@@ -69,7 +69,7 @@ Pos_Crm/
 | `npm run dev` | เปิด identity, gateway และเว็บพร้อมกัน |
 | `npm test` | เทสต์ backend |
 | `npm run e2e` | ตรวจการเชื่อมต่อจริง gateway → identity → ฐานข้อมูล 36 รายการ (เปิด `npm run dev` ไว้ก่อน) |
-| `npm run tokens` | token ทดสอบ 3 role ไว้เรียก API ผ่าน gateway |
+| `npm run tokens` | login จริงกับ Supabase ได้ token 3 role ไว้เรียก API ผ่าน gateway |
 | `npm --prefix ../web run lint` / `run build` | ตรวจโค้ดเว็บ / build เว็บ |
 
 ### Dev 2 / Dev 3 ใช้ต่อยังไง
