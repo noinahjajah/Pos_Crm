@@ -244,15 +244,21 @@ export function proxyMw({ internalKey, proxyTimeoutMs }) {
     return req.gw.servicePath + url.search;
   };
 
-  const onProxyReq = (stream) => (proxyReq, req) => {
+  // ใส่ header ภายในลง req.headers ก่อนส่งต่อ (http-proxy คัดลอกไปเอง)
+  // ไม่ใช้ proxyReq.setHeader เพราะบาง Node (เช่น 26 บน Windows) ส่ง header ไปก่อน event proxyReq
+  // ทำให้ setHeader พังเงียบ ๆ และ service ได้ request ที่ไม่มี X-Internal-Key
+  const setInternalHeaders = (req) => {
     const { user, branchId, requestId } = req.gw;
-    proxyReq.setHeader('X-Request-Id', requestId);
-    proxyReq.setHeader('X-Internal-Key', internalKey);
+    req.headers['x-request-id'] = requestId;
+    req.headers['x-internal-key'] = internalKey;
     if (user) {
-      proxyReq.setHeader('X-User-Id', user.id);
-      proxyReq.setHeader('X-User-Role', user.role);
-      proxyReq.setHeader('X-Branch-Id', branchId ?? '');
+      req.headers['x-user-id'] = user.id;
+      req.headers['x-user-role'] = user.role;
+      req.headers['x-branch-id'] = branchId ?? '';
     }
+  };
+
+  const onProxyReq = (stream) => (proxyReq, req) => {
     if (!stream) {
       // timeout ของ gateway เอง เพื่อแยก 504 (ช้า) ออกจาก 502 (ล่ม)
       const timer = setTimeout(() => {
@@ -288,7 +294,10 @@ export function proxyMw({ internalKey, proxyTimeoutMs }) {
 
   const normal = make(false);
   const streaming = make(true);
-  return (req, res, next) => (req.gw.rule.stream ? streaming : normal)(req, res, next);
+  return (req, res, next) => {
+    setInternalHeaders(req);
+    return (req.gw.rule.stream ? streaming : normal)(req, res, next);
+  };
 }
 
 // ---------- 10. Logging ----------
