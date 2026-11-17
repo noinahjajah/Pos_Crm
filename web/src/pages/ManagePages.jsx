@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { identityApi, passwordOk, randomPassword } from '../lib/api.js'
 import { BRANCH_TYPE_LABEL, useAuth, useBranch } from '../app/providers.jsx'
-import { Alert, AVATAR_COLOR, Avatar, Badge, Button, Card, Field, Modal, PageHeader, ROLE_LABEL, ROLE_TONE, Select, TextInput } from '../components/ui.jsx'
+import { Alert, AVATAR_COLOR, Avatar, Badge, Button, Card, Field, PageHeader, PhaseNote, SidePanel, ROLE_LABEL, ROLE_TONE, Select, TextInput } from '../components/ui.jsx'
 
 // หน้าจัดการของ Dev 1: ผู้ใช้ (1.3, 1.5) และสาขา (1.6)
 
@@ -72,128 +73,132 @@ export function UsersPage() {
         actions={isOwner && <Button onClick={() => setEditing('new')}>+ เพิ่มผู้ใช้</Button>}
       />
       <div className="content">
-        <Alert>{error}</Alert>
-        <Card
-          title={`ผู้ใช้ทั้งหมด (${meta.total ?? 0})`}
-          actions={
-            <div className="toolbar">
-              <TextInput
-                placeholder="ค้นหาชื่อหรือ username…"
-                value={q}
-                onChange={(e) => {
-                  setQ(e.target.value)
-                  setPage(1)
-                }}
-              />
-              <Select
-                value={role}
-                onChange={(e) => {
-                  setRole(e.target.value)
-                  setPage(1)
-                }}
-              >
-                <option value="">Role: ทั้งหมด</option>
-                <option value="owner">Owner</option>
-                <option value="manager">Manager</option>
-                <option value="staff">Staff</option>
-              </Select>
-              {isOwner && (
-                <label className="check">
-                  <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} /> แสดงที่ลบแล้ว
-                </label>
-              )}
-            </div>
-          }
-        >
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>ผู้ใช้</th>
-                  <th>Role</th>
-                  <th>สาขา</th>
-                  <th>สถานะ</th>
-                  <th>เข้าใช้ล่าสุด</th>
-                  {isOwner && <th style={{ textAlign: 'right' }}>จัดการ</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((u) => (
-                  <tr key={u.id} className={u.is_active ? '' : 'inactive'}>
-                    <td>
-                      <div className="person">
-                        <Avatar name={u.full_name} color={AVATAR_COLOR[u.role]} size="sm" />
-                        <div>
-                          <div>
-                            {u.full_name} {u.id === me.id && <span className="muted">(คุณ)</span>}
+        <div className={editing ? 'with-panel' : ''}>
+          <div>
+            <Alert>{error}</Alert>
+            <Card
+              title={`ผู้ใช้ทั้งหมด (${meta.total ?? 0})`}
+              actions={
+                <div className="toolbar">
+                  <TextInput
+                    placeholder="ค้นหาชื่อหรือ username…"
+                    value={q}
+                    onChange={(e) => {
+                      setQ(e.target.value)
+                      setPage(1)
+                    }}
+                  />
+                  <Select
+                    value={role}
+                    onChange={(e) => {
+                      setRole(e.target.value)
+                      setPage(1)
+                    }}
+                  >
+                    <option value="">Role: ทั้งหมด</option>
+                    <option value="owner">Owner</option>
+                    <option value="manager">Manager</option>
+                    <option value="staff">Staff</option>
+                  </Select>
+                  {isOwner && (
+                    <label className="check">
+                      <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} /> แสดงที่ลบแล้ว
+                    </label>
+                  )}
+                </div>
+              }
+            >
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>ผู้ใช้</th>
+                      <th>Role</th>
+                      <th>สาขา</th>
+                      <th>สถานะ</th>
+                      <th>เข้าใช้ล่าสุด</th>
+                      {isOwner && <th style={{ textAlign: 'right' }}>จัดการ</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((u) => (
+                      <tr key={u.id} className={u.is_active ? '' : 'inactive'}>
+                        <td>
+                          <div className="person">
+                            <Avatar name={u.full_name} color={AVATAR_COLOR[u.role]} size="sm" />
+                            <div>
+                              <div>
+                                {u.full_name} {u.id === me.id && <span className="muted">(คุณ)</span>}
+                              </div>
+                              <div className="sub">{u.username}</div>
+                            </div>
                           </div>
-                          <div className="sub">{u.username}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <Badge tone={ROLE_TONE[u.role]}>{ROLE_LABEL[u.role]}</Badge>
-                    </td>
-                    <td>{u.branch ? u.branch.name : <span className="muted">ทุกสาขา</span>}</td>
-                    <td>
-                      {!u.is_active ? (
-                        <Badge>ลบแล้ว</Badge>
-                      ) : u.must_change_password ? (
-                        <Badge tone="warning">รอตั้งรหัสใหม่</Badge>
-                      ) : (
-                        <Badge tone="success">ใช้งาน</Badge>
-                      )}
-                    </td>
-                    <td className="muted">
-                      {u.last_login_at
-                        ? new Date(u.last_login_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })
-                        : 'ยังไม่เคยเข้า'}
-                    </td>
-                    {isOwner && (
-                      <td>
-                        <div className="actions">
-                          <Button variant="ghost" size="sm" onClick={() => setEditing(u)}>
-                            แก้ไข
-                          </Button>
-                          {u.is_active && u.id !== me.id && (
-                            <Button variant="ghost" size="sm" className="danger" onClick={() => remove(u)}>
-                              ลบ
-                            </Button>
+                        </td>
+                        <td>
+                          <Badge tone={ROLE_TONE[u.role]}>{ROLE_LABEL[u.role]}</Badge>
+                        </td>
+                        <td>{u.branch ? u.branch.name : <span className="muted">ทุกสาขา</span>}</td>
+                        <td>
+                          {!u.is_active ? (
+                            <Badge>ลบแล้ว</Badge>
+                          ) : u.must_change_password ? (
+                            <Badge tone="warning">รอตั้งรหัสใหม่</Badge>
+                          ) : (
+                            <Badge tone="success">ใช้งาน</Badge>
                           )}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {!rows.length && <div className="empty">ไม่พบผู้ใช้</div>}
+                        </td>
+                        <td className="muted">
+                          {u.last_login_at
+                            ? new Date(u.last_login_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })
+                            : 'ยังไม่เคยเข้า'}
+                        </td>
+                        {isOwner && (
+                          <td>
+                            <div className="actions">
+                              <Button variant="ghost" size="sm" onClick={() => setEditing(u)}>
+                                แก้ไข
+                              </Button>
+                              {u.is_active && u.id !== me.id && (
+                                <Button variant="ghost" size="sm" className="danger" onClick={() => remove(u)}>
+                                  ลบ
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!rows.length && <div className="empty">ไม่พบผู้ใช้</div>}
+              </div>
+              <div className="pager">
+                แสดง {rows.length} จาก {meta.total ?? 0} รายการ
+                <div className="grow" />
+                <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                  ‹ ก่อนหน้า
+                </Button>
+                หน้า {page} / {pages}
+                <Button variant="secondary" size="sm" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
+                  ถัดไป ›
+                </Button>
+              </div>
+            </Card>
           </div>
-          <div className="pager">
-            แสดง {rows.length} จาก {meta.total ?? 0} รายการ
-            <div className="grow" />
-            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              ‹ ก่อนหน้า
-            </Button>
-            หน้า {page} / {pages}
-            <Button variant="secondary" size="sm" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
-              ถัดไป ›
-            </Button>
-          </div>
-        </Card>
+          {editing && (
+            <UserForm
+              key={editing === 'new' ? 'new' : editing.id}
+              user={editing === 'new' ? null : editing}
+              isSelf={editing !== 'new' && editing.id === me.id}
+              onClose={() => setEditing(null)}
+              onSaved={() => {
+                setEditing(null)
+                load()
+              }}
+            />
+          )}
+        </div>
       </div>
-
-      {editing && (
-        <UserForm
-          user={editing === 'new' ? null : editing}
-          isSelf={editing !== 'new' && editing.id === me.id}
-          onClose={() => setEditing(null)}
-          onSaved={() => {
-            setEditing(null)
-            load()
-          }}
-        />
-      )}
     </>
   )
 }
@@ -251,7 +256,7 @@ function UserForm({ user, isSelf, onClose, onSaved }) {
   }
 
   return (
-    <Modal
+    <SidePanel
       title={isNew ? 'เพิ่มผู้ใช้' : `แก้ไขผู้ใช้ ${user.username}`}
       onClose={onClose}
       footer={
@@ -332,7 +337,7 @@ function UserForm({ user, isSelf, onClose, onSaved }) {
           บัญชีใช้งานได้ (ปิด = ลบผู้ใช้ และออกจากระบบทุกเครื่อง)
         </label>
       )}
-    </Modal>
+    </SidePanel>
   )
 }
 
@@ -341,12 +346,19 @@ const EMPTY = { code: '', name: '', branch_type: 'restaurant', address: '', phon
 
 // จัดการสาขา — owner เท่านั้น (1.6)
 export function BranchesPage() {
-  const { reload: reloadSwitcher } = useBranch()
+  const { reload: reloadSwitcher, selectBranch } = useBranch()
+  const navigate = useNavigate()
+  const formRef = useRef(null)
   const [branches, setBranches] = useState([])
-  const [userCount, setUserCount] = useState({})
+  const [stats, setStats] = useState({}) // branch_id → { manager, staff }
   const [showClosed, setShowClosed] = useState(false)
   const [error, setError] = useState('')
-  const [editing, setEditing] = useState(null) // null | 'new' | branch
+  const [editing, setEditing] = useState(null) // null = เพิ่มใหม่ | branch = แก้ไข
+
+  function startEdit(b) {
+    setEditing(b)
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0)
+  }
 
   const load = useCallback(async () => {
     try {
@@ -355,9 +367,14 @@ export function BranchesPage() {
         identityApi.listUsers({ limit: 100 }),
       ])
       setBranches(data)
-      const count = {}
-      for (const u of users.data) if (u.branch_id) count[u.branch_id] = (count[u.branch_id] || 0) + 1
-      setUserCount(count)
+      const next = {}
+      for (const u of users.data) {
+        if (!u.branch_id || !u.is_active) continue
+        const st = (next[u.branch_id] ||= { manager: null, staff: 0 })
+        if (u.role === 'manager') st.manager ??= u.full_name
+        if (u.role === 'staff') st.staff += 1
+      }
+      setStats(next)
       setError('')
     } catch (e) {
       setError(e.message)
@@ -398,7 +415,7 @@ export function BranchesPage() {
       <PageHeader
         title="จัดการสาขา"
         subtitle="เพิ่ม แก้ไข หรือปิดสาขา · ชื่อ ที่อยู่ และเบอร์โทรใช้พิมพ์หัวใบเสร็จ"
-        actions={<Button onClick={() => setEditing('new')}>+ เพิ่มสาขา</Button>}
+        actions={<Button onClick={() => startEdit(null)}>+ เพิ่มสาขา</Button>}
       />
       <div className="content">
         <Alert>{error}</Alert>
@@ -425,22 +442,33 @@ export function BranchesPage() {
               </div>
               <div className="stat-row">
                 <div className="stat">
+                  <small>ผู้จัดการ</small>
+                  {stats[b.id]?.manager || '—'}
+                </div>
+                <div className="stat">
+                  <small>พนักงาน</small>
+                  {stats[b.id]?.staff || 0} คน
+                </div>
+                <div className="stat">
                   <small>ประเภท</small>
                   {BRANCH_TYPE_LABEL[b.branch_type]}
                 </div>
-                <div className="stat">
-                  <small>ผู้ใช้</small>
-                  {userCount[b.id] || 0} คน
-                </div>
-                <div className="stat">
-                  <small>สร้างเมื่อ</small>
-                  {new Date(b.created_at).toLocaleDateString('th-TH')}
-                </div>
               </div>
               <div className="toolbar">
-                <Button variant="secondary" onClick={() => setEditing(b)}>
+                <Button variant="secondary" onClick={() => startEdit(b)}>
                   แก้ไข
                 </Button>
+                {b.is_active && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      selectBranch(b.id)
+                      navigate('/dashboard')
+                    }}
+                  >
+                    ดูแดชบอร์ด
+                  </Button>
+                )}
                 <div style={{ flex: 1 }} />
                 {b.is_active ? (
                   <Button variant="ghost" className="danger" onClick={() => close(b)}>
@@ -456,23 +484,24 @@ export function BranchesPage() {
           ))}
         </div>
         {!branches.length && !error && <div className="empty">ยังไม่มีสาขา</div>}
-      </div>
 
-      {editing && (
-        <BranchForm
-          branch={editing === 'new' ? null : editing}
-          onClose={() => setEditing(null)}
-          onSaved={() => {
-            setEditing(null)
-            afterChange()
-          }}
-        />
-      )}
+        <div ref={formRef}>
+          <BranchForm
+            key={editing?.id ?? 'new'}
+            branch={editing}
+            onCancel={() => setEditing(null)}
+            onSaved={() => {
+              setEditing(null)
+              afterChange()
+            }}
+          />
+        </div>
+      </div>
     </>
   )
 }
 
-function BranchForm({ branch, onClose, onSaved }) {
+function BranchForm({ branch, onCancel, onSaved }) {
   const [form, setForm] = useState(() => (branch ? { ...EMPTY, ...branch, address: branch.address || '', phone: branch.phone || '' } : EMPTY))
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
@@ -493,6 +522,7 @@ function BranchForm({ branch, onClose, onSaved }) {
     try {
       if (branch) await identityApi.updateBranch(branch.id, body)
       else await identityApi.createBranch(body)
+      setForm(EMPTY)
       onSaved()
     } catch (e) {
       setErrors(e.fieldErrors || {})
@@ -503,20 +533,7 @@ function BranchForm({ branch, onClose, onSaved }) {
   }
 
   return (
-    <Modal
-      title={branch ? `แก้ไขสาขา ${branch.code}` : 'เพิ่มสาขาใหม่'}
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            ยกเลิก
-          </Button>
-          <Button onClick={save} disabled={busy}>
-            {busy ? 'กำลังบันทึก…' : 'บันทึกสาขา'}
-          </Button>
-        </>
-      }
-    >
+    <Card className="inline-form" title={branch ? `แก้ไขสาขา ${branch.code}` : 'เพิ่มสาขาใหม่'}>
       <Alert>{error}</Alert>
       <div className="grid-2">
         <Field label="ชื่อสาขา" error={errors.name}>
@@ -541,6 +558,25 @@ function BranchForm({ branch, onClose, onSaved }) {
       <Field label="ที่อยู่" hint="แสดงบนหัวใบเสร็จ" error={errors.address}>
         <TextInput value={form.address} onChange={set('address')} />
       </Field>
-    </Modal>
+      <PhaseNote title="เวลาเปิด–ปิดสาขา">ตั้งเวลาเปิด–ปิดของแต่ละสาขา จะเพิ่มในเฟส 2</PhaseNote>
+      <div className="form-actions">
+        {(branch || form.name || form.code) && (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setForm(EMPTY)
+              setErrors({})
+              setError('')
+              onCancel()
+            }}
+          >
+            ยกเลิก
+          </Button>
+        )}
+        <Button onClick={save} disabled={busy}>
+          {busy ? 'กำลังบันทึก…' : 'บันทึกสาขา'}
+        </Button>
+      </div>
+    </Card>
   )
 }

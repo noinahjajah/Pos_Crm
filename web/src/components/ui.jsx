@@ -101,6 +101,22 @@ export function Alert({ tone = 'error', children }) {
   return <div className={`alert alert-${tone}`}>{children}</div>
 }
 
+// แผงแก้ไขด้านขวา (ตาม Figma: หน้าผู้ใช้ — กว้าง 360px)
+export function SidePanel({ title, onClose, footer, children }) {
+  return (
+    <aside className="side-panel" aria-label={title}>
+      <div className="side-panel-head">
+        <h3>{title}</h3>
+        <button type="button" className="icon-close" onClick={onClose} aria-label="ปิด">
+          ✕
+        </button>
+      </div>
+      <div className="side-panel-body">{children}</div>
+      {footer && <div className="side-panel-foot">{footer}</div>}
+    </aside>
+  )
+}
+
 export function Modal({ title, onClose, children, footer }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -144,9 +160,9 @@ export function AppLayout() {
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">P</div>
+          <div className="brand-mark">ค</div>
           <div>
-            <div className="brand-name">POS CRM</div>
+            <div className="brand-name">ครัวโอทอป</div>
             <div className="brand-sub">ระบบหลังบ้าน · {ROLE_LABEL[user.role]}</div>
           </div>
         </div>
@@ -155,7 +171,6 @@ export function AppLayout() {
           {items.map((m) => (
             <NavLink key={m.path} to={m.path} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               {m.label}
-              {m.dev !== 'dev1' && <span className="nav-dev">{DEV_LABEL[m.dev]}</span>}
             </NavLink>
           ))}
         </nav>

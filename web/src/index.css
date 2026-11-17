@@ -236,3 +236,22 @@ dl.info dd { margin: 0; }
   .print-target, .print-target * { visibility: visible; }
   .print-target { position: absolute; left: 0; top: 0; box-shadow: none; width: 80mm; padding: 4mm 3mm; }
 }
+
+/* ---- Figma alignment: test accounts, side panel, inline form ---- */
+.test-accounts { border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.test-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; text-align: left; }
+.test-row:hover { border-color: var(--green); background: var(--green-soft); }
+.test-row b { min-width: 72px; }
+.with-panel { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+.side-panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); position: sticky; top: 20px; display: flex; flex-direction: column; max-height: calc(100vh - 40px); }
+.side-panel-head { display: flex; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.side-panel-head h3 { margin: 0; font-size: 16px; flex: 1; }
+.side-panel-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+.side-panel-foot { display: flex; gap: 8px; padding: 14px 18px; border-top: 1px solid var(--line); }
+.side-panel-foot > * { flex: 1; }
+.icon-close { border: 0; background: transparent; font-size: 18px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px; }
+.side-panel .grid-2 { grid-template-columns: 1fr; }
+.inline-form { border: 1.5px dashed var(--line); }
+.inline-form .form-actions { display: flex; gap: 8px; justify-content: flex-end; }
+@media (max-width: 1100px) { .with-panel { grid-template-columns: 1fr; } .side-panel { position: static; max-height: none; } }
+input[type=radio], input[type=checkbox] { accent-color: var(--green); }

@@ -6,6 +6,11 @@ import { Alert, Badge, Button, Card, Field, HOME_BY_ROLE, PageHeader, ROLE_LABEL
 
 // หน้าเกี่ยวกับการเข้าสู่ระบบของ Dev 1: login (1.2) และบัญชีของฉัน (เปลี่ยนรหัสผ่าน)
 
+const TEST_ACCOUNTS = [
+  { username: 'owner', role: 'owner', dest: 'แดชบอร์ดรวมทุกสาขา' },
+  { username: 'manager1', role: 'manager', dest: 'แดชบอร์ดสาขาร้านอาหาร' },
+  { username: 'staff1', role: 'staff', dest: 'หน้าโต๊ะ / รับออร์เดอร์' },
+]
 const SHOW_TEST_ACCOUNTS = import.meta.env.DEV || import.meta.env.VITE_SHOW_TEST_ACCOUNTS === 'true'
 
 const LOGOUT_MESSAGE = {
@@ -91,9 +96,12 @@ export function LoginPage() {
       <section className="login-hero">
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div className="brand-mark" style={{ background: '#fff', color: '#2e6b5a' }}>
-            P
+            ค
           </div>
-          <b style={{ fontSize: 20 }}>POS CRM</b>
+          <div>
+            <b style={{ fontSize: 20 }}>ครัวโอทอป</b>
+            <div style={{ fontSize: 12, opacity: 0.75 }}>ระบบหลังบ้าน</div>
+          </div>
         </div>
         <h2>
           จัดการร้านทั้ง 3 สาขา
@@ -145,23 +153,23 @@ export function LoginPage() {
           </p>
 
           {SHOW_TEST_ACCOUNTS && (
-            <div className="alert alert-info">
-              <b>บัญชีทดสอบ (โหมดจำลอง)</b>
-              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                {['owner', 'manager1', 'staff1'].map((u) => (
-                  <Button
-                    key={u}
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      setUsername(u)
-                      setPassword('password123')
-                    }}
-                  >
-                    {u}
-                  </Button>
-                ))}
-              </div>
+            <div className="test-accounts">
+              <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>บัญชีทดสอบ (โหมดจำลอง) · รหัสผ่าน password123</div>
+              {TEST_ACCOUNTS.map((a) => (
+                <button
+                  type="button"
+                  key={a.username}
+                  className="test-row"
+                  onClick={() => {
+                    setUsername(a.username)
+                    setPassword('password123')
+                  }}
+                >
+                  <Badge tone={ROLE_TONE[a.role]}>{ROLE_LABEL[a.role]}</Badge>
+                  <b>{a.username}</b>
+                  <span className="muted">→ {a.dest}</span>
+                </button>
+              ))}
             </div>
           )}
         </form>

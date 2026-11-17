@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import dns, { promises as dnsPromises } from 'node:dns';
+import http from 'node:http';
+import { isIP } from 'node:net';
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
@@ -208,6 +211,31 @@ export function branchScopeMw() {
   };
 }
 
+// ---------- DNS ที่ไม่ใช้ thread pool ----------
+// ใช้ c-ares (dns.resolve) แทน dns.lookup เพื่อไม่ให้ชื่อ service ที่ยังไม่มี / DNS ช้า ไปจอง thread pool
+// จนทุก request ของ gateway ค้าง · IP และ localhost ใช้ lookup ตามปกติ (ไม่ต้องถาม DNS)
+export function fastLookup(hostname, options, callback) {
+  if (typeof options === 'function') [callback, options] = [options, {}];
+  const family = isIP(hostname);
+  if (family || hostname === 'localhost') return dns.lookup(hostname, options, callback);
+  let done = false;
+  const finish = (err, address) => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    if (err) return callback(err);
+    if (options?.all) return callback(null, [{ address, family: isIP(address) }]);
+    callback(null, address, isIP(address));
+  };
+  const timer = setTimeout(() => finish(Object.assign(new Error(`DNS timeout ${hostname}`), { code: 'ETIMEDOUT' })), 3000);
+  dns.resolve4(hostname, (err4, a4) => {
+    if (!err4 && a4.length) return finish(null, a4[0]);
+    dns.resolve6(hostname, (err6, a6) => (!err6 && a6.length ? finish(null, a6[0]) : finish(err4 || err6)));
+  });
+}
+
+const proxyAgent = new http.Agent({ keepAlive: true, lookup: fastLookup });
+
 // ---------- 8. Proxy + 9. Error format (service ล่ม → 502, ช้า → 504) ----------
 export function proxyMw({ internalKey, proxyTimeoutMs }) {
   const rewrite = (_path, req) => {
@@ -252,6 +280,7 @@ export function proxyMw({ internalKey, proxyTimeoutMs }) {
       target: 'http://placeholder.invalid',
       changeOrigin: true,
       xfwd: true,
+      agent: proxyAgent,
       pathRewrite: rewrite,
       logger: { info() {}, warn() {}, error() {} },
       on: { proxyReq: onProxyReq(stream), error: onError },
@@ -289,21 +318,51 @@ export function loggingMw({ logRequests, logger = console }) {
 }
 
 // ---------- health รวมสถานะทุก service ----------
-export function healthHandler({ routes }) {
-  return async (_req, res) => {
+// ระวัง: dns.lookup (ที่ fetch/http ใช้) ทำงานบน thread pool ของ Node ซึ่งมีแค่ 4 thread
+// ถ้าชื่อ service ยังไม่มี (เช่น catalog ที่ Dev 2 ยังไม่ขึ้น) การ lookup ใน docker อาจค้างนาน
+// แล้วจอง thread จน proxy ไปหา identity ไม่ได้ → login ค้าง 504
+// จึงตรวจชื่อด้วย dns.resolve (c-ares ไม่ใช้ thread pool) ก่อน และจำผลไว้ 5 วินาที
+async function hostResolves(hostname, timeoutMs) {
+  if (isIP(hostname) || hostname === 'localhost') return true;
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('dns timeout')), timeoutMs));
+  try {
+    const found = await Promise.race([dnsPromises.resolve4(hostname).catch(() => dnsPromises.resolve6(hostname)), timeout]);
+    return found.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+export function healthHandler({ routes, cacheMs = 5000, timeoutMs = 2000 }) {
+  let cached = null;
+  let cachedAt = 0;
+  let inflight = null;
+
+  async function check() {
     const results = await Promise.all(
       routes.map(async (r) => {
+        if (!(await hostResolves(new URL(r.target).hostname, timeoutMs))) return [r.name, 'down'];
         try {
-          const resp = await fetch(`${r.target}/health`, { signal: AbortSignal.timeout(2000) });
+          const resp = await fetch(`${r.target}/health`, { signal: AbortSignal.timeout(timeoutMs) });
           return [r.name, resp.ok ? 'ok' : `http_${resp.status}`];
         } catch {
           return [r.name, 'down'];
         }
       }),
     );
-    const services = Object.fromEntries(results);
-    const allOk = results.every(([, s]) => s === 'ok');
-    res.status(allOk ? 200 : 503).json({ status: allOk ? 'ok' : 'degraded', gateway: 'ok', services });
+    return Object.fromEntries(results);
+  }
+
+  return async (_req, res) => {
+    if (!cached || Date.now() - cachedAt > cacheMs) {
+      inflight ??= check().finally(() => {
+        inflight = null;
+      });
+      cached = await inflight;
+      cachedAt = Date.now();
+    }
+    const allOk = Object.values(cached).every((s) => s === 'ok');
+    res.status(allOk ? 200 : 503).json({ status: allOk ? 'ok' : 'degraded', gateway: 'ok', services: cached });
   };
 }
 
