@@ -1,3 +1,5 @@
+// identity service: login, ผู้ใช้, role, สาขา
+
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { assertNotDevSecrets, errorHandler, internalAuth, notFoundHandler, requestId } from '@pos/shared';
@@ -50,6 +52,7 @@ export function loadConfig(overrides = {}) {
   return config;
 }
 
+// เลือกที่เก็บข้อมูลตาม DATA_MODE: memory (ทดสอบ) หรือ supabase (จริง)
 export function createDeps(config) {
   if (config.dataMode === 'supabase') {
     const opts = { auth: { persistSession: false, autoRefreshToken: false } };
@@ -77,6 +80,7 @@ export function createDeps(config) {
   return { repo, auth };
 }
 
+// เส้นทางทั้งหมดของ identity
 export function createApp({ repo, auth, internalKey, loginGuard = createLoginGuard(), logger = console }) {
   const app = express();
   app.disable('x-powered-by');

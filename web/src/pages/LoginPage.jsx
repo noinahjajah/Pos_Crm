@@ -1,9 +1,12 @@
+// หน้า login และหน้าบัญชีของฉัน (เปลี่ยนรหัสผ่าน)
+
 import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, useNotice } from '../providers.jsx'
 import { clearLogoutReason, PASSWORD_RULES, passwordOk, peekLogoutReason } from '../api.js'
 import { Alert, Badge, Button, Card, Field, HOME_BY_ROLE, PageHeader, ROLE_LABEL, ROLE_TONE, TextInput, useForm } from '../ui.jsx'
 
+// บัญชีทดสอบ แสดงเฉพาะตอนพัฒนา
 const TEST_ACCOUNTS = [
   { username: 'owner', role: 'owner', dest: 'แดชบอร์ดรวมทุกสาขา' },
   { username: 'manager1', role: 'manager', dest: 'แดชบอร์ดสาขาร้านอาหาร' },
@@ -55,6 +58,7 @@ function PasswordInput({ value, onChange, autoComplete, invalid, autoFocus }) {
   )
 }
 
+// หน้า login
 export function LoginPage() {
   const { login, user } = useAuth()
   const { toast } = useNotice()
@@ -176,6 +180,7 @@ export function LoginPage() {
 
 const dateTime = (iso) => (iso ? new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '—')
 
+// บัญชีของฉัน: ดูข้อมูล + เปลี่ยนรหัสผ่าน
 export function AccountPage() {
   const { user, changePassword } = useAuth()
   const navigate = useNavigate()

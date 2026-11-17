@@ -1,3 +1,5 @@
+# CI: เทสต์ backend, ตรวจ+build เว็บ, ลองรันด้วย Docker
+
 name: CI
 
 on:

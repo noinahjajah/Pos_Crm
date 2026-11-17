@@ -1,3 +1,4 @@
+# รันทั้งระบบด้วย Docker · เปิดออกนอกแค่ gateway :8080
 
 x-node-service: &node-service
   env_file: .env
@@ -8,7 +9,6 @@ services:
   gateway:
     build:
       context: .
-      dockerfile: docker/node-service.Dockerfile
       args: { SERVICE: gateway }
     env_file: .env
     environment:
@@ -29,7 +29,6 @@ services:
     <<: *node-service
     build:
       context: .
-      dockerfile: docker/node-service.Dockerfile
       args: { SERVICE: identity }
     environment:
       PORT: 3001
@@ -39,12 +38,12 @@ services:
       timeout: 3s
       retries: 3
 
+  # service ของ Dev 2 / Dev 3 (เปิดด้วย --profile all)
   catalog:
     <<: *node-service
     profiles: [all]
     build:
       context: .
-      dockerfile: docker/node-service.Dockerfile
       args: { SERVICE: catalog }
     environment:
       PORT: 3002
@@ -60,7 +59,6 @@ services:
     profiles: [all]
     build:
       context: .
-      dockerfile: docker/node-service.Dockerfile
       args: { SERVICE: pos }
     environment:
       PORT: 3003
@@ -76,7 +74,6 @@ services:
     profiles: [all]
     build:
       context: .
-      dockerfile: docker/node-service.Dockerfile
       args: { SERVICE: payment }
     environment:
       PORT: 3004
@@ -87,6 +84,7 @@ services:
       timeout: 3s
       retries: 3
 
+  # เว็บ (เปิดด้วย --profile web)
   web:
     profiles: [web]
     build:

@@ -1,3 +1,4 @@
+// เรียก API ผ่าน gateway + เก็บ session (token) ใน localStorage
 
 const BASE = import.meta.env.VITE_API_URL ?? '/api/v1'
 const STORAGE_KEY = 'pos.session'
@@ -70,6 +71,7 @@ export function setSession(next) {
   apply(next)
 }
 
+// ต่ออายุ token ล่วงหน้า 1 นาทีก่อนหมด ผู้ใช้จะไม่หลุดกลางงาน
 function scheduleRefresh() {
   clearTimeout(refreshTimer)
   if (!session?.expires_at) return
@@ -78,6 +80,7 @@ function scheduleRefresh() {
 }
 
 if (typeof window !== 'undefined') {
+  // เปิดหลายแท็บ: login/logout ในแท็บหนึ่ง แท็บอื่นตามด้วย
   window.addEventListener('storage', (e) => {
     if (e.key === STORAGE_KEY) apply(readSession())
   })
@@ -120,6 +123,8 @@ async function rawRequest(path, { method = 'GET', body, query, token } = {}) {
 }
 
 let refreshing = null
+
+// ถ้าผู้ใช้ออกจากระบบระหว่างรอ จะไม่ดึงกลับเข้าระบบ
 async function refreshSession() {
   if (!session?.refresh_token) return false
   const used = session.refresh_token
@@ -161,6 +166,7 @@ export async function api(path, options = {}) {
   }
 }
 
+// กติการหัสผ่าน (ตรงกับฝั่ง identity)
 export const PASSWORD_RULES = [
   { test: (p) => p.length >= 8, label: 'อย่างน้อย 8 ตัวอักษร' },
   { test: (p) => /[A-Za-z]/.test(p), label: 'มีตัวอักษรภาษาอังกฤษ' },
@@ -175,9 +181,11 @@ export function randomPassword() {
   return `${body}${(bytes[0] % 8) + 2}${chars[bytes[1] % 23]}`
 }
 
+// endpoint ของ identity ที่หน้าเว็บใช้
 export const identityApi = {
   login: (username, password) =>
     rawRequest('/identity/auth/login', { method: 'POST', body: { username, password } }),
+  // ออกจากระบบทันที แล้วค่อยแจ้ง server เบื้องหลัง
   logout: () => {
     const token = session?.access_token
     setSession(null)

@@ -1,3 +1,5 @@
+// จุดเริ่มรัน gateway
+
 import { buildRoutes, createApp, loadConfig } from './app.js';
 
 const config = loadConfig();

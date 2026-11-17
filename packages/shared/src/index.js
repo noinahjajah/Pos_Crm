@@ -1,6 +1,9 @@
+// ของกลางที่ทุก service ใช้ร่วมกัน: รูปแบบ response/error, ตรวจข้อมูลด้วย zod, อ่านผู้ใช้จาก header ของ gateway
+
 import { timingSafeEqual, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
+// error ที่ส่งให้ client ได้ (มี status, code, ข้อความ)
 export class AppError extends Error {
   constructor(status, code, message, details = []) {
     super(message);
@@ -26,6 +29,7 @@ export function requestIdOf(req) {
   return req.requestId || req.get?.('x-request-id') || null;
 }
 
+// ตอบกลับสำเร็จ: { data, meta }
 export function ok(res, data, { status = 200, meta } = {}) {
   const body = { data };
   if (meta) body.meta = meta;
@@ -51,6 +55,7 @@ export function notFoundHandler(req, res) {
   sendError(res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'), requestIdOf(req));
 }
 
+// ตัวจับ error สุดท้ายของทุก service · error ที่ไม่คาดคิดจะไม่เผยรายละเอียดภายใน
 export function errorHandler({ logger = console } = {}) {
   return (err, req, res, _next) => {
     if (err?.type === 'entity.parse.failed') {
@@ -76,6 +81,7 @@ export function zodDetails(zodError) {
   }));
 }
 
+// ตรวจ body / query / params ด้วย zod (query ที่ผ่านแล้วอยู่ที่ req.validQuery เพราะ Express 5 แก้ req.query ไม่ได้)
 export function validate({ body, query, params } = {}) {
   return (req, _res, next) => {
     for (const [key, schema] of [['body', body], ['query', query], ['params', params]]) {
@@ -108,6 +114,7 @@ export const zx = {
 
 export { z };
 
+// กันลืมเปลี่ยนรหัสตัวอย่างตอนขึ้นระบบจริง (ตรวจเฉพาะ production + supabase)
 export function assertNotDevSecrets(values, env = process.env) {
   if (env.NODE_ENV !== 'production' || env.DATA_MODE !== 'supabase' || env.ALLOW_DEV_SECRETS === 'true') return;
   const weak = Object.entries(values)
@@ -118,6 +125,7 @@ export function assertNotDevSecrets(values, env = process.env) {
   }
 }
 
+// role และชื่อ header ที่ gateway ส่งต่อให้ service
 export const ROLES = Object.freeze({ STAFF: 'staff', MANAGER: 'manager', OWNER: 'owner' });
 export const ALL_ROLES = Object.freeze([ROLES.STAFF, ROLES.MANAGER, ROLES.OWNER]);
 
@@ -145,6 +153,7 @@ export function requestId() {
   };
 }
 
+// ทุก service ต้องใช้: รับเฉพาะ request จาก gateway (X-Internal-Key) แล้วอ่าน X-User-* เป็น req.user
 export function internalAuth({ internalKey, publicPaths = ['/health'] }) {
   if (!internalKey) throw new Error('internalAuth: ต้องกำหนด INTERNAL_KEY');
   return (req, _res, next) => {
@@ -164,6 +173,7 @@ export function requireUser() {
   return (req, _res, next) => (req.user ? next() : next(errors.unauthorized()));
 }
 
+// ตรวจ role ซ้ำในตัว service อีกชั้น เผื่อ gateway ตั้งค่าพลาด
 export function requireRole(...roles) {
   return (req, _res, next) => {
     if (!req.user) return next(errors.unauthorized());
@@ -172,6 +182,7 @@ export function requireRole(...roles) {
   };
 }
 
+// สาขาที่ทำงานได้: staff/manager ถูกล็อกที่สาขาตัวเอง · owner เลือกได้ (null = ทุกสาขา)
 export function resolveBranchId(req, requested) {
   if (!req.user) return null;
   if (req.user.role === ROLES.OWNER) return requested || req.user.branchId || null;

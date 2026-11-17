@@ -1,3 +1,5 @@
+// จุดเริ่มรัน identity service
+
 import { createApp, createDeps, loadConfig } from './app.js';
 import { createLoginGuard } from './routes.js';
 import { SEED_USERS } from './memory.js';

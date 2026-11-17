@@ -13,8 +13,8 @@
   "scripts": {
     "dev": "concurrently -n identity,gateway -c blue,green \"npm run dev -w @pos/identity\" \"npm run dev -w @pos/gateway\"",
     "test": "npm test --workspaces --if-present",
-    "tokens": "node scripts/identity-tools.mjs tokens",
-    "seed:users": "node scripts/identity-tools.mjs seed-users"
+    "tokens": "node services/identity/tools.mjs tokens",
+    "seed:users": "node services/identity/tools.mjs seed-users"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

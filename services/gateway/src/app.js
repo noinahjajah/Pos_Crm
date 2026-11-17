@@ -1,3 +1,5 @@
+// API Gateway: ทางเข้าเดียวของเว็บ ตรวจ token, role, สาขา แล้วส่งต่อให้ service
+
 import { randomUUID } from 'node:crypto';
 import dns, { promises as dnsPromises } from 'node:dns';
 import http from 'node:http';
@@ -12,6 +14,7 @@ import { compilePermissions, findRule, PERMISSIONS } from './permissions.js';
 
 const env = process.env;
 
+// อ่านค่าจาก .env
 export function loadConfig(overrides = {}) {
   const config = {
     port: Number(env.PORT || env.GATEWAY_PORT || 8080),
@@ -36,6 +39,7 @@ export function loadConfig(overrides = {}) {
   return config;
 }
 
+// service ปลายทาง: /api/v1/<ชื่อ service>/... → URL ของ service
 export function buildRoutes(env = process.env) {
   return [
     { name: 'identity', prefix: '/api/v1/identity', target: env.IDENTITY_URL || 'http://identity:3001' },
@@ -57,8 +61,10 @@ export function matchRoute(routes, fullPath) {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const fail = (req, res, err) => sendError(res, err, req.gw?.requestId);
 
+// header ที่มีแต่ gateway ใส่ได้ ถ้า client ส่งมาเองจะถูกลบทิ้ง
 const TRUSTED_HEADERS = [HEADERS.USER_ID, HEADERS.USER_ROLE, HEADERS.BRANCH_ID, HEADERS.INTERNAL_KEY];
 
+// — middleware ตามลำดับที่ทำงาน (ดู createApp) —
 export function requestIdMw() {
   return (req, res, next) => {
     for (const h of TRUSTED_HEADERS) delete req.headers[h];
@@ -81,6 +87,7 @@ export function corsMw({ corsOrigins }) {
   });
 }
 
+// จำกัดจำนวน request ต่อนาที (login เข้มกว่าปกติ)
 export function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
   const handler = (req, res) => fail(req, res, errors.tooMany());
   const general = rateLimit({ windowMs: 60_000, limit: rateLimitPerMin, standardHeaders: 'draft-7', legacyHeaders: false, handler });
@@ -98,6 +105,7 @@ export function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
   ];
 }
 
+// หา service และกฎสิทธิ์ของ path นี้ · กัน path แปลก ๆ เช่น ".." → 400
 export function resolveRouteMw({ routes, permissions }) {
   return (req, res, next) => {
     if (/(^|\/)\.\.?(\/|$)|%2e|%2f|%5c|\\/i.test(req.path)) {
@@ -117,6 +125,7 @@ export function resolveRouteMw({ routes, permissions }) {
   };
 }
 
+// ตรวจ JWT (HS256 ของโหมดจำลอง หรือ JWKS ของ Supabase)
 export function authMw({ jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
   const secretKey = jwtSecret ? new TextEncoder().encode(jwtSecret) : null;
   const jwks = jwksUrl ? createRemoteJWKSet(new URL(jwksUrl)) : null;
@@ -158,6 +167,7 @@ export function authMw({ jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
   };
 }
 
+// role ต้องอยู่ในกฎของ path นี้ ไม่งั้น 403
 export function routeGuardMw() {
   return (req, res, next) => {
     const { rule, user } = req.gw;
@@ -167,6 +177,7 @@ export function routeGuardMw() {
   };
 }
 
+// staff/manager ใช้ได้แค่สาขาตัวเอง · owner ส่ง ?branch_id= เลือกสาขาได้
 export function branchScopeMw() {
   return (req, res, next) => {
     const { user } = req.gw;
@@ -186,6 +197,7 @@ export function branchScopeMw() {
   };
 }
 
+// หา IP ด้วย c-ares แทน dns.lookup เพื่อไม่ให้ service ที่ยังไม่มีทำให้ gateway ค้าง
 export function fastLookup(hostname, options, callback) {
   if (typeof options === 'function') [callback, options] = [options, {}];
   const family = isIP(hostname);
@@ -208,6 +220,7 @@ export function fastLookup(hostname, options, callback) {
 
 const proxyAgent = new http.Agent({ keepAlive: true, lookup: fastLookup });
 
+// ส่งต่อให้ service · ล่ม → 502, ช้าเกิน → 504
 export function proxyMw({ internalKey, proxyTimeoutMs }) {
   const rewrite = (_path, req) => {
     const url = new URL(req.originalUrl || req.url, 'http://gateway');
@@ -215,6 +228,7 @@ export function proxyMw({ internalKey, proxyTimeoutMs }) {
     return req.gw.servicePath + url.search;
   };
 
+  // ใส่ header ภายในก่อนส่งต่อ (ทำที่ req.headers เพราะบาง Node ส่ง header ไปก่อน event proxyReq)
   const setInternalHeaders = (req) => {
     const { user, branchId, requestId } = req.gw;
     req.headers['x-request-id'] = requestId;
@@ -302,6 +316,7 @@ async function hostResolves(hostname, timeoutMs) {
   }
 }
 
+// /health รวมสถานะทุก service (cache 5 วินาที)
 export function healthHandler({ routes, cacheMs = 5000, timeoutMs = 2000 }) {
   let cached = null;
   let cachedAt = 0;
@@ -335,6 +350,7 @@ export function healthHandler({ routes, cacheMs = 5000, timeoutMs = 2000 }) {
   };
 }
 
+// ประกอบ gateway: ลำดับ middleware สำคัญ ห้ามสลับ
 export function createApp(config, { routes = buildRoutes(), permissions = PERMISSIONS, logger = console } = {}) {
   const app = express();
   app.disable('x-powered-by');

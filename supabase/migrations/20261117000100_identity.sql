@@ -1,3 +1,4 @@
+-- schema identity: branches, roles, profiles (profiles.id = auth.users.id)
 
 create schema if not exists identity;
 
@@ -47,6 +48,7 @@ create table if not exists identity.profiles (
 create index if not exists profiles_branch_id_idx on identity.profiles (branch_id);
 create index if not exists profiles_role_id_idx on identity.profiles (role_id);
 
+-- client เข้าตารางตรงไม่ได้ ทุกอย่างผ่าน identity service
 alter table identity.branches enable row level security;
 alter table identity.roles    enable row level security;
 alter table identity.profiles enable row level security;
@@ -56,6 +58,7 @@ grant usage on schema identity to service_role;
 grant all on all tables in schema identity to service_role;
 alter default privileges in schema identity grant all on tables to service_role;
 
+-- ใส่ user_role และ branch_id ลงใน token · ต้องเปิดใน Dashboard: Authentication → Hooks
 create or replace function identity.custom_access_token_hook(event jsonb)
 returns jsonb
 language plpgsql

@@ -1,6 +1,9 @@
+// โหมดจำลอง (DATA_MODE=memory): เก็บข้อมูลในหน่วยความจำ ไม่ต้องต่อ Supabase · ปิดเซิร์ฟเวอร์แล้วข้อมูลหาย
+
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { SignJWT } from 'jose';
 
+// ข้อมูลตั้งต้น: 3 สาขา + ผู้ใช้ทดสอบ 3 role
 export const SEED_BRANCHES = [
   { id: '11111111-1111-4111-8111-111111111111', code: 'RES01', name: 'สาขาร้านอาหาร', branch_type: 'restaurant', address: null, phone: null },
   { id: '22222222-2222-4222-8222-222222222222', code: 'DRK01', name: 'สาขาเครื่องดื่ม', branch_type: 'drinks', address: null, phone: null },
@@ -19,6 +22,7 @@ export const ROLE_ROWS = [
   { id: 3, name: 'owner' },
 ];
 
+// ที่เก็บ branches / roles / profiles
 export function createMemoryRepo({ seed = true } = {}) {
   const now = () => new Date().toISOString();
   const branches = new Map();
@@ -99,6 +103,7 @@ export function createMemoryRepo({ seed = true } = {}) {
   };
 }
 
+// ระบบ login จำลอง: ออก token แบบเดียวกับ Supabase
 export function createMemoryAuth({ repo, jwtSecret, accessTokenTtlSec = 900, refreshTokenTtlSec = 604800, seedUserIds = [], seedPassword }) {
   const key = new TextEncoder().encode(jwtSecret);
   const passwords = new Map();

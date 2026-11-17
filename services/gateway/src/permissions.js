@@ -1,3 +1,4 @@
+// ตารางสิทธิ์ของทุก endpoint: แก้สิทธิ์ที่ไฟล์นี้ไฟล์เดียว (Dev 2/3 เพิ่มของตัวเองได้)
 
 const S = 'staff';
 const M = 'manager';
@@ -91,6 +92,7 @@ function compile(path) {
   return new RegExp(`^${pattern}/?$`);
 }
 
+// แปลง path แบบ /users/:id เป็น regex ไว้จับคู่ตอนรัน
 export function compilePermissions(table = PERMISSIONS) {
   const compiled = {};
   for (const [service, rules] of Object.entries(table)) {

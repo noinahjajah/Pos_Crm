@@ -1,3 +1,5 @@
+// หน้าจัดการผู้ใช้และจัดการสาขา
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { identityApi, passwordOk, randomPassword } from '../api.js'
@@ -6,6 +8,7 @@ import { Alert, AVATAR_COLOR, Avatar, Badge, BranchOptions, Button, Card, Field,
 
 const LIMIT = 20
 
+// จัดการผู้ใช้: ตารางผู้ใช้ + แผงเพิ่ม/แก้ไขด้านขวา
 export function UsersPage() {
   const { user: me } = useAuth()
   const { selectedBranchId } = useBranch()
@@ -212,6 +215,7 @@ const ROLE_OPTIONS = [
   { value: 'staff', label: 'Staff', desc: 'พนักงานหน้าร้าน (เสิร์ฟ + แคชเชียร์)' },
 ]
 
+// ฟอร์มผู้ใช้
 function UserForm({ user, isSelf, onClose, onSaved }) {
   const { branches, selectedBranchId } = useBranch()
   const isNew = !user
@@ -331,6 +335,7 @@ function UserForm({ user, isSelf, onClose, onSaved }) {
 
 const EMPTY = { code: '', name: '', branch_type: 'restaurant', address: '', phone: '' }
 
+// จัดการสาขา: การ์ดสาขา + ฟอร์มเพิ่มสาขาด้านล่าง
 export function BranchesPage() {
   const { reload: reloadSwitcher, selectBranch } = useBranch()
   const { toast, confirm } = useNotice()
@@ -496,6 +501,7 @@ export function BranchesPage() {
   )
 }
 
+// ฟอร์มสาขา
 function BranchForm({ branch, onCancel, onSaved }) {
   const { form, set, errors, error, busy, submit, reset } = useForm(
     branch ? { ...EMPTY, ...branch, address: branch.address || '', phone: branch.phone || '' } : EMPTY,

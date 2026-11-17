@@ -1,7 +1,10 @@
+// ชิ้นส่วนหน้าตา (ปุ่ม, ป้าย, ฟอร์ม, layout) ตาม Prototype ใน Figma
+
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth, useBranch, useNotice } from './providers.jsx'
 
+// เมนูด้านซ้ายตาม role
 export const MENU = [
   { path: '/dashboard', label: 'แดชบอร์ด', labelByRole: { owner: 'ภาพรวมทุกสาขา', manager: 'แดชบอร์ดสาขา' }, roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.34–1.37' },
   { path: '/menus', label: 'เมนู ตัวเลือก สต็อก', roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.14–1.22' },
@@ -29,6 +32,7 @@ export const HOME_BY_ROLE = { owner: '/dashboard', manager: '/dashboard', staff:
 export const ROLE_LABEL = { owner: 'Owner', manager: 'Manager', staff: 'Staff' }
 export const ROLE_TONE = { owner: 'phase', manager: 'info', staff: 'neutral' }
 
+// ชิ้นส่วนพื้นฐาน
 export function Button({ variant = 'primary', size, block, className = '', ...props }) {
   const cls = ['btn', `btn-${variant}`, size === 'sm' && 'btn-sm', block && 'btn-block', className].filter(Boolean).join(' ')
   return <button type="button" className={cls} {...props} />
@@ -90,6 +94,7 @@ export function Alert({ tone = 'error', children }) {
   return <div className={`alert alert-${tone}`}>{children}</div>
 }
 
+// แผงแก้ไขด้านขวา (หน้าผู้ใช้)
 export function SidePanel({ title, onClose, footer, children }) {
   return (
     <aside className="side-panel" aria-label={title}>
@@ -105,6 +110,7 @@ export function SidePanel({ title, onClose, footer, children }) {
   )
 }
 
+// state ของฟอร์ม + ส่งข้อมูล + แสดง error รายช่อง
 export function useForm(initial) {
   const [form, setForm] = useState(initial)
   const [errors, setErrors] = useState({})
@@ -140,6 +146,7 @@ export function BranchOptions({ branches }) {
   ))
 }
 
+// ช่องบอกว่าส่วนนี้ทำในเฟส 2
 export function PhaseNote({ title, children }) {
   return (
     <div className="alert alert-phase">
@@ -151,6 +158,7 @@ export function PhaseNote({ title, children }) {
 
 export const AVATAR_COLOR = { owner: '#6b3fd6', manager: '#2e6b5a', staff: '#8a857c' }
 
+// โครงหน้า: แถบเมนูซ้าย + เนื้อหา
 export function AppLayout() {
   const { user, logout } = useAuth()
   const { toast } = useNotice()
@@ -205,6 +213,7 @@ export function AppLayout() {
   )
 }
 
+// หัวหน้า + ตัวเลือกสาขา (owner)
 export function PageHeader({ title, subtitle, actions, showBranchSwitch = false }) {
   const { user } = useAuth()
   const { branches, selectedBranchId, selectBranch, canSwitch } = useBranch()

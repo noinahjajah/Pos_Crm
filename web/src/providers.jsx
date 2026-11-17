@@ -1,8 +1,11 @@
+// state ที่ใช้ทั้งเว็บ: ผู้ใช้ที่ login, สาขาที่เลือก, ตัวแจ้งเตือน
+
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getSession, identityApi, onSessionChange, setSession } from './api.js'
 
 const AuthContext = createContext(null)
 
+// ผู้ใช้ที่ login อยู่
 export function AuthProvider({ children }) {
   const [session, setLocal] = useState(getSession)
 
@@ -49,6 +52,7 @@ export function useAuth() {
 const BranchContext = createContext(null)
 const KEY = 'pos.selectedBranch'
 
+// สาขาที่กำลังดู (owner เลือกได้ · staff/manager เป็นสาขาตัวเองเสมอ)
 export function BranchProvider({ children }) {
   const { user } = useAuth()
   const [branches, setBranches] = useState([])
@@ -110,6 +114,7 @@ export const BRANCH_TYPE_LABEL = { restaurant: 'ร้านอาหาร', dr
 
 const NoticeContext = createContext(null)
 
+// แจ้งเตือนมุมขวาบน (toast) และกล่องยืนยันก่อนลบ · ใช้ผ่าน useNotice()
 export function NoticeProvider({ children }) {
   const [toasts, setToasts] = useState([])
   const [ask, setAsk] = useState(null)

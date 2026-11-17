@@ -1,3 +1,5 @@
+// เส้นทางของเว็บและการกันสิทธิ์ตาม role
+
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from './providers.jsx'
 import { AppLayout, Badge, Card, DEV_LABEL, HOME_BY_ROLE, MENU, PageHeader } from './ui.jsx'
@@ -5,12 +7,14 @@ import { AccountPage, LoginPage } from './pages/LoginPage.jsx'
 import { BranchesPage, UsersPage } from './pages/ManagePages.jsx'
 import { PrintPreviewPage } from './pages/PrintPage.jsx'
 
+// หน้าที่ทำเสร็จแล้ว · หน้าอื่นในเมนูจะแสดงหน้ารอ (Dev 2/3 เพิ่มหน้าของตัวเองที่นี่)
 const PAGES = {
   '/branches': <BranchesPage />,
   '/users': <UsersPage />,
   '/print': <PrintPreviewPage />,
 }
 
+// ต้อง login · ถ้ายังใช้รหัสชั่วคราวจะถูกพาไปเปลี่ยนรหัสก่อน
 function RequireAuth() {
   const { user } = useAuth()
   const location = useLocation()

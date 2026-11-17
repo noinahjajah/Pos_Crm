@@ -1,3 +1,4 @@
+-- ข้อมูลตั้งต้น: 3 สาขา · ผู้ใช้ทดสอบสร้างด้วย npm run seed:users
 
 insert into identity.branches (id, code, name, branch_type, address, phone) values
   ('11111111-1111-4111-8111-111111111111', 'RES01', 'สาขาร้านอาหาร', 'restaurant', null, null),

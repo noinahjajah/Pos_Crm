@@ -1,3 +1,5 @@
+// endpoint ของ identity: /auth, /me, /branches, /roles, /users
+
 import { Router } from 'express';
 import {
   AppError,
@@ -27,6 +29,7 @@ const role = z.enum(['staff', 'manager', 'owner']);
 const branchType = z.enum(['restaurant', 'drinks', 'bar']);
 const optionalText = z.string().trim().max(255).nullish().transform((v) => (v ? v : null));
 
+// รูปแบบข้อมูลที่รับเข้า
 export const loginSchema = z.object({
   username,
   password: z.string().min(1, 'กรุณากรอกรหัสผ่าน'),
@@ -97,6 +100,7 @@ export function presentBranchRef(branch) {
   return branch ? { id: branch.id, code: branch.code, name: branch.name, branch_type: branch.branch_type } : null;
 }
 
+// แปลงผู้ใช้ก่อนส่งออก (แนบข้อมูลสาขาแบบย่อ)
 export async function presentUser(repo, profile, branchCache) {
   let branch = null;
   if (profile.branch_id) {
@@ -122,6 +126,7 @@ export async function presentUsers(repo, profiles) {
   return Promise.all(profiles.map((p) => presentUser(repo, p, cache)));
 }
 
+// ล็อกบัญชีเมื่อใส่รหัสผิดติดกัน (ค่าเริ่มต้น 5 ครั้ง ล็อก 15 นาที)
 export function createLoginGuard({ maxAttempts = 5, lockMinutes = 15, now = () => Date.now() } = {}) {
   const state = new Map();
   return {
@@ -157,6 +162,7 @@ const lockedError = (seconds) =>
     [{ retry_after_sec: seconds }],
   );
 
+// /auth: login, refresh, logout, เปลี่ยนรหัสผ่าน
 export function authRoutes({ repo, auth, loginGuard }) {
   const r = Router();
 
@@ -235,6 +241,7 @@ export function authRoutes({ repo, auth, loginGuard }) {
   return r;
 }
 
+// /me: ข้อมูลของคนที่ login อยู่
 export function meRoutes({ repo }) {
   const r = Router();
   r.get(
@@ -249,6 +256,7 @@ export function meRoutes({ repo }) {
   return r;
 }
 
+// /branches: ทุกคนดูได้ (staff/manager เห็นเฉพาะสาขาตัวเอง) · owner เพิ่ม/แก้/ปิดได้
 export function branchRoutes({ repo }) {
   const r = Router();
   const owner = requireRole('owner');
@@ -321,6 +329,7 @@ export function branchRoutes({ repo }) {
   return r;
 }
 
+// ปิดสาขาได้เมื่อไม่มีผู้ใช้ที่ยังใช้งานอยู่
 async function assertNoActiveUsers(repo, branchId) {
   const count = await repo.countActiveUsersInBranch(branchId);
   if (count > 0) {
@@ -342,6 +351,7 @@ export function roleRoutes({ repo }) {
   return r;
 }
 
+// /users: owner จัดการได้ทั้งหมด · manager ดูได้เฉพาะคนในสาขาตัวเอง
 export function userRoutes({ repo, auth, loginGuard }) {
   const r = Router();
   const owner = requireRole('owner');

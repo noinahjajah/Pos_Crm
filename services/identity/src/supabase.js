@@ -1,3 +1,5 @@
+// โหมดจริง (DATA_MODE=supabase): ข้อมูลอยู่ใน schema identity · login ด้วย Supabase Auth
+
 import { AppError } from '@pos/shared';
 
 export function createSupabaseRepo(adminClient) {
@@ -131,6 +133,7 @@ export function createSupabaseRepo(adminClient) {
   };
 }
 
+// username แปลงเป็นอีเมล <username>@pos.local ก่อนส่งให้ Supabase Auth
 export function createSupabaseAuth({ anonClient, adminClient, emailOf, repo }) {
   const toSession = (s) => ({
     access_token: s.access_token,

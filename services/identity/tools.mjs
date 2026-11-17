@@ -1,8 +1,10 @@
+// เครื่องมือ: npm run tokens (token ทดสอบ 3 role) · npm run seed:users (สร้างผู้ใช้ทดสอบใน Supabase)
+
 import { existsSync, readFileSync } from 'node:fs';
 import { SignJWT } from 'jose';
-import { SEED_USERS } from '../services/identity/src/memory.js';
+import { SEED_USERS } from './src/memory.js';
 
-const envFile = new URL('../.env', import.meta.url);
+const envFile = new URL('../../.env', import.meta.url);
 if (existsSync(envFile)) {
   for (const line of readFileSync(envFile, 'utf8').split('\n')) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);

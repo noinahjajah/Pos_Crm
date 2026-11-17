@@ -1,8 +1,11 @@
+// ใบออร์เดอร์เข้าครัวและใบเสร็จ (ขนาด 80 มม.) · Dev 3 ใช้ KitchenTicket, Receipt, usePrintSlip
+
 import { useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useAuth, useBranch } from '../providers.jsx'
 import { Button, Card, PageHeader } from '../ui.jsx'
 
+// คำนวณบิล: ราคาเมนูยังไม่รวม VAT · VAT = (ยอดรวม − ส่วนลด) × 7%
 export const VAT_RATE = 0.07
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100
@@ -26,6 +29,7 @@ export const baht = (n) =>
 const time = (iso) =>
   new Date(iso).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 
+// ใบออร์เดอร์เข้าครัว
 export function KitchenTicket({ ticket, printTarget = false }) {
   const totalQty = ticket.items.reduce((s, i) => s + i.quantity, 0)
   return (
@@ -82,6 +86,7 @@ const dateTime = (iso) =>
 
 const METHOD_LABEL = { cash: 'เงินสด', promptpay: 'QR พร้อมเพย์' }
 
+// ใบเสร็จรับเงิน / ใบกำกับภาษีอย่างย่อ
 export function Receipt({ branch, order, payment, printTarget = false }) {
   const beforeVat = order.subtotal - order.discount_amount
   const qty = order.items.reduce((s, i) => s + i.quantity, 0)
@@ -175,6 +180,7 @@ export function Receipt({ branch, order, payment, printTarget = false }) {
   )
 }
 
+// สั่งพิมพ์เฉพาะใบที่เลือก
 export function usePrintSlip() {
   const [target, setTarget] = useState(null)
   const print = (which) => {
@@ -207,6 +213,7 @@ const SAMPLE_TICKET = {
   ],
 }
 
+// หน้าตัวอย่างใบพิมพ์ (ข้อมูลตัวอย่าง)
 export function PrintPreviewPage() {
   const { user } = useAuth()
   const { branches, selectedBranchId } = useBranch()

@@ -1,3 +1,5 @@
+// เครื่องมือ build ของเว็บ · /api ส่งต่อไป gateway ตอนพัฒนา
+
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 
