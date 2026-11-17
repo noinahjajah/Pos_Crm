@@ -1,4 +1,4 @@
-// เรียก API ผ่าน gateway + เก็บ session (token) ใน localStorage
+// ที่เดียวที่เรียก backend: base /api/v1 ผ่าน gateway, แนบ token, refresh token เมื่อใกล้หมดอายุ
 
 const BASE = import.meta.env.VITE_API_URL ?? '/api/v1'
 const STORAGE_KEY = 'pos.session'
@@ -103,7 +103,7 @@ function buildUrl(path, query) {
   return qs ? `${url}?${qs}` : url
 }
 
-async function rawRequest(path, { method = 'GET', body, query, token } = {}) {
+export async function rawRequest(path, { method = 'GET', body, query, token } = {}) {
   const headers = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
@@ -164,45 +164,4 @@ export async function api(path, options = {}) {
     if (err.status === 401 && session) endSession(err.code === 'ACCOUNT_DISABLED' ? 'disabled' : 'expired')
     throw err
   }
-}
-
-// กติการหัสผ่าน (ตรงกับฝั่ง identity)
-export const PASSWORD_RULES = [
-  { test: (p) => p.length >= 8, label: 'อย่างน้อย 8 ตัวอักษร' },
-  { test: (p) => /[A-Za-z]/.test(p), label: 'มีตัวอักษรภาษาอังกฤษ' },
-  { test: (p) => /[0-9]/.test(p), label: 'มีตัวเลข' },
-]
-export const passwordOk = (p) => p.length <= 72 && PASSWORD_RULES.every((r) => r.test(p))
-
-export function randomPassword() {
-  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  const bytes = crypto.getRandomValues(new Uint32Array(8))
-  const body = Array.from(bytes, (n) => chars[n % chars.length]).join('')
-  return `${body}${(bytes[0] % 8) + 2}${chars[bytes[1] % 23]}`
-}
-
-// endpoint ของ identity ที่หน้าเว็บใช้
-export const identityApi = {
-  login: (username, password) =>
-    rawRequest('/identity/auth/login', { method: 'POST', body: { username, password } }),
-  // ออกจากระบบทันที แล้วค่อยแจ้ง server เบื้องหลัง
-  logout: () => {
-    const token = session?.access_token
-    setSession(null)
-    if (token) rawRequest('/identity/auth/logout', { method: 'POST', token }).catch(() => {})
-  },
-  me: () => api('/identity/me'),
-  changePassword: (current_password, new_password) =>
-    api('/identity/auth/change-password', { method: 'POST', body: { current_password, new_password } }),
-
-  listBranches: (query) => api('/identity/branches', { query }),
-  createBranch: (body) => api('/identity/branches', { method: 'POST', body }),
-  updateBranch: (id, body) => api(`/identity/branches/${id}`, { method: 'PATCH', body }),
-  deleteBranch: (id) => api(`/identity/branches/${id}`, { method: 'DELETE' }),
-
-  listRoles: () => api('/identity/roles'),
-  listUsers: (query) => api('/identity/users', { query }),
-  createUser: (body) => api('/identity/users', { method: 'POST', body }),
-  updateUser: (id, body) => api(`/identity/users/${id}`, { method: 'PATCH', body }),
-  deleteUser: (id) => api(`/identity/users/${id}`, { method: 'DELETE' }),
 }

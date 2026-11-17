@@ -1,32 +1,23 @@
-// เส้นทางของเว็บและการกันสิทธิ์ตาม role
+// เส้นทางทั้งหมด + กำหนด role ต่อหน้า (ดูเมนูใน lib/constants.js)
 
-import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useAuth } from './providers.jsx'
-import { AppLayout, Badge, Card, DEV_LABEL, HOME_BY_ROLE, MENU, PageHeader } from './ui.jsx'
-import { AccountPage, LoginPage } from '../pages/LoginPage.jsx'
-import { BranchesPage, UsersPage } from '../pages/ManagePages.jsx'
-import { PrintPreviewPage } from '../pages/PrintPage.jsx'
+import { Navigate, createBrowserRouter } from 'react-router-dom'
+import { AppLayout } from '../components/layout/AppLayout.jsx'
+import { PageHeader } from '../components/layout/Topbar.jsx'
+import { Badge, Card } from '../components/ui/index.jsx'
+import { AccountPage } from '../features/auth/AccountPage.jsx'
+import { useAuth } from '../features/auth/AuthContext.jsx'
+import { LoginPage } from '../features/auth/LoginPage.jsx'
+import { RequireAuth, RequireRole } from '../features/auth/RequireRole.jsx'
+import { BranchesPage } from '../features/backoffice/branches/BranchesPage.jsx'
+import { UsersPage } from '../features/backoffice/users/UsersPage.jsx'
+import { PrintPreviewPage } from '../features/checkout/PrintPreviewPage.jsx'
+import { DEV_LABEL, HOME_BY_ROLE, MENU } from '../lib/constants.js'
 
 // หน้าที่ทำเสร็จแล้ว · หน้าอื่นในเมนูจะแสดงหน้ารอ (Dev 2/3 เพิ่มหน้าของตัวเองที่นี่)
 const PAGES = {
   '/branches': <BranchesPage />,
   '/users': <UsersPage />,
   '/print': <PrintPreviewPage />,
-}
-
-// ต้อง login · ถ้ายังใช้รหัสชั่วคราวจะถูกพาไปเปลี่ยนรหัสก่อน
-function RequireAuth() {
-  const { user } = useAuth()
-  const location = useLocation()
-  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
-  if (user.must_change_password && location.pathname !== '/account') return <Navigate to="/account" replace />
-  return <Outlet />
-}
-
-function RequireRole({ roles, children }) {
-  const { user } = useAuth()
-  if (!roles.includes(user.role)) return <ForbiddenPage />
-  return children
 }
 
 function HomeRedirect() {
@@ -44,7 +35,7 @@ function PlaceholderPage({ item }) {
           <p style={{ margin: 0, lineHeight: 1.6 }}>
             เส้นทาง <code>{item.path}</code> และสิทธิ์ตาม role พร้อมแล้ว ({user.role} เข้าได้)
             <br />
-            {DEV_LABEL[item.dev]} สร้างหน้าใน <code>web/src/pages/</code> แล้วผูกใน <code>web/src/app/router.jsx</code> แทนหน้านี้
+            {DEV_LABEL[item.dev]} สร้างหน้าใน <code>web/src/features/</code> แล้วผูกใน <code>web/src/app/router.jsx</code> แทนหน้านี้
           </p>
         </Card>
       </div>
@@ -59,19 +50,6 @@ function NotFoundPage() {
         <a href="/">กลับหน้าแรก</a>
       </Card>
     </div>
-  )
-}
-
-function ForbiddenPage() {
-  return (
-    <>
-      <PageHeader title="ไม่มีสิทธิ์เข้าหน้านี้" subtitle="403 · role ของคุณเข้าหน้านี้ไม่ได้" />
-      <div className="content">
-        <Card>
-          <a href="/">กลับหน้าแรก</a>
-        </Card>
-      </div>
-    </>
   )
 }
 

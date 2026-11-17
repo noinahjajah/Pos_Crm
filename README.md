@@ -29,16 +29,33 @@ command -v brew >/dev/null || /bin/bash -c "$(curl -fsSL https://raw.githubuserc
 ```
 Pos_Crm/
 ├─ web/                        ← หน้าเว็บ React (Vite) · โครงเดิมของทีม
-│  ├─ src/app/                 ← ของที่ใช้ทั้งเว็บ
-│  │  ├─ api.js                เรียก API ผ่าน gateway + เก็บ token
-│  │  ├─ providers.jsx         ผู้ใช้ที่ login, สาขาที่เลือก, แจ้งเตือน
-│  │  ├─ router.jsx            เส้นทางหน้าเว็บ + กันสิทธิ์ตาม role ← เพิ่มหน้าใหม่ใน PAGES
-│  │  └─ ui.jsx                ปุ่ม ฟอร์ม เมนูซ้าย หน้าตาตาม Figma
-│  ├─ src/pages/               ← หน้าเว็บ (Dev 2/3 สร้างหน้าของตัวเองที่นี่)
-│  │  ├─ LoginPage.jsx         login + บัญชีของฉัน
-│  │  ├─ ManagePages.jsx       จัดการผู้ใช้ + จัดการสาขา
-│  │  └─ PrintPage.jsx         ใบเข้าครัว + ใบเสร็จ (Dev 3 ใช้ KitchenTicket, Receipt)
-│  └─ nginx.conf               ใช้ตอนรันเว็บใน Docker (ส่ง /api ต่อให้ gateway)
+│  ├─ .env.example             ค่าตั้งค่าเว็บ (ไม่บังคับ) คัดลอกเป็น web/.env
+│  └─ src/
+│     ├─ main.jsx              จุดเริ่ม → App.jsx
+│     ├─ App.jsx               providers + router
+│     ├─ app/
+│     │  ├─ router.jsx         เส้นทางทั้งหมด + กำหนด role ต่อหน้า ← ผูกหน้าใหม่ใน PAGES
+│     │  └─ providers.jsx      แจ้งเตือน, ผู้ใช้ที่ login, สาขาที่เลือก
+│     ├─ api/                  ← ที่เดียวที่เรียก backend
+│     │  ├─ client.js          base /api/v1, แนบ token, refresh เมื่อใกล้หมดอายุ
+│     │  ├─ identity.js        login, me, users, branches (Dev 1)
+│     │  ├─ catalog.js         menus, option-groups, stocks (Dev 2)
+│     │  ├─ pos.js             tables, orders, tickets, approvals (Dev 3)
+│     │  └─ payment.js         payments, refunds, expenses, reports (Dev 2/3)
+│     ├─ features/             ← 1 โฟลเดอร์ = 1 ฟีเจอร์ (หน้า + component)
+│     │  ├─ auth/              LoginPage, AccountPage, AuthContext, RequireRole
+│     │  ├─ kitchen/           KitchenTicket (ใบเข้าครัว) · Dev 3 เพิ่ม KitchenPage, TicketCard
+│     │  ├─ checkout/          Receipt, bill.js (VAT), PrintPreviewPage · Dev 3 เพิ่ม CheckoutPage, CashForm, PromptPayQR
+│     │  ├─ backoffice/
+│     │  │  ├─ users/          UsersPage
+│     │  │  └─ branches/       BranchesPage
+│     │  └─ (tables/ orders/ approvals/ backoffice/menus stocks expenses reports)  Dev 2/3 สร้างตามโครงนี้
+│     ├─ components/
+│     │  ├─ ui/                index.jsx (Button, Badge, Card, Field, SidePanel …) + Notice.jsx (toast, ยืนยัน)
+│     │  └─ layout/            AppLayout, Sidebar, Topbar
+│     ├─ hooks/                useForm, usePrintSlip
+│     ├─ lib/                  constants.js (ROLES, เมนูตาม role), format.js (เงินบาท วันที่ไทย)
+│     └─ styles/index.css
 ├─ server/                     ← backend ของ Dev 1 (ใหม่ ไม่มีใน main) · package เดียว
 │  ├─ gateway/                 API Gateway :8080
 │  │  ├─ app.js                middleware 10 ตัวตาม spec + proxy ไป service
@@ -75,8 +92,8 @@ Pos_Crm/
 ### Dev 2 / Dev 3 ใช้ต่อยังไง
 - สิทธิ์ของ endpoint: เพิ่มใน `server/gateway/permissions.js`
 - service ใหม่: สร้างโฟลเดอร์ `server/<ชื่อ>/server.js` (เช่น `server/catalog/`) ใช้ `../shared.js` (`internalAuth()`, `requireRole()`, `branchFilter()`, `validate()`, `ok()`)
-- หน้าเว็บ: สร้างใน `web/src/pages/` แล้วผูกใน `web/src/app/router.jsx` (`PAGES`)
-- ใบพิมพ์: `KitchenTicket`, `Receipt`, `usePrintSlip` จาก `web/src/pages/PrintPage.jsx`
+- หน้าเว็บ: สร้างใน `web/src/features/<ฟีเจอร์>/` แล้วผูกใน `web/src/app/router.jsx` (`PAGES`) · เรียก API ผ่าน `web/src/api/`
+- ใบพิมพ์: `KitchenTicket` (`features/kitchen/`), `Receipt` + `calcBill` (`features/checkout/`), `usePrintSlip` (`hooks/`)
 - token ทดสอบ 3 role: `npm run tokens` (ในโฟลเดอร์ `server`)
 
 ## มีอะไรบ้าง
