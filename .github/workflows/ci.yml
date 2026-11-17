@@ -11,24 +11,32 @@ jobs:
   backend:
     name: backend (gateway + identity)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: server/package-lock.json
       - run: npm ci
       - run: npm test
 
   web:
     name: web (lint + build)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm run lint
       - run: npm run build
@@ -36,6 +44,9 @@ jobs:
   docker:
     name: docker compose (build + login ผ่าน gateway)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
     steps:
       - uses: actions/checkout@v4
       - name: เตรียม .env (โหมดจำลอง)
