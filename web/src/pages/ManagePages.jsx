@@ -4,10 +4,8 @@ import { identityApi, passwordOk, randomPassword } from '../lib/api.js'
 import { BRANCH_TYPE_LABEL, useAuth, useBranch } from '../app/providers.jsx'
 import { Alert, AVATAR_COLOR, Avatar, Badge, BranchOptions, Button, Card, Field, PageHeader, PhaseNote, SidePanel, ROLE_LABEL, ROLE_TONE, Select, TextInput, useForm } from '../components/ui.jsx'
 
-// ผู้ใช้
 const LIMIT = 20
 
-// ผู้ใช้ (1.3, 1.5)
 export function UsersPage() {
   const { user: me } = useAuth()
   const { selectedBranchId } = useBranch()
@@ -323,10 +321,8 @@ function UserForm({ user, isSelf, onClose, onSaved }) {
   )
 }
 
-// สาขา
 const EMPTY = { code: '', name: '', branch_type: 'restaurant', address: '', phone: '' }
 
-// จัดการสาขา — owner เท่านั้น (1.6)
 export function BranchesPage() {
   const { reload: reloadSwitcher, selectBranch } = useBranch()
   const navigate = useNavigate()

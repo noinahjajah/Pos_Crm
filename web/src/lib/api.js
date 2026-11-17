@@ -1,4 +1,3 @@
-// client กลางสำหรับเรียก API ผ่าน gateway
 
 const BASE = import.meta.env.VITE_API_URL ?? '/api/v1'
 const STORAGE_KEY = 'pos.session'
@@ -11,13 +10,11 @@ export class ApiError extends Error {
     this.details = body?.error?.details || []
     this.requestId = body?.request_id
   }
-  /** ข้อความผิดพลาดของช่องในฟอร์ม { field: message } */
   get fieldErrors() {
     return Object.fromEntries(this.details.filter((d) => d.field).map((d) => [d.field, d.message]))
   }
 }
 
-// session (เก็บใน localStorage)
 function readSession() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null
@@ -34,7 +31,6 @@ export function getSession() {
   return session
 }
 
-/** เหตุผลที่ถูกพาออกจากระบบครั้งล่าสุด ('expired' | 'disabled') — อ่านอย่างเดียว ไม่ลบ */
 export function peekLogoutReason() {
   try {
     return sessionStorage.getItem('pos.logoutReason')
@@ -74,7 +70,6 @@ export function setSession(next) {
   apply(next)
 }
 
-/** ต่ออายุ token ล่วงหน้า 60 วินาทีก่อนหมดอายุ ผู้ใช้จะไม่หลุดกลางงาน */
 function scheduleRefresh() {
   clearTimeout(refreshTimer)
   if (!session?.expires_at) return
@@ -82,7 +77,6 @@ function scheduleRefresh() {
   refreshTimer = setTimeout(() => refreshSession(), wait)
 }
 
-// เปิดหลายแท็บ: login / logout / ต่ออายุในแท็บหนึ่ง แท็บอื่นตามด้วย
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
     if (e.key === STORAGE_KEY) apply(readSession())
@@ -95,7 +89,6 @@ export function onSessionChange(fn) {
   return () => listeners.delete(fn)
 }
 
-// request
 function buildUrl(path, query) {
   const url = `${BASE}${path}`
   if (!query) return url
@@ -129,15 +122,18 @@ async function rawRequest(path, { method = 'GET', body, query, token } = {}) {
 let refreshing = null
 async function refreshSession() {
   if (!session?.refresh_token) return false
+  const used = session.refresh_token
   refreshing ??= rawRequest('/identity/auth/refresh', {
     method: 'POST',
-    body: { refresh_token: session.refresh_token },
+    body: { refresh_token: used },
   })
     .then(({ data }) => {
+      if (session?.refresh_token !== used) return Boolean(session)
       setSession(data)
       return true
     })
     .catch((err) => {
+      if (!session) return false
       const latest = readSession()
       if (latest?.refresh_token && latest.refresh_token !== session?.refresh_token) {
         apply(latest)
@@ -152,7 +148,6 @@ async function refreshSession() {
   return refreshing
 }
 
-/** เรียก API ผ่าน gateway */
 export async function api(path, options = {}) {
   try {
     return await rawRequest(path, { ...options, token: session?.access_token })
@@ -166,7 +161,6 @@ export async function api(path, options = {}) {
   }
 }
 
-// กติการหัสผ่าน (ตรงกับฝั่ง identity)
 export const PASSWORD_RULES = [
   { test: (p) => p.length >= 8, label: 'อย่างน้อย 8 ตัวอักษร' },
   { test: (p) => /[A-Za-z]/.test(p), label: 'มีตัวอักษรภาษาอังกฤษ' },
@@ -174,7 +168,6 @@ export const PASSWORD_RULES = [
 ]
 export const passwordOk = (p) => p.length <= 72 && PASSWORD_RULES.every((r) => r.test(p))
 
-/** สุ่มรหัสชั่วคราว 10 ตัว (มีตัวอักษรและตัวเลขแน่นอน) */
 export function randomPassword() {
   const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   const bytes = crypto.getRandomValues(new Uint32Array(8))
@@ -182,11 +175,14 @@ export function randomPassword() {
   return `${body}${(bytes[0] % 8) + 2}${chars[bytes[1] % 23]}`
 }
 
-// identity
 export const identityApi = {
   login: (username, password) =>
     rawRequest('/identity/auth/login', { method: 'POST', body: { username, password } }),
-  logout: () => api('/identity/auth/logout', { method: 'POST' }),
+  logout: () => {
+    const token = session?.access_token
+    setSession(null)
+    if (token) rawRequest('/identity/auth/logout', { method: 'POST', token }).catch(() => {})
+  },
   me: () => api('/identity/me'),
   changePassword: (current_password, new_password) =>
     api('/identity/auth/change-password', { method: 'POST', body: { current_password, new_password } }),

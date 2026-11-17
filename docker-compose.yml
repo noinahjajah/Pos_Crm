@@ -1,4 +1,3 @@
-# POS CRM — Docker Compose ทั้งระบบ
 
 x-node-service: &node-service
   env_file: .env
@@ -40,7 +39,6 @@ services:
       timeout: 3s
       retries: 3
 
-  # service ของ Dev 2 / Dev 3 (เปิดด้วย --profile all)
   catalog:
     <<: *node-service
     profiles: [all]
@@ -89,7 +87,6 @@ services:
       timeout: 3s
       retries: 3
 
-  # เว็บ (เปิดด้วย --profile web) — nginx เสิร์ฟไฟล์ build และส่ง /api ต่อให้ gateway
   web:
     profiles: [web]
     build:

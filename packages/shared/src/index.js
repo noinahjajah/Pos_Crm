@@ -1,8 +1,6 @@
 import { timingSafeEqual, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
-// response / error
-
 export class AppError extends Error {
   constructor(status, code, message, details = []) {
     super(message);
@@ -28,14 +26,12 @@ export function requestIdOf(req) {
   return req.requestId || req.get?.('x-request-id') || null;
 }
 
-/** ส่งผลลัพธ์สำเร็จ */
 export function ok(res, data, { status = 200, meta } = {}) {
   const body = { data };
   if (meta) body.meta = meta;
   return res.status(status).json(body);
 }
 
-/** สร้าง body ของ error ตามรูปแบบมาตรฐาน */
 export function errorBody(err, requestId) {
   return {
     error: {
@@ -47,19 +43,15 @@ export function errorBody(err, requestId) {
   };
 }
 
-/** ส่ง error ตามรูปแบบมาตรฐาน */
 export function sendError(res, err, requestId) {
   return res.status(err.status || 500).json(errorBody(err, requestId));
 }
 
-/** middleware ปลายทาง: path ที่ไม่มี */
 export function notFoundHandler(req, res) {
   sendError(res, errors.notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND'), requestIdOf(req));
 }
 
-/** middleware จัดการ error ตัวสุดท้ายของทุก service */
 export function errorHandler({ logger = console } = {}) {
-  // eslint-disable-next-line no-unused-vars
   return (err, req, res, _next) => {
     if (err?.type === 'entity.parse.failed') {
       return sendError(res, errors.badRequest('รูปแบบ JSON ไม่ถูกต้อง'), requestIdOf(req));
@@ -75,10 +67,8 @@ export function errorHandler({ logger = console } = {}) {
   };
 }
 
-/** ห่อ handler แบบ async ให้ส่ง error ต่อไปที่ errorHandler */
 export const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-// validate (zod)
 export function zodDetails(zodError) {
   return zodError.issues.map((i) => ({
     field: i.path.join('.') || null,
@@ -86,7 +76,6 @@ export function zodDetails(zodError) {
   }));
 }
 
-/** middleware ตรวจ body / query / params ด้วย zod */
 export function validate({ body, query, params } = {}) {
   return (req, _res, next) => {
     for (const [key, schema] of [['body', body], ['query', query], ['params', params]]) {
@@ -102,7 +91,6 @@ export function validate({ body, query, params } = {}) {
   };
 }
 
-/** schema ที่ใช้บ่อย */
 export const zx = {
   uuid: () => z.string().uuid({ message: 'ต้องเป็น uuid' }),
   idParam: () => z.object({ id: z.string().uuid({ message: 'id ต้องเป็น uuid' }) }),
@@ -130,11 +118,9 @@ export function assertNotDevSecrets(values, env = process.env) {
   }
 }
 
-// header X-User-* / สิทธิ์ / สาขา
 export const ROLES = Object.freeze({ STAFF: 'staff', MANAGER: 'manager', OWNER: 'owner' });
 export const ALL_ROLES = Object.freeze([ROLES.STAFF, ROLES.MANAGER, ROLES.OWNER]);
 
-/** header ที่ gateway ส่งต่อให้ service */
 export const HEADERS = Object.freeze({
   REQUEST_ID: 'x-request-id',
   USER_ID: 'x-user-id',
@@ -151,7 +137,6 @@ export function safeEqual(a, b) {
   return timingSafeEqual(ab, bb);
 }
 
-/** ใส่ req.requestId (ใช้ค่าจาก gateway ถ้ามี) */
 export function requestId() {
   return (req, res, next) => {
     req.requestId = req.get(HEADERS.REQUEST_ID) || randomUUID();
@@ -160,7 +145,6 @@ export function requestId() {
   };
 }
 
-/** service ทุกตัวต้องใช้ middleware นี้ */
 export function internalAuth({ internalKey, publicPaths = ['/health'] }) {
   if (!internalKey) throw new Error('internalAuth: ต้องกำหนด INTERNAL_KEY');
   return (req, _res, next) => {
@@ -176,12 +160,10 @@ export function internalAuth({ internalKey, publicPaths = ['/health'] }) {
   };
 }
 
-/** ต้อง login (มี X-User-*) */
 export function requireUser() {
   return (req, _res, next) => (req.user ? next() : next(errors.unauthorized()));
 }
 
-/** ต้องเป็น role ใด role หนึ่ง — ใช้ซ้ำกับ gateway เพื่อกันพลาด (defense in depth) */
 export function requireRole(...roles) {
   return (req, _res, next) => {
     if (!req.user) return next(errors.unauthorized());
@@ -190,14 +172,12 @@ export function requireRole(...roles) {
   };
 }
 
-/** สาขาที่ request นี้ทำงานได้ */
 export function resolveBranchId(req, requested) {
   if (!req.user) return null;
   if (req.user.role === ROLES.OWNER) return requested || req.user.branchId || null;
   return req.user.branchId;
 }
 
-/** สาขาที่ใช้กรองตอนอ่านข้อมูล: null = ไม่กรอง (owner ดูทุกสาขา) */
 export function branchFilter(req) {
   return req.user?.branchId || null;
 }

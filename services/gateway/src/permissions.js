@@ -1,4 +1,3 @@
-// ตารางสิทธิ์ — แก้สิทธิ์ที่ไฟล์นี้ไฟล์เดียว
 
 const S = 'staff';
 const M = 'manager';
@@ -84,7 +83,6 @@ export const PERMISSIONS = {
   ],
 };
 
-/** แปลง '/users/:id' → regex ที่ match ทั้ง path */
 function compile(path) {
   const pattern = path
     .split('/')
@@ -93,7 +91,6 @@ function compile(path) {
   return new RegExp(`^${pattern}/?$`);
 }
 
-/** เตรียมตารางสิทธิ์ให้ค้นเร็ว */
 export function compilePermissions(table = PERMISSIONS) {
   const compiled = {};
   for (const [service, rules] of Object.entries(table)) {
@@ -102,7 +99,6 @@ export function compilePermissions(table = PERMISSIONS) {
   return compiled;
 }
 
-/** หา rule ของ request */
 export function findRule(compiled, service, method, path) {
   const rules = compiled[service] || [];
   const byPath = rules.filter((r) => r.regex.test(path));

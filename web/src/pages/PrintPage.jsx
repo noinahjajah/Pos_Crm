@@ -1,16 +1,12 @@
-/* eslint-disable react-refresh/only-export-components */
 import { useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useAuth, useBranch } from '../app/providers.jsx'
 import { Button, Card, PageHeader } from '../components/ui.jsx'
 
-// คำนวณยอดบิล
-
 export const VAT_RATE = 0.07
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100
 
-/** ราคาต่อรายการ = (ราคาเมนู + ราคาตัวเลือก) × จำนวน */
 export function lineTotal(item) {
   const extras = (item.options || []).reduce((sum, o) => sum + Number(o.extra_price || 0), 0)
   return round2((Number(item.unit_price) + extras) * Number(item.quantity))
@@ -27,11 +23,9 @@ export function calcBill(items, discountAmount = 0) {
 export const baht = (n) =>
   Number(n ?? 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-// ใบออร์เดอร์เข้าครัว
 const time = (iso) =>
   new Date(iso).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 
-/** ใบออร์เดอร์เข้าครัว (1.10) — Dev 1 ทำ layout, Dev 3 ส่งข้อมูลจาก POST /orders/:id/tickets */
 export function KitchenTicket({ ticket, printTarget = false }) {
   const totalQty = ticket.items.reduce((s, i) => s + i.quantity, 0)
   return (
@@ -83,13 +77,11 @@ export function KitchenTicket({ ticket, printTarget = false }) {
   )
 }
 
-// ใบเสร็จ
 const dateTime = (iso) =>
   new Date(iso).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
 const METHOD_LABEL = { cash: 'เงินสด', promptpay: 'QR พร้อมเพย์' }
 
-/** ใบเสร็จรับเงิน / ใบกำกับภาษีอย่างย่อ (1.10, 1.23, 1.24) */
 export function Receipt({ branch, order, payment, printTarget = false }) {
   const beforeVat = order.subtotal - order.discount_amount
   const qty = order.items.reduce((s, i) => s + i.quantity, 0)
@@ -183,7 +175,6 @@ export function Receipt({ branch, order, payment, printTarget = false }) {
   )
 }
 
-// สั่งพิมพ์
 export function usePrintSlip() {
   const [target, setTarget] = useState(null)
   const print = (which) => {
@@ -194,7 +185,6 @@ export function usePrintSlip() {
   return [target, print]
 }
 
-// หน้าตัวอย่างใบพิมพ์
 const ITEMS = [
   { name: 'ข้าวผัดกะเพราหมูกรอบ', quantity: 2, unit_price: 80, options: [{ name: 'ไข่ดาว', extra_price: 10 }] },
   { name: 'ต้มยำกุ้งน้ำข้น', quantity: 1, unit_price: 180 },

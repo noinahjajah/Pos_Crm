@@ -1,4 +1,3 @@
--- ข้อมูลตั้งต้น: 3 สาขา (restaurant / drinks / bar)
 
 insert into identity.branches (id, code, name, branch_type, address, phone) values
   ('11111111-1111-4111-8111-111111111111', 'RES01', 'สาขาร้านอาหาร', 'restaurant', null, null),

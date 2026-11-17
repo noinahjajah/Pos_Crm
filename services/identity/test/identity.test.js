@@ -20,7 +20,6 @@ beforeEach(() => {
   app = createApp({ repo, auth, internalKey: KEY, logger: { error() {} } });
 });
 
-// จำลอง header ที่ gateway ส่งมา
 const as = (user, branchId = user?.branch_id) => {
   const h = { 'X-Internal-Key': KEY };
   if (user) Object.assign(h, { 'X-User-Id': user.id, 'X-User-Role': user.role, 'X-Branch-Id': branchId ?? '' });
@@ -190,8 +189,6 @@ test('รีเซ็ตรหัสผ่านแล้ว login ด้วย�
   const l = await request(app).post('/auth/login').set(as()).send({ username: 'staff1', password: 'newpass123' });
   assert.equal(l.status, 200);
 });
-
-// ระบบ login เพิ่มเติม
 
 test('ใส่รหัสผิดบอกจำนวนครั้งที่เหลือ และครั้งที่ 5 ถูกล็อก', async () => {
   let res;

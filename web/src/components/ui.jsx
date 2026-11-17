@@ -1,9 +1,6 @@
-/* eslint-disable react-refresh/only-export-components */
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth, useBranch } from '../app/providers.jsx'
-
-// เมนูตาม role (1.2)
 
 export const MENU = [
   { path: '/dashboard', label: 'แดชบอร์ด', labelByRole: { owner: 'ภาพรวมทุกสาขา', manager: 'แดชบอร์ดสาขา' }, roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.34–1.37' },
@@ -27,13 +24,11 @@ export function menuFor(role) {
   return MENU.filter((m) => m.roles.includes(role)).map((m) => ({ ...m, label: m.labelByRole?.[role] ?? m.label }))
 }
 
-/** หน้าแรกหลัง login ของแต่ละ role */
 export const HOME_BY_ROLE = { owner: '/dashboard', manager: '/dashboard', staff: '/tables' }
 
 export const ROLE_LABEL = { owner: 'Owner', manager: 'Manager', staff: 'Staff' }
 export const ROLE_TONE = { owner: 'phase', manager: 'info', staff: 'neutral' }
 
-// ชิ้นส่วน UI
 export function Button({ variant = 'primary', size, block, className = '', ...props }) {
   const cls = ['btn', `btn-${variant}`, size === 'sm' && 'btn-sm', block && 'btn-block', className].filter(Boolean).join(' ')
   return <button type="button" className={cls} {...props} />
@@ -95,7 +90,6 @@ export function Alert({ tone = 'error', children }) {
   return <div className={`alert alert-${tone}`}>{children}</div>
 }
 
-// แผงแก้ไขด้านขวา (ตาม Figma: หน้าผู้ใช้ — กว้าง 360px)
 export function SidePanel({ title, onClose, footer, children }) {
   return (
     <aside className="side-panel" aria-label={title}>
@@ -111,7 +105,6 @@ export function SidePanel({ title, onClose, footer, children }) {
   )
 }
 
-/** state ของฟอร์ม + ส่งข้อมูล: แสดง error รายช่อง (fieldErrors) และข้อความรวม */
 export function useForm(initial) {
   const [form, setForm] = useState(initial)
   const [errors, setErrors] = useState({})
@@ -139,7 +132,6 @@ export function useForm(initial) {
   return { form, setForm, set, errors, setErrors, error, setError, busy, submit, reset }
 }
 
-/** ตัวเลือกสาขาใน <Select> */
 export function BranchOptions({ branches }) {
   return branches.map((b) => (
     <option key={b.id} value={b.id}>
@@ -148,7 +140,6 @@ export function BranchOptions({ branches }) {
   ))
 }
 
-/** ช่องเฟส 2 (สีม่วงเส้นประ) ตาม Prototype */
 export function PhaseNote({ title, children }) {
   return (
     <div className="alert alert-phase">
@@ -158,7 +149,6 @@ export function PhaseNote({ title, children }) {
   )
 }
 
-// Layout: sidebar + แถบหัว
 export const AVATAR_COLOR = { owner: '#6b3fd6', manager: '#2e6b5a', staff: '#8a857c' }
 
 export function AppLayout() {
@@ -207,7 +197,6 @@ export function AppLayout() {
   )
 }
 
-/** แถบหัวของแต่ละหน้า + ตัวเลือกสาขาของ owner (1.4) */
 export function PageHeader({ title, subtitle, actions, showBranchSwitch = false }) {
   const { user } = useAuth()
   const { branches, selectedBranchId, selectBranch, canSwitch } = useBranch()

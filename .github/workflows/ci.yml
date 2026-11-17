@@ -1,4 +1,3 @@
-# ตรวจทุก Pull Request ก่อนรวมเข้า main: เทส backend + lint/build เว็บ
 name: CI
 
 on:
@@ -49,7 +48,6 @@ jobs:
         run: |
           for i in $(seq 1 30); do
             curl -sf http://localhost:8080/health -o /dev/null -w '%{http_code}' && break
-            # health ตอบ 503 เมื่อ service ของ Dev 2/3 ยังไม่มี ให้ดูว่า identity ok ก็พอ
             curl -s http://localhost:8080/health | grep -q '"identity":"ok"' && break
             sleep 2
           done
@@ -60,7 +58,6 @@ jobs:
             -H 'Content-Type: application/json' -d '{"username":"owner","password":"password123"}' \
             | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).data.access_token))')
           curl -sf http://localhost:8080/api/v1/identity/me -H "Authorization: Bearer $TOKEN"
-          # service ห้ามเปิด port ออกนอก
           ! curl -sf http://localhost:3001/health
       - name: log เมื่อพัง
         if: failure()

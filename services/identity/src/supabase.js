@@ -1,6 +1,5 @@
 import { AppError } from '@pos/shared';
 
-/** เก็บข้อมูลใน Supabase schema `identity` (DATA_MODE=supabase) */
 export function createSupabaseRepo(adminClient) {
   const db = adminClient.schema('identity');
 
@@ -132,7 +131,6 @@ export function createSupabaseRepo(adminClient) {
   };
 }
 
-/** ระบบ login จริงด้วย Supabase Auth (DATA_MODE=supabase) */
 export function createSupabaseAuth({ anonClient, adminClient, emailOf, repo }) {
   const toSession = (s) => ({
     access_token: s.access_token,

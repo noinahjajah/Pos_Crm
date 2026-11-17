@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { existsSync, readFileSync } from 'node:fs';
 import { SignJWT } from 'jose';
 import { SEED_USERS } from '../services/identity/src/memory.js';

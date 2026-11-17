@@ -12,7 +12,6 @@ import {
   zx,
 } from '@pos/shared';
 
-// schema ของ request
 const username = z
   .string()
   .trim()
@@ -94,13 +93,10 @@ export const listUsersQuery = zx.page().extend({
   include_inactive: zx.boolString(),
 });
 
-// แปลงข้อมูลก่อนส่งออก
-
 export function presentBranchRef(branch) {
   return branch ? { id: branch.id, code: branch.code, name: branch.name, branch_type: branch.branch_type } : null;
 }
 
-/** ผู้ใช้ 1 คนพร้อมข้อมูลสาขาแบบย่อ */
 export async function presentUser(repo, profile, branchCache) {
   let branch = null;
   if (profile.branch_id) {
@@ -126,12 +122,10 @@ export async function presentUsers(repo, profiles) {
   return Promise.all(profiles.map((p) => presentUser(repo, p, cache)));
 }
 
-// /auth
 export function createLoginGuard({ maxAttempts = 5, lockMinutes = 15, now = () => Date.now() } = {}) {
   const state = new Map();
   return {
     maxAttempts,
-    /** วินาทีที่ต้องรอ (0 = ไม่ได้ถูกล็อก) */
     lockedFor(username) {
       const s = state.get(username);
       if (!s?.lockedUntil) return 0;
@@ -139,7 +133,6 @@ export function createLoginGuard({ maxAttempts = 5, lockMinutes = 15, now = () =
       state.delete(username);
       return 0;
     },
-    /** บันทึกว่าใส่ผิด คืนจำนวนครั้งที่เหลือ (0 = เพิ่งถูกล็อก) */
     fail(username) {
       const s = state.get(username) ?? { failed: 0 };
       s.failed += 1;
@@ -164,7 +157,6 @@ const lockedError = (seconds) =>
     [{ retry_after_sec: seconds }],
   );
 
-// POST /auth/login · POST /auth/refresh (public)
 export function authRoutes({ repo, auth, loginGuard }) {
   const r = Router();
 
@@ -243,7 +235,6 @@ export function authRoutes({ repo, auth, loginGuard }) {
   return r;
 }
 
-// /me
 export function meRoutes({ repo }) {
   const r = Router();
   r.get(
@@ -258,7 +249,6 @@ export function meRoutes({ repo }) {
   return r;
 }
 
-// /branches
 export function branchRoutes({ repo }) {
   const r = Router();
   const owner = requireRole('owner');
@@ -331,7 +321,6 @@ export function branchRoutes({ repo }) {
   return r;
 }
 
-// ปิดสาขาที่ยังมีพนักงานใช้งานอยู่ไม่ได้ ต้องย้ายหรือลบผู้ใช้ก่อน
 async function assertNoActiveUsers(repo, branchId) {
   const count = await repo.countActiveUsersInBranch(branchId);
   if (count > 0) {
@@ -341,7 +330,6 @@ async function assertNoActiveUsers(repo, branchId) {
   }
 }
 
-// /roles
 export function roleRoutes({ repo }) {
   const r = Router();
   r.get(
@@ -354,12 +342,10 @@ export function roleRoutes({ repo }) {
   return r;
 }
 
-// /users
 export function userRoutes({ repo, auth, loginGuard }) {
   const r = Router();
   const owner = requireRole('owner');
 
-  /** staff/manager ต้องมีสาขาที่ยังเปิดอยู่ */
   async function assertBranchUsable(branchId) {
     const branch = await repo.getBranch(branchId);
     if (!branch || !branch.is_active) {
@@ -367,7 +353,6 @@ export function userRoutes({ repo, auth, loginGuard }) {
     }
   }
 
-  /** manager เห็นเฉพาะคนในสาขาตัวเอง */
   function assertCanView(req, profile) {
     if (req.user.role === 'manager' && profile.branch_id !== req.user.branchId) {
       throw errors.notFound('ไม่พบผู้ใช้');

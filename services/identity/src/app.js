@@ -5,8 +5,6 @@ import { authRoutes, branchRoutes, createLoginGuard, meRoutes, roleRoutes, userR
 import { createMemoryAuth, createMemoryRepo, SEED_USERS } from './memory.js';
 import { createSupabaseAuth, createSupabaseRepo } from './supabase.js';
 
-// config
-
 const env = process.env;
 
 export function loadConfig(overrides = {}) {
@@ -52,7 +50,6 @@ export function loadConfig(overrides = {}) {
   return config;
 }
 
-// ประกอบ repo + auth ตาม DATA_MODE
 export function createDeps(config) {
   if (config.dataMode === 'supabase') {
     const opts = { auth: { persistSession: false, autoRefreshToken: false } };
@@ -80,7 +77,6 @@ export function createDeps(config) {
   return { repo, auth };
 }
 
-// express app
 export function createApp({ repo, auth, internalKey, loginGuard = createLoginGuard(), logger = console }) {
   const app = express();
   app.disable('x-powered-by');

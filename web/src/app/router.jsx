@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from './providers.jsx'
 import { AppLayout, Badge, Card, DEV_LABEL, HOME_BY_ROLE, MENU, PageHeader } from '../components/ui.jsx'
@@ -6,14 +5,12 @@ import { AccountPage, LoginPage } from '../pages/LoginPage.jsx'
 import { BranchesPage, UsersPage } from '../pages/ManagePages.jsx'
 import { PrintPreviewPage } from '../pages/PrintPage.jsx'
 
-// หน้าที่ Dev 1 ทำเสร็จแล้ว — Dev 2 / Dev 3 เพิ่มหน้าของตัวเองใน map นี้
 const PAGES = {
   '/branches': <BranchesPage />,
   '/users': <UsersPage />,
   '/print': <PrintPreviewPage />,
 }
 
-/** ต้อง login ก่อน */
 function RequireAuth() {
   const { user } = useAuth()
   const location = useLocation()
@@ -22,7 +19,6 @@ function RequireAuth() {
   return <Outlet />
 }
 
-/** ต้องมี role ที่อนุญาต (1.2) — ฝั่ง API มี gateway ตรวจซ้ำอีกชั้น */
 function RequireRole({ roles, children }) {
   const { user } = useAuth()
   if (!roles.includes(user.role)) return <ForbiddenPage />
@@ -34,7 +30,6 @@ function HomeRedirect() {
   return <Navigate to={HOME_BY_ROLE[user.role] || '/print'} replace />
 }
 
-// หน้าว่างรอเพื่อน / 403 / 404
 function PlaceholderPage({ item }) {
   const { user } = useAuth()
   return (
@@ -76,7 +71,6 @@ function ForbiddenPage() {
   )
 }
 
-// เส้นทาง
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   {

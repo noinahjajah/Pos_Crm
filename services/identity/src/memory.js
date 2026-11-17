@@ -7,7 +7,6 @@ export const SEED_BRANCHES = [
   { id: '33333333-3333-4333-8333-333333333333', code: 'BAR01', name: 'สาขาบาร์', branch_type: 'bar', address: null, phone: null },
 ];
 
-// ผู้ใช้ทดสอบ 3 role (ส่งมอบสัปดาห์แรก)
 export const SEED_USERS = [
   { id: 'aaaaaaaa-aaaa-4aaa-8aaa-000000000001', username: 'owner', full_name: 'เจ้าของร้าน (ทดสอบ)', role: 'owner', branch_id: null },
   { id: 'bbbbbbbb-bbbb-4bbb-8bbb-000000000001', username: 'manager1', full_name: 'ผู้จัดการสาขาร้านอาหาร (ทดสอบ)', role: 'manager', branch_id: SEED_BRANCHES[0].id },
@@ -20,7 +19,6 @@ export const ROLE_ROWS = [
   { id: 3, name: 'owner' },
 ];
 
-/** เก็บ branches / roles / profiles ในหน่วยความจำ (DATA_MODE=memory) */
 export function createMemoryRepo({ seed = true } = {}) {
   const now = () => new Date().toISOString();
   const branches = new Map();
@@ -101,7 +99,6 @@ export function createMemoryRepo({ seed = true } = {}) {
   };
 }
 
-/** ระบบ login จำลอง (DATA_MODE=memory) — ไม่ต่อ Supabase */
 export function createMemoryAuth({ repo, jwtSecret, accessTokenTtlSec = 900, refreshTokenTtlSec = 604800, seedUserIds = [], seedPassword }) {
   const key = new TextEncoder().encode(jwtSecret);
   const passwords = new Map();

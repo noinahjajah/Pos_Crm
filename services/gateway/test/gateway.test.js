@@ -14,7 +14,6 @@ let upstream;
 let upstreamUrl;
 let gw;
 
-// service ปลอม: ตอบ path + header ที่ได้รับ
 before(async () => {
   const svc = express();
   svc.get('/slow', (_req, res) => setTimeout(() => res.json({ ok: true }), 500));

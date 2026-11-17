@@ -1,8 +1,6 @@
--- identity: branches, roles, profiles + custom access token hook
 
 create schema if not exists identity;
 
--- branches
 do $$ begin
   create type identity.branch_type as enum ('restaurant', 'drinks', 'bar');
 exception when duplicate_object then null; end $$;
@@ -19,20 +17,17 @@ create table if not exists identity.branches (
   constraint branches_code_format check (code ~ '^[A-Z0-9_-]{2,20}$')
 );
 
--- roles
 create table if not exists identity.roles (
   id   smallint primary key,
   name text not null unique check (name in ('staff', 'manager', 'owner'))
 );
 
--- staff = พนักงานหน้าร้าน (waiter + cashier รวมกัน) · ไม่มี role kitchen
 insert into identity.roles (id, name) values
   (1, 'staff'),
   (2, 'manager'),
   (3, 'owner')
 on conflict (id) do update set name = excluded.name;
 
--- profiles
 create table if not exists identity.profiles (
   id         uuid primary key references auth.users (id) on delete cascade,
   branch_id  uuid references identity.branches (id),
@@ -44,7 +39,6 @@ create table if not exists identity.profiles (
   last_login_at timestamptz,
   created_at timestamptz not null default now(),
   constraint profiles_username_format check (username ~ '^[a-z0-9._-]{3,32}$'),
-  -- owner ไม่มีสาขาประจำ · staff/manager ต้องมีสาขา
   constraint profiles_branch_by_role check (
     (role_id = 3 and branch_id is null) or (role_id <> 3 and branch_id is not null)
   )
@@ -53,7 +47,6 @@ create table if not exists identity.profiles (
 create index if not exists profiles_branch_id_idx on identity.profiles (branch_id);
 create index if not exists profiles_role_id_idx on identity.profiles (role_id);
 
--- สิทธิ์
 alter table identity.branches enable row level security;
 alter table identity.roles    enable row level security;
 alter table identity.profiles enable row level security;
@@ -63,7 +56,6 @@ grant usage on schema identity to service_role;
 grant all on all tables in schema identity to service_role;
 alter default privileges in schema identity grant all on tables to service_role;
 
--- Custom Access Token Hook: ใส่ user_role และ branch_id ลงใน JWT
 create or replace function identity.custom_access_token_hook(event jsonb)
 returns jsonb
 language plpgsql
@@ -85,7 +77,6 @@ begin
     claims := jsonb_set(claims, '{user_role}', to_jsonb(v_role));
     claims := jsonb_set(claims, '{branch_id}', coalesce(to_jsonb(v_branch::text), 'null'::jsonb));
   else
-    -- ไม่มีโปรไฟล์หรือถูกปิดบัญชี: ไม่มี role → gateway ตอบ 403
     claims := jsonb_set(claims, '{user_role}', 'null'::jsonb);
     claims := jsonb_set(claims, '{branch_id}', 'null'::jsonb);
   end if;
@@ -94,7 +85,6 @@ begin
 end;
 $$;
 
--- ให้เฉพาะ Supabase Auth เรียก hook และอ่านตารางที่ hook ใช้
 grant usage on schema identity to supabase_auth_admin;
 grant execute on function identity.custom_access_token_hook(jsonb) to supabase_auth_admin;
 revoke execute on function identity.custom_access_token_hook(jsonb) from authenticated, anon, public;

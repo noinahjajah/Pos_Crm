@@ -10,7 +10,6 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { ALL_ROLES, AppError, HEADERS, assertNotDevSecrets, errorHandler, errors, sendError } from '@pos/shared';
 import { compilePermissions, findRule, PERMISSIONS } from './permissions.js';
 
-// config
 const env = process.env;
 
 export function loadConfig(overrides = {}) {
@@ -37,8 +36,6 @@ export function loadConfig(overrides = {}) {
   return config;
 }
 
-// service ปลายทาง
-
 export function buildRoutes(env = process.env) {
   return [
     { name: 'identity', prefix: '/api/v1/identity', target: env.IDENTITY_URL || 'http://identity:3001' },
@@ -48,7 +45,6 @@ export function buildRoutes(env = process.env) {
   ];
 }
 
-/** หา service จาก path เต็ม → { route, servicePath } */
 export function matchRoute(routes, fullPath) {
   for (const route of routes) {
     if (fullPath === route.prefix || fullPath.startsWith(`${route.prefix}/`)) {
@@ -61,10 +57,8 @@ export function matchRoute(routes, fullPath) {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const fail = (req, res, err) => sendError(res, err, req.gw?.requestId);
 
-// header ที่ client ห้ามส่งเอง (gateway เป็นคนใส่เท่านั้น)
 const TRUSTED_HEADERS = [HEADERS.USER_ID, HEADERS.USER_ROLE, HEADERS.BRANCH_ID, HEADERS.INTERNAL_KEY];
 
-// 1. Request ID
 export function requestIdMw() {
   return (req, res, next) => {
     for (const h of TRUSTED_HEADERS) delete req.headers[h];
@@ -77,7 +71,6 @@ export function requestIdMw() {
   };
 }
 
-// 2. CORS
 export function corsMw({ corsOrigins }) {
   return cors({
     origin: (origin, cb) => cb(null, !origin || corsOrigins.includes('*') || corsOrigins.includes(origin)),
@@ -88,7 +81,6 @@ export function corsMw({ corsOrigins }) {
   });
 }
 
-// 3. Rate limit
 export function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
   const handler = (req, res) => fail(req, res, errors.tooMany());
   const general = rateLimit({ windowMs: 60_000, limit: rateLimitPerMin, standardHeaders: 'draft-7', legacyHeaders: false, handler });
@@ -106,7 +98,6 @@ export function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
   ];
 }
 
-// (ก่อน 4) หา service และ rule จากตารางสิทธิ์
 export function resolveRouteMw({ routes, permissions }) {
   return (req, res, next) => {
     if (/(^|\/)\.\.?(\/|$)|%2e|%2f|%5c|\\/i.test(req.path)) {
@@ -126,7 +117,6 @@ export function resolveRouteMw({ routes, permissions }) {
   };
 }
 
-// 4. Auth
 export function authMw({ jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
   const secretKey = jwtSecret ? new TextEncoder().encode(jwtSecret) : null;
   const jwks = jwksUrl ? createRemoteJWKSet(new URL(jwksUrl)) : null;
@@ -168,7 +158,6 @@ export function authMw({ jwtSecret, jwksUrl, jwtIssuer, jwtAudience }) {
   };
 }
 
-// 5. Route guard
 export function routeGuardMw() {
   return (req, res, next) => {
     const { rule, user } = req.gw;
@@ -178,7 +167,6 @@ export function routeGuardMw() {
   };
 }
 
-// 6. Branch scope
 export function branchScopeMw() {
   return (req, res, next) => {
     const { user } = req.gw;
@@ -198,7 +186,6 @@ export function branchScopeMw() {
   };
 }
 
-// DNS ที่ไม่ใช้ thread pool
 export function fastLookup(hostname, options, callback) {
   if (typeof options === 'function') [callback, options] = [options, {}];
   const family = isIP(hostname);
@@ -221,7 +208,6 @@ export function fastLookup(hostname, options, callback) {
 
 const proxyAgent = new http.Agent({ keepAlive: true, lookup: fastLookup });
 
-// 8. Proxy + 9. Error format (service ล่ม → 502, ช้า → 504)
 export function proxyMw({ internalKey, proxyTimeoutMs }) {
   const rewrite = (_path, req) => {
     const url = new URL(req.originalUrl || req.url, 'http://gateway');
@@ -281,7 +267,6 @@ export function proxyMw({ internalKey, proxyTimeoutMs }) {
   };
 }
 
-// 10. Logging
 export function loggingMw({ logRequests, logger = console }) {
   return (req, res, next) => {
     if (!logRequests) return next();
@@ -306,7 +291,6 @@ export function loggingMw({ logRequests, logger = console }) {
   };
 }
 
-// health รวมสถานะทุก service
 async function hostResolves(hostname, timeoutMs) {
   if (isIP(hostname) || hostname === 'localhost') return true;
   const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('dns timeout')), timeoutMs));
@@ -351,7 +335,6 @@ export function healthHandler({ routes, cacheMs = 5000, timeoutMs = 2000 }) {
   };
 }
 
-// express app
 export function createApp(config, { routes = buildRoutes(), permissions = PERMISSIONS, logger = console } = {}) {
   const app = express();
   app.disable('x-powered-by');

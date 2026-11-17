@@ -1,8 +1,6 @@
-/* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { getSession, identityApi, onSessionChange, setSession } from '../lib/api.js'
 
-// Auth: session ผู้ใช้
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
@@ -27,13 +25,7 @@ export function AuthProvider({ children }) {
     return data.user
   }, [])
 
-  const logout = useCallback(async () => {
-    try {
-      await identityApi.logout()
-    } catch {
-    }
-    setSession(null)
-  }, [])
+  const logout = useCallback(() => identityApi.logout(), [])
 
   const changePassword = useCallback(async (current, next) => {
     const { data } = await identityApi.changePassword(current, next)
@@ -54,7 +46,6 @@ export function useAuth() {
   return ctx
 }
 
-// สาขาที่เลือก (owner)
 const BranchContext = createContext(null)
 const KEY = 'pos.selectedBranch'
 
@@ -100,7 +91,6 @@ export function BranchProvider({ children }) {
     () => ({
       branches: visible,
       reload,
-      /** branch_id ที่ส่งไปกับ query ('' = ทุกสาขา) — มีผลเฉพาะ owner */
       selectedBranchId: isOwner ? validSelected : user?.branch_id || '',
       selectBranch: select,
       canSwitch: isOwner,

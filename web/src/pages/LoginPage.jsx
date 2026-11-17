@@ -4,8 +4,6 @@ import { useAuth } from '../app/providers.jsx'
 import { clearLogoutReason, PASSWORD_RULES, passwordOk, peekLogoutReason } from '../lib/api.js'
 import { Alert, Badge, Button, Card, Field, HOME_BY_ROLE, PageHeader, ROLE_LABEL, ROLE_TONE, TextInput, useForm } from '../components/ui.jsx'
 
-// หน้าเกี่ยวกับการเข้าสู่ระบบของ Dev 1: login (1.2) และบัญชีของฉัน (เปลี่ยนรหัสผ่าน)
-
 const TEST_ACCOUNTS = [
   { username: 'owner', role: 'owner', dest: 'แดชบอร์ดรวมทุกสาขา' },
   { username: 'manager1', role: 'manager', dest: 'แดชบอร์ดสาขาร้านอาหาร' },
@@ -18,7 +16,6 @@ const LOGOUT_MESSAGE = {
   disabled: 'บัญชีนี้ถูกปิดใช้งาน กรุณาติดต่อเจ้าของร้าน',
 }
 
-/** แปลง error จาก API เป็นข้อความที่ผู้ใช้เข้าใจ */
 function loginErrorText(err) {
   if (err.code === 'INVALID_CREDENTIALS') {
     const left = err.details?.[0]?.attempts_left
@@ -30,7 +27,6 @@ function loginErrorText(err) {
   return err.message
 }
 
-/** ช่องรหัสผ่าน + ปุ่มแสดง/ซ่อน + เตือน Caps Lock */
 function PasswordInput({ value, onChange, autoComplete, invalid, autoFocus }) {
   const [show, setShow] = useState(false)
   const [caps, setCaps] = useState(false)
