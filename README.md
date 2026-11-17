@@ -21,6 +21,52 @@ command -v brew >/dev/null || /bin/bash -c "$(curl -fsSL https://raw.githubuserc
 - ใช้ฐานข้อมูลจริง: ใส่ `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` ใน `.env` แล้วตั้ง `DATA_MODE=supabase` (ขอ key จาก Dev 1 ทางส่วนตัว · key ถูกเก็บไว้ใน GitHub Secrets ของ repo ด้วย ใช้ได้ใน GitHub Actions เท่านั้น)
 - schema `identity`, hook และผู้ใช้ทดสอบตั้งไว้ในโปรเจกต์ Supabase ของทีมแล้ว
 
+## โครงสร้างโฟลเดอร์
+
+```
+Pos_Crm/
+├─ services/                  ← backend แยก service ละโฟลเดอร์ (1 service = 1 เจ้าของ)
+│  ├─ gateway/                ← API Gateway :8080 ทางเข้าเดียวของเว็บ (Dev 1)
+│  │  ├─ src/app.js           middleware 10 ตัว ตามลำดับใน spec ข้อ 2
+│  │  ├─ src/permissions.js   ตารางสิทธิ์ { method, path, roles } ← Dev 2/3 เพิ่มสิทธิ์ของตัวเองที่นี่
+│  │  └─ test/                เทสต์ของ gateway
+│  ├─ identity/              ← login / ผู้ใช้ / role / สาขา :3001 (Dev 1)
+│  │  ├─ src/routes.js        endpoint ทั้งหมดของ identity
+│  │  ├─ src/memory.js        โหมดจำลอง (DATA_MODE=memory) ไม่ต้องต่อ Supabase
+│  │  ├─ src/supabase.js      โหมดจริง (DATA_MODE=supabase)
+│  │  ├─ tools.mjs            npm run tokens / npm run seed:users
+│  │  └─ test/                เทสต์ของ identity
+│  └─ catalog/ pos/ payment/  ← (ยังไม่มี) Dev 2 / Dev 3 สร้างโฟลเดอร์ของตัวเองแบบเดียวกับ identity
+├─ packages/shared/           ← โค้ดกลางที่ทุก service ใช้: response/error, zod, อ่าน X-User-*
+├─ supabase/                  ← migration ของ schema identity + seed 3 สาขา
+├─ web/                       ← หน้าเว็บ React (Vite)
+│  ├─ src/app/                ← ของที่ใช้ทั้งเว็บ
+│  │  ├─ api.js               เรียก API ผ่าน gateway + เก็บ token
+│  │  ├─ providers.jsx        ผู้ใช้ที่ login, สาขาที่เลือก, แจ้งเตือน
+│  │  ├─ router.jsx           เส้นทางหน้าเว็บ + กันสิทธิ์ตาม role ← เพิ่มหน้าใหม่ใน PAGES
+│  │  └─ ui.jsx               ปุ่ม ฟอร์ม เมนูซ้าย หน้าตาตาม Figma
+│  ├─ src/pages/              ← หน้าเว็บ (Dev 2/3 สร้างหน้าของตัวเองที่นี่)
+│  │  ├─ LoginPage.jsx        login + บัญชีของฉัน
+│  │  ├─ ManagePages.jsx      จัดการผู้ใช้ + จัดการสาขา
+│  │  └─ PrintPage.jsx        ใบเข้าครัว + ใบเสร็จ (Dev 3 ใช้ KitchenTicket, Receipt)
+│  └─ nginx.conf              ใช้ตอนรันเว็บใน Docker (ส่ง /api ต่อให้ gateway)
+├─ เอกสาร/                     ← spec เฟส 1 + ภาพ ERD ของทีม
+├─ Dockerfile                 ← build ทุก service ฝั่ง Node
+├─ docker-compose.yml         ← รันทั้งระบบด้วย Docker (เปิดแค่ :8080)
+├─ .env.example               ← ตัวอย่างค่าตั้งค่า คัดลอกเป็น .env (ห้ามใส่ key จริง)
+└─ package.json               ← npm workspaces: ติดตั้งครั้งเดียวที่นี่ · npm run dev / test / lint / build
+```
+
+**คำสั่งที่ใช้บ่อย** (รันที่โฟลเดอร์ `Pos_Crm` · Windows ใช้ `npm.cmd`)
+
+| คำสั่ง | ทำอะไร |
+|---|---|
+| `npm install` | ติดตั้งทุกอย่าง (backend + เว็บ) |
+| `npm run dev` | เปิด identity, gateway และเว็บพร้อมกัน |
+| `npm test` | เทสต์ backend |
+| `npm run lint` / `npm run build` | ตรวจโค้ดเว็บ / build เว็บ |
+| `npm run tokens` | token ทดสอบ 3 role ไว้เรียก API ผ่าน gateway |
+
 ### Dev 2 / Dev 3 ใช้ต่อยังไง
 - สิทธิ์ของ endpoint: เพิ่มใน `services/gateway/src/permissions.js`
 - service ใหม่: สร้าง `services/<ชื่อ>` ใช้ `@pos/shared` (`internalAuth()`, `requireRole()`, `branchFilter()`, `validate()`, `ok()`)
