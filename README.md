@@ -168,11 +168,14 @@ npm test        # เทสต์ identity + gateway
 ใช้ `.env` ของแต่ละ service เหมือนข้อ 2 แล้วรันที่โฟลเดอร์บนสุดของ repo
 
 ```bash
-docker compose --profile web up --build   # เว็บ :5173 · gateway :8080 (service อื่นไม่เปิด port ออกนอก)
-docker compose down                        # ปิด
+docker compose --profile web up -d --build   # เว็บ :8000 · gateway :8080 (service อื่นไม่เปิด port ออกนอก)
+docker compose down                           # ปิด
+
+# โหมดพัฒนา: แก้โค้ดแล้ว reload เอง · เว็บ :5173 (ปิด npm run dev บนเครื่องก่อน)
+docker compose --profile web -f docker-compose.yml -f docker-compose.dev.yml watch
 ```
 
-- ไฟล์: `docker-compose.yml` (บนสุด) + `services/Dockerfile` (ไฟล์เดียวใช้ทุก service)
+- ไฟล์: `docker-compose.yml` + `docker-compose.dev.yml` (บนสุด) · `services/Dockerfile` (ไฟล์เดียวใช้ทุก service) · `web/Dockerfile`
 - pos ของ Dev 3 เปิดด้วย `--profile all` เมื่อมีโฟลเดอร์ `services/pos` แล้ว
 - ใน Docker ใช้ `NODE_ENV=production` จึงต้องตั้ง `INTERNAL_KEY` ใหม่ ห้ามใช้ค่าตัวอย่าง
 

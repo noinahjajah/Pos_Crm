@@ -1,0 +1,68 @@
+# โหมดพัฒนา: แก้โค้ดแล้ว reload เองทันที
+#
+#   docker compose --profile web -f docker-compose.yml -f docker-compose.dev.yml watch
+#
+# - ทุก service รันด้วย node --watch → แก้ไฟล์แล้ว restart เอง
+# - เว็บรันเป็น Vite dev server ที่ http://localhost:5173 (HMR)
+# - แก้ package.json → build image ใหม่ให้อัตโนมัติ
+# กด Ctrl+C เพื่อหยุดดูการเปลี่ยนแปลง แล้วใช้ `docker compose down` เพื่อปิด
+# (ถ้ารัน `npm run dev` บนเครื่องอยู่ ให้ปิดก่อน เพราะใช้พอร์ตเดียวกัน)
+
+x-watch-shared: &watch-shared
+  action: sync
+  path: ./services/shared
+  target: /app/services/shared
+  ignore: [node_modules/]
+
+services:
+  gateway:
+    command: ["node", "--watch", "server.js"]
+    develop:
+      watch:
+        - *watch-shared
+        - { action: sync, path: ./services/gateway, target: /app/services/gateway, ignore: [node_modules/, .env] }
+        - { action: rebuild, path: ./services/gateway/package.json }
+
+  identity:
+    command: ["node", "--watch", "server.js"]
+    develop:
+      watch:
+        - *watch-shared
+        - { action: sync, path: ./services/identity, target: /app/services/identity, ignore: [node_modules/, .env] }
+        - { action: rebuild, path: ./services/identity/package.json }
+
+  catalog:
+    command: ["node", "--watch", "server.js"]
+    develop:
+      watch:
+        - *watch-shared
+        - { action: sync, path: ./services/catalog, target: /app/services/catalog, ignore: [node_modules/, .env] }
+        - { action: rebuild, path: ./services/catalog/package.json }
+
+  payment:
+    command: ["node", "--watch", "server.js"]
+    develop:
+      watch:
+        - *watch-shared
+        - { action: sync, path: ./services/payment, target: /app/services/payment, ignore: [node_modules/, .env] }
+        - { action: rebuild, path: ./services/payment/package.json }
+
+  membership:
+    command: ["node", "--watch", "server.js"]
+    develop:
+      watch:
+        - *watch-shared
+        - { action: sync, path: ./services/membership, target: /app/services/membership, ignore: [node_modules/, .env] }
+        - { action: rebuild, path: ./services/membership/package.json }
+
+  web:
+    build:
+      target: dev
+    environment:
+      API_PROXY_TARGET: http://gateway:8080
+    ports: !override
+      - "5173:5173"
+    develop:
+      watch:
+        - { action: sync, path: ./web, target: /app/web, ignore: [node_modules/, dist/] }
+        - { action: rebuild, path: ./web/package.json }
