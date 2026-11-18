@@ -1,12 +1,12 @@
 // บัญชีของฉัน: ดูข้อมูล + เปลี่ยนรหัสผ่าน
 
 import { useNavigate } from 'react-router-dom'
-import { PASSWORD_RULES, passwordOk } from '../../api/identity.js'
+import { passwordOk } from '../../api/identity.js'
 import { PageHeader } from '../../components/layout/Topbar.jsx'
 import { useNotice } from '../../components/ui/Notice.jsx'
 import { Alert, Badge, Button, Card, Field } from '../../components/ui/index.jsx'
 import { useAuth } from './AuthContext.jsx'
-import { PasswordInput } from './LoginPage.jsx'
+import { PasswordInput, PasswordRules } from './LoginPage.jsx'
 import { useForm } from '../../hooks/useForm.js'
 import { HOME_BY_ROLE, ROLE_LABEL, ROLE_TONE } from '../../lib/constants.js'
 import { dateTime } from '../../lib/format.js'
@@ -78,13 +78,7 @@ export function AccountPage() {
               <Field label="รหัสผ่านใหม่" error={errors.new_password}>
                 <PasswordInput value={form.next} onChange={set('next')} autoComplete="new-password" invalid={!!errors.new_password} />
               </Field>
-              <ul className="rules">
-                {PASSWORD_RULES.map((r) => (
-                  <li key={r.label} className={r.test(form.next) ? 'ok' : ''}>
-                    {r.test(form.next) ? '✓' : '○'} {r.label}
-                  </li>
-                ))}
-              </ul>
+              <PasswordRules value={form.next} />
               <Field label="ยืนยันรหัสผ่านใหม่" error={errors.confirm || (mismatch ? 'ยืนยันรหัสผ่านไม่ตรงกัน' : '')}>
                 <PasswordInput value={form.confirm} onChange={set('confirm')} autoComplete="new-password" invalid={Boolean(mismatch)} />
               </Field>

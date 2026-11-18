@@ -240,7 +240,7 @@ async function startStack() {
       logRequests: false,
     },
     {
-      routes: [{ name: 'identity', prefix: '/api/v1/identity', target, public: ['/auth/login', '/auth/refresh'] }],
+      routes: [{ name: 'identity', prefix: '/api/v1/identity', target, public: ['/auth/login', '/auth/refresh', '/auth/register', '/auth/branches'] }],
       permissions: { identity: PERMISSIONS.identity },
       logger: { log() {}, error() {} },
     },
@@ -309,3 +309,21 @@ test('integration: flow ผู้ใช้ใหม่ผ่าน gateway — �
     server.close();
   }
 });
+
+test('integration: สมัครสมาชิกผ่าน gateway ไม่ต้องมี token แต่ยัง login ไม่ได้จนกว่าจะอนุมัติ', async () => {
+  const { app, server } = await startStack();
+  try {
+    const branches = await request(app).get('/api/v1/identity/auth/branches').expect(200);
+    const reg = await request(app)
+      .post('/api/v1/identity/auth/register')
+      .send({ username: 'gwnewbie', password: 'Signup123', full_name: 'ทดสอบ', branch_id: branches.body.data[0].id });
+    assert.equal(reg.status, 201);
+    const login = await request(app).post('/api/v1/identity/auth/login').send({ username: 'gwnewbie', password: 'Signup123' });
+    assert.equal(login.status, 403);
+    const other = await request(app).get('/api/v1/identity/users');
+    assert.equal(other.status, 401, 'path อื่นยังต้องมี token');
+  } finally {
+    server.close();
+  }
+});
+

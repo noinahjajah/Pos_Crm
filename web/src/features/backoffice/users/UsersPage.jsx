@@ -52,6 +52,33 @@ export function UsersPage() {
     return () => clearTimeout(t)
   }, [load])
 
+  // ผู้สมัครสมาชิกเองที่รออนุมัติ = ปิดใช้งานและยังไม่เคยเข้าระบบ (owner เท่านั้น)
+  const [pending, setPending] = useState([])
+  const loadPending = useCallback(async () => {
+    if (!isOwner) return
+    try {
+      const res = await identityApi.listUsers({ include_inactive: 'true', limit: 100 })
+      setPending(res.data.filter((u) => !u.is_active && !u.last_login_at))
+    } catch {
+      setPending([])
+    }
+  }, [isOwner])
+  useEffect(() => {
+    const t = setTimeout(loadPending, 0)
+    return () => clearTimeout(t)
+  }, [loadPending])
+
+  async function approve(u) {
+    try {
+      await identityApi.updateUser(u.id, { is_active: true })
+      toast(`อนุมัติ ${u.full_name} แล้ว เข้าสู่ระบบได้ทันที`)
+      loadPending()
+      load()
+    } catch (e) {
+      toast(e.message, 'error')
+    }
+  }
+
   async function remove(u) {
     const ok = await confirm({
       title: `ลบผู้ใช้ ${u.full_name}?`,
@@ -86,6 +113,33 @@ export function UsersPage() {
         <div className={editing ? 'with-panel' : ''}>
           <div>
             <Alert>{error}</Alert>
+            {pending.length > 0 && (
+              <Card title={`ผู้สมัครรออนุมัติ (${pending.length})`} className="pending-card">
+                <div className="table-wrap">
+                  <table className="table">
+                    <tbody>
+                      {pending.map((u) => (
+                        <tr key={u.id}>
+                          <td>
+                            <div>{u.full_name}</div>
+                            <div className="sub">{u.username}</div>
+                          </td>
+                          <td>{u.branch?.name}</td>
+                          <td className="muted">สมัครเมื่อ {dateTime(u.created_at)}</td>
+                          <td>
+                            <div className="actions">
+                              <Button size="sm" onClick={() => approve(u)}>
+                                อนุมัติ
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
             <Card
               title={`ผู้ใช้ทั้งหมด (${meta.total ?? 0})`}
               actions={
@@ -150,7 +204,7 @@ export function UsersPage() {
                         <td>{u.branch ? u.branch.name : <span className="muted">ทุกสาขา</span>}</td>
                         <td>
                           {!u.is_active ? (
-                            <Badge>ลบแล้ว</Badge>
+                            u.last_login_at ? <Badge>ลบแล้ว</Badge> : <Badge tone="warning">รออนุมัติ</Badge>
                           ) : u.must_change_password ? (
                             <Badge tone="warning">รอตั้งรหัสใหม่</Badge>
                           ) : (

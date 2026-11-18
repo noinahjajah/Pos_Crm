@@ -41,7 +41,7 @@ export function loadConfig(overrides = {}) {
 // service ปลายทาง: /api/v1/<ชื่อ service>/... → URL ของ service
 export function buildRoutes(env = process.env) {
   return [
-    { name: 'identity', prefix: '/api/v1/identity', target: env.IDENTITY_URL || 'http://identity:3001', public: ['/auth/login', '/auth/refresh'] },
+    { name: 'identity', prefix: '/api/v1/identity', target: env.IDENTITY_URL || 'http://identity:3001', public: ['/auth/login', '/auth/refresh', '/auth/register', '/auth/branches'] },
     { name: 'catalog', prefix: '/api/v1/catalog', target: env.CATALOG_URL || 'http://catalog:3002' },
     { name: 'pos', prefix: '/api/v1/pos', target: env.POS_URL || 'http://pos:3003' },
     { name: 'payment', prefix: '/api/v1/payment', target: env.PAYMENT_URL || 'http://payment:3004' },
@@ -86,7 +86,8 @@ function corsMw({ corsOrigins }) {
   });
 }
 
-// จำกัดจำนวน request ต่อนาที (login เข้มกว่าปกติ)
+// จำกัดจำนวน request ต่อนาที (login และสมัครสมาชิกเข้มกว่าปกติ)
+const LIMITED = new Set(['/api/v1/identity/auth/login', '/api/v1/identity/auth/register']);
 function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
   const handler = (req, res) => fail(req, res, errors.tooMany());
   const general = rateLimit({ windowMs: 60_000, limit: rateLimitPerMin, standardHeaders: 'draft-7', legacyHeaders: false, handler });
@@ -95,12 +96,12 @@ function rateLimitMw({ rateLimitPerMin, loginRateLimitPerMin }) {
     limit: loginRateLimitPerMin,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    handler: (req, res) => fail(req, res, errors.tooMany('พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอ 1 นาที')),
+    handler: (req, res) => fail(req, res, errors.tooMany('ลองบ่อยเกินไป กรุณารอ 1 นาที')),
   });
   return [
     general,
     (req, res, next) =>
-      req.method === 'POST' && req.path === '/api/v1/identity/auth/login' ? login(req, res, next) : next(),
+      req.method === 'POST' && LIMITED.has(req.path) ? login(req, res, next) : next(),
   ];
 }
 

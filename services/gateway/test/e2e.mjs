@@ -79,7 +79,7 @@ check('owner update user', upd.status === 200, upd.status);
 check('delete branch with user 409', (await call('DELETE', `/identity/branches/${bid}`, { token: T('owner') })).status === 409);
 const du = await call('DELETE', `/identity/users/${uid}`, { token: T('owner') });
 check('owner delete user', du.status === 200 || du.status === 204, du.status);
-check('deleted user cannot login', (await login(uname, 'NewPass#456')).status === 401);
+check('deleted user cannot login', (await login(uname, 'NewPass#456')).status === 403);
 const db = await call('DELETE', `/identity/branches/${bid}`, { token: T('owner') });
 check('owner delete branch', db.status === 200 || db.status === 204, `${db.status} ${JSON.stringify(db.json?.error ?? '')}`);
 

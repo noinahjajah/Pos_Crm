@@ -1,10 +1,11 @@
 // หน้า login
 
 import { useEffect, useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { clearLogoutReason, peekLogoutReason } from '../../api/client.js'
 import { useNotice } from '../../components/ui/Notice.jsx'
 import { Alert, Badge, Button, Field, TextInput } from '../../components/ui/index.jsx'
+import { PASSWORD_RULES } from '../../api/identity.js'
 import { useAuth } from './AuthContext.jsx'
 import { HOME_BY_ROLE, ROLE_LABEL, ROLE_TONE } from '../../lib/constants.js'
 
@@ -60,6 +61,19 @@ export function PasswordInput({ value, onChange, autoComplete, invalid, autoFocu
   )
 }
 
+/** เงื่อนไขรหัสผ่าน ติ๊กถูกทีละข้อขณะพิมพ์ */
+export function PasswordRules({ value }) {
+  return (
+    <ul className="rules">
+      {PASSWORD_RULES.map((r) => (
+        <li key={r.label} className={r.test(value) ? 'ok' : ''}>
+          {r.test(value) ? '✓' : '○'} {r.label}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 // หน้า login
 export function LoginPage() {
   const { login, user } = useAuth()
@@ -95,33 +109,7 @@ export function LoginPage() {
 
   return (
     <div className="login">
-      <section className="login-hero">
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div className="brand-mark" style={{ background: '#fff', color: '#2e6b5a' }}>
-            ค
-          </div>
-          <div>
-            <b style={{ fontSize: 20 }}>ครัวโอทอป</b>
-            <div style={{ fontSize: 12, opacity: 0.75 }}>ระบบหลังบ้าน</div>
-          </div>
-        </div>
-        <h2>
-          จัดการร้านทั้ง 3 สาขา
-          <br />
-          ได้ในที่เดียว
-        </h2>
-        <p>เข้าสู่ระบบครั้งเดียว ระบบจะอ่านสิทธิ์จาก Token แล้วพาไปหน้าที่ตรงกับ Role ของคุณ</p>
-        <div className="role-row">
-          <b>Owner</b>เห็นทุกสาขา จัดการสาขาและผู้ใช้ อนุมัติคำขอ
-        </div>
-        <div className="role-row">
-          <b>Manager</b>ดูแลเฉพาะสาขาตัวเอง อนุมัติคำขอของสาขา
-        </div>
-        <div className="role-row">
-          <b>Staff</b>พนักงานหน้าร้าน (เสิร์ฟ + แคชเชียร์) รับออร์เดอร์และรับเงิน
-        </div>
-        <footer>เฟส 1 · Identity &amp; Gateway</footer>
-      </section>
+      <AuthHero />
 
       <div className="login-form-area">
         <form className="login-card" onSubmit={submit} noValidate>
@@ -153,6 +141,9 @@ export function LoginPage() {
           <p className="muted" style={{ margin: 0, fontSize: 12, textAlign: 'center' }}>
             ลืมรหัสผ่าน? ติดต่อเจ้าของร้าน (Owner) เพื่อรีเซ็ตรหัสผ่าน
           </p>
+          <p style={{ margin: 0, fontSize: 13, textAlign: 'center' }}>
+            พนักงานใหม่? <Link to="/register">สมัครสมาชิก</Link>
+          </p>
 
           {SHOW_TEST_ACCOUNTS && (
             <div className="test-accounts">
@@ -177,5 +168,38 @@ export function LoginPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+// แผงซ้ายของหน้า login / สมัครสมาชิก
+export function AuthHero() {
+  return (
+  <section className="login-hero">
+    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div className="brand-mark" style={{ background: '#fff', color: '#2e6b5a' }}>
+        ค
+      </div>
+      <div>
+        <b style={{ fontSize: 20 }}>ครัวโอทอป</b>
+        <div style={{ fontSize: 12, opacity: 0.75 }}>ระบบหลังบ้าน</div>
+      </div>
+    </div>
+    <h2>
+      จัดการร้านทั้ง 3 สาขา
+      <br />
+      ได้ในที่เดียว
+    </h2>
+    <p>เข้าสู่ระบบครั้งเดียว ระบบจะอ่านสิทธิ์จาก Token แล้วพาไปหน้าที่ตรงกับ Role ของคุณ</p>
+    <div className="role-row">
+      <b>Owner</b>เห็นทุกสาขา จัดการสาขาและผู้ใช้ อนุมัติคำขอ
+    </div>
+    <div className="role-row">
+      <b>Manager</b>ดูแลเฉพาะสาขาตัวเอง อนุมัติคำขอของสาขา
+    </div>
+    <div className="role-row">
+      <b>Staff</b>พนักงานหน้าร้าน (เสิร์ฟ + แคชเชียร์) รับออร์เดอร์และรับเงิน
+    </div>
+    <footer>เฟส 1 · Identity &amp; Gateway</footer>
+  </section>
   )
 }

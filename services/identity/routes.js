@@ -45,6 +45,14 @@ const changePasswordSchema = z
     message: 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม',
   });
 
+// สมัครสมาชิกเอง: ได้ role staff เสมอ และรอเจ้าของร้านอนุมัติก่อนเข้าใช้
+const registerSchema = z.object({
+  username,
+  password,
+  full_name: z.string().trim().min(1, 'กรุณากรอกชื่อ-นามสกุล').max(100),
+  branch_id: zx.uuid(),
+});
+
 const refreshSchema = z.object({
   refresh_token: z.string().min(1),
 });
@@ -184,12 +192,55 @@ export function authRoutes({ repo, auth, loginGuard }) {
       if (wait) throw lockedError(wait);
 
       const profile = await repo.getProfileByUsername(username);
-      const session = profile?.is_active ? await auth.signIn(profile.id, password) : null;
+      if (profile && !profile.is_active) {
+        throw new AppError(403, 'ACCOUNT_DISABLED', profile.last_login_at
+          ? 'บัญชีนี้ถูกปิดใช้งาน กรุณาติดต่อเจ้าของร้าน'
+          : 'บัญชีนี้ยังรอเจ้าของร้านอนุมัติ');
+      }
+      const session = profile ? await auth.signIn(profile.id, password) : null;
       if (!session) throw wrongPassword(username);
 
       loginGuard.reset(username);
       const updated = (await repo.updateProfile(profile.id, { last_login_at: new Date().toISOString() })) ?? profile;
       ok(res, { ...session, user: await presentUser(repo, updated) });
+    }),
+  );
+
+  // สาขาที่เปิดอยู่ (ใช้ในหน้าสมัครสมาชิก ยังไม่ต้อง login)
+  r.get(
+    '/branches',
+    asyncHandler(async (req, res) => {
+      const branches = await repo.listBranches();
+      ok(res, branches.map(({ id, code, name, branch_type }) => ({ id, code, name, branch_type })));
+    }),
+  );
+
+  r.post(
+    '/register',
+    validate({ body: registerSchema }),
+    asyncHandler(async (req, res) => {
+      const { username, password, full_name, branch_id } = req.body;
+      const branch = await repo.getBranch(branch_id);
+      if (!branch?.is_active) {
+        throw errors.badRequest('ข้อมูลไม่ถูกต้อง', [{ field: 'branch_id', message: 'ไม่พบสาขา หรือสาขาถูกปิดแล้ว' }]);
+      }
+      if (await repo.getProfileByUsername(username)) {
+        throw errors.conflict('USERNAME_TAKEN', `username ${username} ถูกใช้แล้ว`, [{ field: 'username', message: 'ชื่อนี้มีคนใช้แล้ว' }]);
+      }
+      let userId;
+      try {
+        userId = await auth.createUser({ username, password });
+      } catch (e) {
+        throw new AppError(409, 'USERNAME_TAKEN', `สมัคร ${username} ไม่สำเร็จ`, [{ message: e.message }]);
+      }
+      try {
+        await auth.setBanned(userId, true);
+        const profile = await repo.createProfile({ id: userId, username, full_name, role: 'staff', branch_id, is_active: false });
+        ok(res, { user: await presentUser(repo, profile), pending: true }, { status: 201 });
+      } catch (e) {
+        await auth.deleteUser(userId).catch(() => {});
+        throw e;
+      }
     }),
   );
 

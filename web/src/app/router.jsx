@@ -7,6 +7,7 @@ import { Badge, Card } from '../components/ui/index.jsx'
 import { AccountPage } from '../features/auth/AccountPage.jsx'
 import { useAuth } from '../features/auth/AuthContext.jsx'
 import { LoginPage } from '../features/auth/LoginPage.jsx'
+import { RegisterPage } from '../features/auth/RegisterPage.jsx'
 import { RequireAuth, RequireRole } from '../features/auth/RequireRole.jsx'
 import { BranchesPage } from '../features/backoffice/branches/BranchesPage.jsx'
 import { UsersPage } from '../features/backoffice/users/UsersPage.jsx'
@@ -69,6 +70,7 @@ function NotFoundPage() {
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  { path: '/register', element: <RegisterPage /> },
   {
     element: <RequireAuth />,
     children: [

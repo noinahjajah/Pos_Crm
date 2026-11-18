@@ -155,7 +155,8 @@ test('owner เพิ่มผู้ใช้ → login ได้ → ลบ →
   assert.equal(d.body.data.is_active, false);
 
   const l2 = await request(app).post('/auth/login').set(as()).send({ username: 'staff2', password: 'password123' });
-  assert.equal(l2.status, 401);
+  assert.equal(l2.status, 403);
+  assert.equal(l2.body.error.code, 'ACCOUNT_DISABLED');
   const r = await request(app).post('/auth/refresh').set(as()).send({ refresh_token: l.body.data.refresh_token });
   assert.equal(r.status, 401);
 });
@@ -285,4 +286,36 @@ test('เปิดบัญชีที่ลบไปแล้วกลับ�
   const res = await request(app).patch(`/users/${c.body.data.id}`).set(as(OWNER)).send({ is_active: true });
   assert.equal(res.status, 400);
   assert.equal(res.body.error.details[0].field, 'branch_id');
+});
+
+test('สมัครสมาชิกเอง: ได้ staff ที่รออนุมัติ → login ไม่ได้ → owner อนุมัติ → login ได้', async () => {
+  const branches = await request(app).get('/auth/branches').set(as()).expect(200);
+  assert.ok(branches.body.data.some((b) => b.id === RES.id));
+  assert.deepEqual(Object.keys(branches.body.data[0]).sort(), ['branch_type', 'code', 'id', 'name']);
+
+  const body = { username: 'newbie', password: 'Signup123', full_name: 'พนักงานใหม่', branch_id: RES.id };
+  const reg = await request(app).post('/auth/register').set(as()).send(body);
+  assert.equal(reg.status, 201);
+  assert.equal(reg.body.data.pending, true);
+  assert.equal(reg.body.data.user.role, 'staff');
+  assert.equal(reg.body.data.user.is_active, false);
+
+  const waiting = await request(app).post('/auth/login').set(as()).send({ username: 'newbie', password: 'Signup123' });
+  assert.equal(waiting.status, 403);
+  assert.match(waiting.body.error.message, /รอเจ้าของร้านอนุมัติ/);
+
+  await request(app).patch(`/users/${reg.body.data.user.id}`).set(as(OWNER)).send({ is_active: true }).expect(200);
+  const ok = await request(app).post('/auth/login').set(as()).send({ username: 'newbie', password: 'Signup123' });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.body.data.user.must_change_password, false);
+});
+
+test('สมัครซ้ำ username เดิม → 409 · สาขาไม่มีอยู่ → 400 · ส่ง role มาก็ยังเป็น staff', async () => {
+  const dup = await request(app).post('/auth/register').set(as()).send({ username: 'staff1', password: 'Signup123', full_name: 'x', branch_id: RES.id });
+  assert.equal(dup.status, 409);
+  const noBranch = await request(app).post('/auth/register').set(as()).send({ username: 'abc', password: 'Signup123', full_name: 'x', branch_id: '00000000-0000-4000-8000-000000000000' });
+  assert.equal(noBranch.status, 400);
+  const sneaky = await request(app).post('/auth/register').set(as()).send({ username: 'sneaky', password: 'Signup123', full_name: 'x', branch_id: DRK.id, role: 'owner' });
+  assert.equal(sneaky.status, 201);
+  assert.equal(sneaky.body.data.user.role, 'staff');
 });

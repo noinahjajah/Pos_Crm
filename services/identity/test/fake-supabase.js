@@ -90,7 +90,7 @@ export function createMemoryRepo({ seed = true } = {}) {
       return clone([...profiles.values()].find((p) => p.username === username));
     },
     async createProfile(data) {
-      const row = { must_change_password: false, last_login_at: null, ...data, is_active: true, created_at: now() };
+      const row = { must_change_password: false, last_login_at: null, is_active: true, ...data, created_at: now() };
       profiles.set(row.id, row);
       return clone(row);
     },

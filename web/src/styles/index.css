@@ -252,3 +252,4 @@ input[type=radio], input[type=checkbox] { accent-color: var(--green); }
 .dialog p { margin: 0; font-size: 13px; color: var(--muted); white-space: pre-line; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+.pending-card { margin-bottom: 16px; border-color: #e9d5a7; }

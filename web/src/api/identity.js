@@ -19,6 +19,9 @@ export function randomPassword() {
 
 // endpoint ของ identity ที่หน้าเว็บใช้
 export const identityApi = {
+  // สมัครสมาชิก (ยังไม่ login): สาขาที่เปิดอยู่ + สมัคร
+  publicBranches: () => rawRequest('/identity/auth/branches'),
+  register: (body) => rawRequest('/identity/auth/register', { method: 'POST', body }),
   login: (username, password) =>
     rawRequest('/identity/auth/login', { method: 'POST', body: { username, password } }),
   // ออกจากระบบทันที แล้วค่อยแจ้ง server เบื้องหลัง
