@@ -5,6 +5,10 @@ import { api } from './client'
 
 const data = (promise) => promise.then((res) => res.data)
 
+// ---------- บิลสำหรับหน้าคิดเงิน ----------
+export const listWaitingOrders = () => data(api.get('/payment/orders'))
+export const getOrder = (id) => data(api.get(`/payment/orders/${id}`))
+
 // ---------- รับเงิน (1.23, 1.25) ----------
 // body: { order_id, method: 'cash' | 'promptpay', cash_received? }
 // idempotencyKey: สุ่มครั้งเดียวต่อการจ่าย 1 ครั้ง กดซ้ำด้วย key เดิม = ไม่รับเงินซ้ำ
@@ -15,6 +19,8 @@ export const createPayment = (body, idempotencyKey) =>
 // body: { approval_id, method }
 export const createRefund = (body, idempotencyKey) =>
   data(api.post('/payment/refunds', { body, headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {} }))
+
+export const listApprovedRefunds = () => data(api.get('/payment/refunds/approved'))
 
 // รายการรับ/คืนเงิน · query: { date? | from?, to?, type?, method?, page?, limit?, branch_id? } → { data, meta }
 export const listPayments = (query) => api.get('/payment/payments', { query })

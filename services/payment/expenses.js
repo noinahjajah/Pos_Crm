@@ -2,11 +2,11 @@
 // manager บันทึกของสาขาตัวเอง · owner ดูทุกสาขาได้ และต้องเลือกสาขาตอนบันทึก
 import { Router } from 'express'
 import { db, run } from './db.js'
+import { branchForWrite, mustBeActiveBranch } from './identity.js'
 import {
   allow,
   atLeastOne,
   branchFilter,
-  branchForCreate,
   dateRange,
   dateString,
   dbError,
@@ -91,7 +91,7 @@ router.post('/', allow('manager', 'owner'), async (req, res) => {
   const row = await run(
     db
       .from('expenses')
-      .insert({ ...data, branch_id: branchForCreate(req, branch_id), created_by: req.user.id })
+      .insert({ ...data, branch_id: await branchForWrite(req, branch_id), created_by: req.user.id })
       .select()
       .single(),
   )
@@ -106,6 +106,7 @@ router.patch('/:id', allow('manager', 'owner'), async (req, res) => {
   if (body.branch_id && body.branch_id !== row.branch_id && req.user.role !== 'owner') {
     throw forbidden('ย้ายรายจ่ายไปสาขาอื่นได้เฉพาะ owner', 'FORBIDDEN_BRANCH')
   }
+  if (body.branch_id && body.branch_id !== row.branch_id) await mustBeActiveBranch(body.branch_id)
   send(res, toExpense(await run(db.from('expenses').update(body).eq('id', id).select().single())))
 })
 

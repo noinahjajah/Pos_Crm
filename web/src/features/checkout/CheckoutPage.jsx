@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from '../../api/client'
-import { createPayment } from '../../api/payment'
+import { createPayment, getOrder } from '../../api/payment'
 import CashForm from './CashForm'
 import PromptPayQR from './PromptPayQR'
 import Receipt from './Receipt'
@@ -10,7 +9,7 @@ import './checkout.css'
 // หน้าคิดเงิน — 1.23, 1.25 (ฝั่งเงินของ Dev 2)
 // ใช้: <CheckoutPage orderId="..." onDone={() => ...} onBack={() => ...} />
 // ถ้าไม่ส่ง orderId จะอ่านจาก URL ?order_id=...
-// ยอดเงินมาจากบิลของ pos (Dev 3) · บิลต้องอยู่สถานะ "รอชำระ" (waiting_payment) ก่อน
+// ยอดเงินมาจากบิลผ่าน payment service · บิลต้องอยู่สถานะ "รอชำระ" (waiting_payment) ก่อน
 
 const newKey = () => (crypto.randomUUID ? crypto.randomUUID() : `pay-${Date.now()}-${Math.random().toString(36).slice(2)}`)
 
@@ -28,9 +27,8 @@ export default function CheckoutPage({ orderId: orderIdProp, onDone, onBack }) {
   useEffect(() => {
     if (!orderId) return
     let cancelled = false
-    api
-      .get(`/pos/orders/${orderId}`)
-      .then((res) => !cancelled && setOrder(res.data))
+    getOrder(orderId)
+      .then((data) => !cancelled && setOrder(data))
       .catch((err) => !cancelled && setLoadError(errorText(err)))
     return () => {
       cancelled = true
@@ -145,7 +143,7 @@ export default function CheckoutPage({ orderId: orderIdProp, onDone, onBack }) {
         <section className="co-pay">
           {!waiting ? (
             <div className="co-alert">
-              {order.status === 'paid'
+              {order.status === 'paid' || order.status === 'refunded'
                 ? 'บิลนี้ชำระเงินแล้ว'
                 : 'บิลนี้ยังไม่ได้กด “เรียกเก็บเงิน” ให้กลับไปที่โต๊ะแล้วกดเรียกเก็บเงินก่อน'}
             </div>

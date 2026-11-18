@@ -6,6 +6,7 @@ import authRouter from './auth.js'
 import branchesRouter from './branches.js'
 import { db, SCHEMA } from './db.js'
 import { checkInternalKey, errorHandler, notFound } from './helpers.js'
+import internalRouter from './internal.js'
 import { meRouter, rolesRouter } from './me.js'
 import usersRouter from './users.js'
 
@@ -37,6 +38,7 @@ app.use('/me', meRouter)
 app.use('/roles', rolesRouter)
 app.use('/branches', branchesRouter)
 app.use('/users', usersRouter)
+app.use('/internal', internalRouter)
 
 app.use((req, res, next) => next(notFound('ไม่พบ endpoint นี้', 'ROUTE_NOT_FOUND')))
 app.use(errorHandler)

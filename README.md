@@ -120,9 +120,10 @@ Pos_Crm/
 
 ### 1. ตั้งค่าฐานข้อมูล (ครั้งแรกครั้งเดียว)
 
-1. รัน SQL ใน `supabase/` ทีละไฟล์ที่ **SQL Editor**
-2. **Project Settings → Data API → Exposed schemas** เพิ่ม `identity`, `catalog`, `pos`, `payment`
-3. **Authentication → Hooks** เปิด *Custom access token hook* (ใส่ `user_role` และ `branch_id` ลง JWT)
+1. รัน SQL ใน `supabase/migrations/` เรียงตามชื่อไฟล์ที่ **SQL Editor** (`identity1`, `catalog` และ `payment` รันซ้ำได้)
+2. **Project Settings → Data API → Exposed schemas** เพิ่ม `identity1`, `catalog`, `pos`, `payment`
+3. **Authentication → Hooks** เปิด *Custom access token hook* แล้วเลือก `identity1.custom_access_token_hook` (ใส่ `user_role` และ `branch_id` ลง JWT)
+4. สร้างบัญชีใน **Authentication → Users** แล้วเพิ่มแถวใน `identity1.profiles` ให้แต่ละบัญชี
 
 ### 2. ตั้งค่า `.env` ของแต่ละ service
 
@@ -223,6 +224,7 @@ Base URL: `http://localhost:8080/api/v1/<service>`
 | Method | Path | Role |
 |---|---|---|
 | POST | `/payments` (header `Idempotency-Key`) · `/refunds` | S M |
+| GET | `/orders` · `/orders/:id` · `/refunds/approved` | S M |
 | GET | `/payments` | M O |
 | GET · POST · PATCH · DELETE | `/expenses` | M O |
 | GET | `/reports/daily` | M O |
@@ -235,6 +237,7 @@ Base URL: `http://localhost:8080/api/v1/<service>`
 
 | จาก → ไป | Endpoint | ใช้ตอนไหน |
 |---|---|---|
+| catalog, payment → identity | `GET /internal/branches/:id` | ตรวจว่าสาขามีจริงและเปิดใช้ |
 | pos → catalog | `POST /internal/menus/lookup` | ดึงชื่อ/ราคาไปเก็บ snapshot |
 | pos → catalog | `POST /internal/stocks/deduct` | ตัดสต็อกตอนสั่ง |
 | pos → catalog | `POST /internal/stocks/restore` | คืนสต็อกเมื่อสั่งไม่สำเร็จ |
@@ -242,6 +245,8 @@ Base URL: `http://localhost:8080/api/v1/<service>`
 | payment → pos | `POST /internal/orders/:id/mark-paid` | ปิดบิล คืนโต๊ะเป็นว่าง |
 | payment → pos | `POST /internal/orders/:id/mark-refunded` | อัปเดตบิลหลังคืนเงิน |
 | payment → pos | `GET /internal/approvals/:id` | ข้อมูลคำขอคืนเงิน |
+| payment → pos | `GET /internal/orders?status=waiting_payment&branch_id=` | บิลรอชำระของสาขา |
+| payment → pos | `GET /internal/approvals?type=refund&status=approved&branch_id=` | คำขอคืนเงินที่อนุมัติแล้ว |
 
 </details>
 

@@ -22,7 +22,7 @@
 // 1) claim ที่เชื่อถือได้
 // ---------------------------------------------------------------------
 // role และสาขามาจาก identity1.profiles เท่านั้น: custom access token hook
-// (services/identity/db/migrations/0002_identity_auth_hook.sql) อ่าน profiles แล้วใส่ลง JWT ตอนออก token
+// (supabase/migrations/20261119000000_identity1.sql) อ่าน profiles แล้วใส่ลง JWT ตอนออก token
 // ผู้ใช้แก้ claim ระดับบนสุดเองไม่ได้ (เหมือน app_metadata)
 // ห้ามอ่าน role จาก user_metadata เด็ดขาด เพราะผู้ใช้แก้เองได้ด้วย supabase.auth.updateUser()
 export const CLAIMS = {
@@ -198,6 +198,9 @@ export const SERVICES = [
     routes: [
       ['POST', '/payments', SM],
       ['POST', '/refunds', SM],
+      ['GET', '/refunds/approved', SM],
+      ['GET', '/orders', SM],
+      ['GET', '/orders/:id', SM],
       ['GET', '/payments', MO],
       ['GET', '/expenses', MO],
       ['POST', '/expenses', MO],

@@ -19,7 +19,7 @@ export function Placeholder({ title, owner }) {
 export function CheckoutRoute() {
   const { orderId } = useParams()
   const navigate = useNavigate()
-  return <CheckoutPage orderId={orderId} onDone={() => navigate('/tables')} onBack={() => navigate(-1)} />
+  return <CheckoutPage orderId={orderId} onDone={() => navigate('/cashier')} onBack={() => navigate(-1)} />
 }
 
 /** / → หน้าแรกของ role */

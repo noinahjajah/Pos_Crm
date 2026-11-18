@@ -4,12 +4,15 @@ import PrintPreviewPage from '../components/print/PrintPreviewPage'
 import LoginPage from '../features/auth/LoginPage'
 import RequireRole from '../features/auth/RequireRole'
 import ExpensesPage from '../features/backoffice/expenses/ExpensesPage'
+import MenuAvailabilityPage from '../features/backoffice/menus/MenuAvailabilityPage'
 import CategoriesPage from '../features/backoffice/menus/CategoriesPage'
 import MenusPage from '../features/backoffice/menus/MenusPage'
 import OptionGroupsPage from '../features/backoffice/menus/OptionGroupsPage'
+import PaymentsPage from '../features/backoffice/payments/PaymentsPage'
 import ReportsPage from '../features/backoffice/reports/ReportsPage'
 import StocksPage from '../features/backoffice/stocks/StocksPage'
 import UsersPage from '../features/backoffice/users/UsersPage'
+import CashierPage from '../features/checkout/CashierPage'
 import { CheckoutRoute, Home, Placeholder } from './routeElements'
 
 // เส้นทางทั้งหมด + role ต่อหน้า (ตามตารางใน เอกสาร/frontend-folder-structure.md)
@@ -36,7 +39,9 @@ export const router = createBrowserRouter([
               { path: '/tables', element: <Placeholder title="ผังโต๊ะ" owner="Dev 3" /> },
               { path: '/orders/:id', element: <Placeholder title="สั่งอาหาร" owner="Dev 3" /> },
               { path: '/kitchen', element: <Placeholder title="จอครัว" owner="Dev 3" /> },
+              { path: '/cashier', element: <CashierPage /> },
               { path: '/checkout/:orderId', element: <CheckoutRoute /> },
+              { path: '/menus/availability', element: <MenuAvailabilityPage /> },
             ],
           },
 
@@ -50,6 +55,7 @@ export const router = createBrowserRouter([
               { path: '/admin/stocks', element: <StocksPage /> },
               { path: '/admin/users', element: <UsersPage /> },
               { path: '/admin/expenses', element: <ExpensesPage /> },
+              { path: '/admin/payments', element: <PaymentsPage /> },
               { path: '/admin/reports', element: <ReportsPage /> },
             ],
           },

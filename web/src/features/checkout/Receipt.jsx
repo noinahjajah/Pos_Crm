@@ -93,7 +93,7 @@ export default function Receipt({ order, payment, changeAmount, onDone }) {
         </button>
         {onDone && (
           <button className="co-btn co-btn-primary" onClick={onDone}>
-            เสร็จสิ้น กลับไปหน้าโต๊ะ
+            เสร็จสิ้น กลับไปหน้าคิดเงิน
           </button>
         )}
       </div>

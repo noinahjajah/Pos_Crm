@@ -11,6 +11,8 @@ export const NAV_SECTIONS = [
     items: [
       { to: '/tables', label: 'ผังโต๊ะ', icon: '▦', roles: SM },
       { to: '/kitchen', label: 'จอครัว', icon: '♨', roles: SM },
+      { to: '/cashier', label: 'คิดเงิน', icon: '฿', roles: SM },
+      { to: '/menus/availability', label: 'เปิด/ปิดขายเมนู', icon: '◉', roles: SM },
       { to: '/approvals', label: 'รออนุมัติ', icon: '✓', roles: MO },
     ],
   },
@@ -22,6 +24,7 @@ export const NAV_SECTIONS = [
       { to: '/admin/menus/option-groups', label: 'กลุ่มตัวเลือก', icon: '◇', roles: MO },
       { to: '/admin/menus/categories', label: 'หมวดหมู่', icon: '◫', roles: [O] },
       { to: '/admin/stocks', label: 'สต็อก', icon: '▣', roles: MO },
+      { to: '/admin/payments', label: 'รายการรับเงิน', icon: '≡', roles: MO },
       { to: '/admin/expenses', label: 'รายจ่าย', icon: '฿', roles: MO },
       { to: '/admin/users', label: 'พนักงานและสาขา', icon: '☺', roles: MO },
     ],

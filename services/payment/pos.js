@@ -4,6 +4,8 @@
 //   POST /internal/orders/:id/mark-refunded  อัปเดตบิลหลังคืนเงิน
 //   GET  /internal/approvals/:id             ข้อมูลคำขอคืนเงิน (ขอให้ Dev 3 เพิ่ม)
 //   GET  /internal/reports/top-menus         เมนูขายดี
+//   GET  /internal/orders?status=waiting_payment&branch_id=          บิลรอชำระ (ขอให้ Dev 3 เพิ่ม)
+//   GET  /internal/approvals?type=refund&status=approved&branch_id=  คำขอคืนเงินที่อนุมัติแล้ว (ขอให้ Dev 3 เพิ่ม)
 // POS_MODE=mock → ใช้บิลจำลองในหน่วยความจำ ระหว่างรอ pos ของ Dev 3
 import { AppError, round2 } from './helpers.js'
 
@@ -35,6 +37,10 @@ const httpPos = {
   markPaid: (orderId, body) => call('POST', `/internal/orders/${orderId}/mark-paid`, body),
   markRefunded: (orderId, body) => call('POST', `/internal/orders/${orderId}/mark-refunded`, body),
   getApproval: (approvalId) => call('GET', `/internal/approvals/${approvalId}`),
+  listWaitingOrders: async ({ branchId }) =>
+    (await call('GET', `/internal/orders?${new URLSearchParams({ status: 'waiting_payment', branch_id: branchId })}`)) ?? [],
+  listApprovedRefunds: async ({ branchId }) =>
+    (await call('GET', `/internal/approvals?${new URLSearchParams({ type: 'refund', status: 'approved', branch_id: branchId })}`)) ?? [],
   topMenus: ({ branchId, from, to, limit }) =>
     call('GET', `/internal/reports/top-menus?${new URLSearchParams({ from, to, limit, ...(branchId ? { branch_id: branchId } : {}) })}`),
 }
@@ -50,16 +56,18 @@ const withVat = (o) => {
   return { ...o, vat_amount: vat, total: round2(o.subtotal - o.discount_amount + vat) }
 }
 
+const mockItem = (menu_name, quantity, unit_price) => ({ menu_name, quantity, unit_price, line_total: round2(quantity * unit_price) })
+
 const mockOrders = new Map(
   [
-    { id: 'e0000000-0000-4000-8000-000000000001', order_no: 'DEMO-0001', subtotal: 200, discount_amount: 0 },
-    { id: 'e0000000-0000-4000-8000-000000000002', order_no: 'DEMO-0002', subtotal: 450, discount_amount: 50 },
-    { id: 'e0000000-0000-4000-8000-000000000003', order_no: 'DEMO-0003', subtotal: 89.5, discount_amount: 0 },
-    { id: 'e0000000-0000-4000-8000-000000000004', order_no: 'DEMO-0004', subtotal: 1000, discount_amount: 100 },
+    { id: 'e0000000-0000-4000-8000-000000000001', order_no: 'DEMO-0001', table_no: 'A1', subtotal: 200, discount_amount: 0, items: [mockItem('ข้าวกะเพราหมูสับ', 2, 60), mockItem('ชาไทยเย็น', 2, 40)] },
+    { id: 'e0000000-0000-4000-8000-000000000002', order_no: 'DEMO-0002', table_no: 'A2', subtotal: 450, discount_amount: 50, items: [mockItem('ปลากะพงทอด', 1, 300), mockItem('ส้มตำไทย', 2, 75)] },
+    { id: 'e0000000-0000-4000-8000-000000000003', order_no: 'DEMO-0003', table_no: 'B1', subtotal: 89.5, discount_amount: 0, items: [mockItem('กาแฟเย็น', 1, 89.5)] },
+    { id: 'e0000000-0000-4000-8000-000000000004', order_no: 'DEMO-0004', table_no: 'B2', subtotal: 1000, discount_amount: 100, items: [mockItem('ชุดหมูกระทะ', 4, 250)] },
   ].map((o) => [o.id, withVat({ ...o, branch_id: MOCK_BRANCH, status: 'waiting_payment' })]),
 )
 const mockApprovals = new Map([
-  ['f0000000-0000-4000-8000-000000000001', { id: 'f0000000-0000-4000-8000-000000000001', order_id: 'e0000000-0000-4000-8000-000000000004', branch_id: MOCK_BRANCH, type: 'refund', status: 'approved', amount: 107 }],
+  ['f0000000-0000-4000-8000-000000000001', { id: 'f0000000-0000-4000-8000-000000000001', order_id: 'e0000000-0000-4000-8000-000000000004', branch_id: MOCK_BRANCH, type: 'refund', status: 'approved', amount: 107, reason: 'อาหารไม่ตรงตามที่สั่ง (ตัวอย่าง)' }],
 ])
 
 const mockPos = {
@@ -78,6 +86,12 @@ const mockPos = {
   },
   async getApproval(approvalId) {
     return mockApprovals.get(approvalId) ?? null
+  },
+  async listWaitingOrders({ branchId }) {
+    return [...mockOrders.values()].filter((o) => o.branch_id === branchId && o.status === 'waiting_payment')
+  },
+  async listApprovedRefunds({ branchId }) {
+    return [...mockApprovals.values()].filter((a) => a.branch_id === branchId && a.type === 'refund' && a.status === 'approved')
   },
   async topMenus() {
     return [
