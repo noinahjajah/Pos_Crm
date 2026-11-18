@@ -103,8 +103,8 @@ function buildUrl(path, query) {
   return qs ? `${url}?${qs}` : url
 }
 
-export async function rawRequest(path, { method = 'GET', body, query, token } = {}) {
-  const headers = { Accept: 'application/json' }
+export async function rawRequest(path, { method = 'GET', body, query, token, headers: extra } = {}) {
+  const headers = { Accept: 'application/json', ...extra }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
   let res
@@ -165,3 +165,9 @@ export async function api(path, options = {}) {
     throw err
   }
 }
+
+// เรียกแบบสั้น: api.get(path, { query }) · api.post(path, { body, headers }) · คืน { data, meta }
+for (const method of ['get', 'post', 'patch', 'put', 'delete']) {
+  api[method] = (path, options = {}) => api(path, { ...options, method: method.toUpperCase() })
+}
+

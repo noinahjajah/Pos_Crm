@@ -1,0 +1,321 @@
+/* ส่วนที่หน้าหลังร้านของ Dev 2 ใช้ร่วมกัน (สต็อก รายจ่าย รายงาน หมวดหมู่)
+   ใช้ตัวแปรสีและปุ่ม mm- จาก menus/menus.css · class ในไฟล์นี้ขึ้นต้นด้วย bo- */
+
+/* ---------- ตาราง ---------- */
+.bo-table-wrap {
+  background: var(--mm-card);
+  border: 1px solid var(--mm-line);
+  border-radius: 16px;
+  overflow-x: auto;
+}
+.bo-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.bo-table th,
+.bo-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--mm-line);
+  white-space: nowrap;
+}
+.bo-table th {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--mm-muted);
+  background: var(--mm-soft);
+}
+.bo-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.bo-table tbody tr:hover {
+  background: var(--mm-soft);
+}
+.bo-table tfoot td {
+  font-weight: 700;
+  background: var(--mm-soft);
+  border-top: 1px solid var(--mm-line);
+  border-bottom: none;
+}
+.bo-num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+.bo-wrap {
+  white-space: normal !important;
+  min-width: 160px;
+}
+.bo-muted {
+  color: var(--mm-muted);
+}
+.bo-neg {
+  color: var(--mm-danger);
+}
+.bo-pos {
+  color: var(--mm-ok);
+}
+.bo-row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.bo-row-actions .mm-btn {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+/* ---------- แถบกรอง ---------- */
+.bo-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.bo-filters .mm-field {
+  min-width: 150px;
+}
+.bo-filters .mm-input,
+.bo-filters .mm-select {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ---------- แท็บ ---------- */
+.bo-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--mm-soft);
+  border: 1px solid var(--mm-line);
+  margin-bottom: 20px;
+}
+.bo-tab {
+  border: none;
+  background: transparent;
+  color: var(--mm-muted);
+  padding: 8px 16px;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.bo-tab.is-active {
+  background: var(--mm-card);
+  color: var(--mm-ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ---------- ตัวเลขสรุป ---------- */
+.bo-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.bo-kpi {
+  background: var(--mm-card);
+  border: 1px solid var(--mm-line);
+  border-radius: 14px;
+  padding: 16px;
+}
+.bo-kpi-label {
+  font-size: 13px;
+  color: var(--mm-muted);
+}
+.bo-kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  color: var(--mm-ink);
+}
+.bo-kpi-sub {
+  font-size: 12px;
+  color: var(--mm-muted);
+  margin-top: 2px;
+}
+.bo-kpi.is-main {
+  background: var(--mm-brand);
+  border-color: var(--mm-brand);
+}
+.bo-kpi.is-main .bo-kpi-label,
+.bo-kpi.is-main .bo-kpi-value,
+.bo-kpi.is-main .bo-kpi-sub {
+  color: #fff;
+}
+
+/* ---------- กล่องเนื้อหา ---------- */
+.bo-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+.bo-panel {
+  background: var(--mm-card);
+  border: 1px solid var(--mm-line);
+  border-radius: 16px;
+  padding: 18px;
+}
+.bo-panel-title {
+  margin: 0 0 14px;
+  font-size: 16px;
+  color: var(--mm-ink);
+}
+
+/* ---------- กราฟแท่งแนวนอน ---------- */
+.bo-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bo-bar-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.bo-bar-head strong {
+  font-variant-numeric: tabular-nums;
+}
+.bo-bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--mm-soft);
+  overflow: hidden;
+}
+.bo-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--mm-brand);
+  min-width: 2px;
+}
+
+/* ---------- กราฟแท่งแนวตั้ง (กำไรรายเดือน) ---------- */
+.bo-columns {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 6px;
+  height: 200px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.bo-col {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.bo-col-half {
+  flex: 1;
+  display: flex;
+}
+.bo-col-half.is-top {
+  align-items: flex-end;
+  border-bottom: 1px solid var(--mm-line);
+}
+.bo-col-half.is-bottom {
+  align-items: flex-start;
+}
+.bo-col-bar {
+  width: 100%;
+  border-radius: 4px;
+}
+.bo-col-bar.is-pos {
+  background: var(--mm-ok);
+}
+.bo-col-bar.is-neg {
+  background: var(--mm-danger);
+}
+.bo-col-labels {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 6px;
+  font-size: 11px;
+  color: var(--mm-muted);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.bo-rank {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.bo-rank li {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--mm-line);
+}
+.bo-rank li:last-child {
+  border-bottom: none;
+}
+.bo-rank-no {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--mm-brand-soft);
+  color: var(--mm-brand);
+}
+.bo-warning {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--mm-brand-soft);
+  color: var(--mm-brand);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+/* ---------- ช่องจำนวนในตาราง ---------- */
+.bo-qty-form {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.bo-qty-form .mm-input {
+  width: 80px;
+  padding: 6px 8px;
+}
+.bo-status {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--mm-soft);
+  color: var(--mm-muted);
+}
+.bo-status.is-on {
+  background: var(--mm-ok-soft);
+  color: var(--mm-ok);
+}
+.bo-status.is-low {
+  background: var(--mm-brand-soft);
+  color: var(--mm-brand);
+}
+.bo-status.is-empty {
+  background: var(--mm-danger-soft);
+  color: var(--mm-danger);
+}
+
+@media (max-width: 640px) {
+  .bo-filters .mm-field {
+    flex: 1 1 140px;
+  }
+  .bo-columns {
+    height: 150px;
+  }
+}

@@ -1,0 +1,533 @@
+/* หน้าจัดการเมนู — ทุก class ขึ้นต้นด้วย mm- กันชนกับไฟล์อื่น */
+
+.mm-page {
+  --mm-ink: #1c1917;
+  --mm-muted: #78716c;
+  --mm-line: #e7e5e4;
+  --mm-soft: #fafaf9;
+  --mm-card: #ffffff;
+  --mm-brand: #c2410c;
+  --mm-brand-soft: #fff7ed;
+  --mm-ok: #15803d;
+  --mm-ok-soft: #dcfce7;
+  --mm-danger: #b91c1c;
+  --mm-danger-soft: #fef2f2;
+
+  text-align: left;
+  color: var(--mm-ink);
+  padding: 28px 32px 64px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .mm-page {
+    --mm-ink: #f5f5f4;
+    --mm-muted: #a8a29e;
+    --mm-line: #3a3633;
+    --mm-soft: #1f1d1b;
+    --mm-card: #26231f;
+    --mm-brand: #fb923c;
+    --mm-brand-soft: #3b2414;
+    --mm-ok: #4ade80;
+    --mm-ok-soft: #14301f;
+    --mm-danger: #f87171;
+    --mm-danger-soft: #3a1717;
+  }
+}
+
+/* ---------- หัวหน้า ---------- */
+.mm-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.mm-title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  color: var(--mm-ink);
+}
+.mm-subtitle {
+  margin: 4px 0 0;
+  color: var(--mm-muted);
+}
+.mm-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ---------- ปุ่มและช่องกรอก ---------- */
+.mm-btn {
+  appearance: none;
+  border: 1px solid var(--mm-line);
+  background: var(--mm-card);
+  color: var(--mm-ink);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.mm-btn:hover:not(:disabled) {
+  border-color: var(--mm-muted);
+}
+.mm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.mm-btn-primary {
+  background: var(--mm-brand);
+  border-color: var(--mm-brand);
+  color: #fff;
+}
+.mm-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+  border-color: var(--mm-brand);
+}
+.mm-btn-danger {
+  color: var(--mm-danger);
+}
+.mm-btn-danger:hover:not(:disabled) {
+  background: var(--mm-danger-soft);
+  border-color: var(--mm-danger);
+}
+.mm-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--mm-brand);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mm-input,
+.mm-select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--mm-line);
+  background: var(--mm-card);
+  color: var(--mm-ink);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font: inherit;
+}
+.mm-select {
+  width: auto;
+  min-width: 180px;
+}
+.mm-input:focus,
+.mm-select:focus {
+  outline: 2px solid var(--mm-brand);
+  outline-offset: -1px;
+}
+textarea.mm-input {
+  resize: vertical;
+}
+
+/* ---------- แถบค้นหาและหมวด ---------- */
+.mm-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.mm-search {
+  max-width: 360px;
+}
+.mm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mm-chip {
+  border: 1px solid var(--mm-line);
+  background: var(--mm-card);
+  color: var(--mm-ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+.mm-chip span {
+  color: var(--mm-muted);
+  margin-left: 4px;
+  font-size: 13px;
+}
+.mm-chip.is-active {
+  background: var(--mm-ink);
+  border-color: var(--mm-ink);
+  color: var(--mm-card);
+}
+.mm-chip.is-active span {
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* ---------- การ์ดเมนู ---------- */
+.mm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.mm-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--mm-card);
+  border: 1px solid var(--mm-line);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+.mm-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.mm-card.is-off .mm-thumb img,
+.mm-card.is-off .mm-thumb > span:first-child {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+.mm-thumb {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--mm-brand-soft);
+  display: grid;
+  place-items: center;
+}
+.mm-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mm-thumb > span:first-child {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--mm-brand);
+}
+.mm-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--mm-soft);
+  color: var(--mm-muted);
+}
+.mm-badge.is-on {
+  background: var(--mm-ok-soft);
+  color: var(--mm-ok);
+}
+.mm-body {
+  padding: 14px 16px 6px;
+  flex: 1;
+}
+.mm-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+.mm-name {
+  margin: 0;
+  font-size: 16px;
+  color: var(--mm-ink);
+}
+.mm-price {
+  white-space: nowrap;
+  color: var(--mm-brand);
+}
+.mm-meta {
+  display: flex;
+  justify-content: space-between;
+  color: var(--mm-muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+.mm-stock-empty {
+  color: var(--mm-danger);
+  font-weight: 600;
+}
+.mm-desc {
+  margin: 8px 0 0;
+  color: var(--mm-muted);
+  font-size: 13px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 16px 14px;
+}
+.mm-action-btns {
+  display: flex;
+  gap: 6px;
+}
+.mm-action-btns .mm-btn {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* สวิตช์เปิด/ปิดขาย */
+.mm-switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex: none;
+}
+.mm-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.mm-switch span {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--mm-line);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.mm-switch span::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+.mm-switch input:checked + span {
+  background: var(--mm-ok);
+}
+.mm-switch input:checked + span::before {
+  transform: translateX(18px);
+}
+.mm-switch input:disabled + span {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.mm-switch input:focus-visible + span {
+  outline: 2px solid var(--mm-brand);
+  outline-offset: 2px;
+}
+
+/* ---------- สถานะ ---------- */
+.mm-skeleton {
+  height: 300px;
+  background: linear-gradient(90deg, var(--mm-soft) 25%, var(--mm-line) 50%, var(--mm-soft) 75%);
+  background-size: 200% 100%;
+  animation: mm-shimmer 1.2s infinite;
+}
+@keyframes mm-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.mm-empty {
+  padding: 56px 16px;
+  text-align: center;
+  color: var(--mm-muted);
+  border: 1px dashed var(--mm-line);
+  border-radius: 16px;
+}
+.mm-alert {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  background: var(--mm-danger-soft);
+  color: var(--mm-danger);
+}
+.mm-hint {
+  margin: 0 0 16px;
+  color: var(--mm-muted);
+  font-size: 13px;
+}
+.mm-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: var(--mm-ink);
+  color: var(--mm-card);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 60;
+  max-width: calc(100vw - 32px);
+}
+.mm-toast.is-error {
+  background: var(--mm-danger);
+  color: #fff;
+}
+
+/* ---------- หน้าต่างฟอร์ม ---------- */
+.mm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 25, 23, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 50;
+}
+.mm-dialog {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  box-sizing: border-box;
+  background: var(--mm-card);
+  color: var(--mm-ink);
+  border-radius: 18px;
+  padding: 24px;
+  text-align: left;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+}
+.mm-dialog-sm {
+  width: min(420px, 100%);
+}
+.mm-dialog-title {
+  margin: 0 0 4px;
+  font-size: 20px;
+  color: var(--mm-ink);
+}
+.mm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+.mm-form {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 20px;
+}
+.mm-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mm-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.mm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mm-field > span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mm-muted);
+}
+.mm-field .mm-select {
+  width: 100%;
+}
+.mm-image-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.mm-image-preview {
+  width: 160px;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--mm-soft);
+  border: 1px dashed var(--mm-line);
+  display: grid;
+  place-items: center;
+  color: var(--mm-muted);
+  font-size: 13px;
+}
+.mm-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mm-file input {
+  display: none;
+}
+.mm-groups {
+  border: 1px solid var(--mm-line);
+  border-radius: 12px;
+  padding: 12px 14px 4px;
+  margin: 20px 0 0;
+}
+.mm-groups legend {
+  padding: 0 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.mm-group {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.mm-group:hover {
+  background: var(--mm-soft);
+}
+.mm-group.is-checked {
+  background: var(--mm-brand-soft);
+}
+.mm-group input {
+  margin-top: 4px;
+  accent-color: var(--mm-brand);
+}
+.mm-group strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mm-group em {
+  font-style: normal;
+  font-size: 12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--mm-brand);
+  color: #fff;
+}
+.mm-group small {
+  display: block;
+  color: var(--mm-muted);
+}
+
+@media (max-width: 640px) {
+  .mm-page {
+    padding: 20px 16px 48px;
+  }
+  .mm-form,
+  .mm-two {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,104 +1,102 @@
-// ใบเสร็จ 80 มม. (พิมพ์ได้)
+import { fmt, lineTotal, tableLabel } from './checkoutUtils'
 
-import { lineTotal } from './bill.js'
-import { baht } from '../../lib/format.js'
+// ใบเสร็จหลังรับเงินสำเร็จ (1.23): ยอดก่อน VAT / VAT / ยอดสุทธิ + เงินทอน
+// ปุ่มพิมพ์ใช้ window.print() พิมพ์เฉพาะกล่องใบเสร็จ (ดู @media print ใน checkout.css)
 
-// วันเวลาบนใบเสร็จ (ปี 4 หลัก)
-const dateTime = (iso) =>
-  new Date(iso).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+const METHOD = { cash: 'เงินสด', promptpay: 'PromptPay' }
 
-const METHOD_LABEL = { cash: 'เงินสด', promptpay: 'QR พร้อมเพย์' }
+export default function Receipt({ order, payment, changeAmount, onDone }) {
+  const paidAt = new Date(payment.paid_at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
 
-// ใบเสร็จรับเงิน / ใบกำกับภาษีอย่างย่อ
-export function Receipt({ branch, order, payment, printTarget = false }) {
-  const beforeVat = order.subtotal - order.discount_amount
-  const qty = order.items.reduce((s, i) => s + i.quantity, 0)
   return (
-    <div className={`slip ${printTarget ? 'print-target' : ''}`}>
-      <div className="center shop">POS CRM</div>
-      <div className="center">
-        {branch.name} ({branch.code})
-      </div>
-      {branch.address && <div className="center small">{branch.address}</div>}
-      {branch.phone && <div className="center small">โทร {branch.phone}</div>}
-      <hr />
-      <div className="center title">ใบเสร็จรับเงิน / ใบกำกับภาษีอย่างย่อ</div>
-      <div className="row">
-        <span>เลขที่</span>
-        <span>{order.receipt_no}</span>
-      </div>
-      <div className="row">
-        <span>วันที่</span>
-        <span>{dateTime(order.paid_at)}</span>
-      </div>
-      <div className="row">
-        <span>โต๊ะ / แคชเชียร์</span>
-        <span>
-          {order.table_names.join(' + ')} / {order.cashier_name || '-'}
-        </span>
-      </div>
-      <hr />
-      {order.items.map((item, i) => (
-        <div key={i}>
-          <div className="row">
-            <span>
-              {item.quantity} x {item.name}
-            </span>
-            <span>{baht(lineTotal(item))}</span>
-          </div>
-          {(item.options || []).map((o, j) => (
-            <div key={j} className="indent small">
-              + {o.name} {o.extra_price ? `(+${baht(o.extra_price)})` : ''}
+    <div className="co-receipt-wrap">
+      <div className="co-success">
+        <div className="co-success-icon" aria-hidden="true">
+          ✓
+        </div>
+        <div>
+          <strong>รับเงินเรียบร้อย</strong>
+          {payment.method === 'cash' && (
+            <div className="co-success-change">
+              เงินทอน <b>฿{fmt(changeAmount)}</b>
             </div>
+          )}
+          {!payment.order_status_synced && (
+            <div className="co-hint">บันทึกเงินแล้ว ระบบกำลังอัปเดตสถานะโต๊ะ (ลองใหม่อัตโนมัติ)</div>
+          )}
+        </div>
+      </div>
+
+      <article className="co-receipt" id="co-receipt">
+        <header>
+          <h2>ใบเสร็จรับเงิน</h2>
+          <p>
+            บิล {order.order_no || order.id.slice(0, 8)} · โต๊ะ {tableLabel(order)}
+          </p>
+          <p>{paidAt}</p>
+        </header>
+
+        <ul className="co-receipt-items">
+          {(order.items || []).map((it, i) => (
+            <li key={it.id || i}>
+              <span>
+                {it.quantity} × {it.menu_name}
+                {(it.options || []).length > 0 && <small>{it.options.map((o) => o.option_name || o.name).join(', ')}</small>}
+              </span>
+              <span>{fmt(lineTotal(it))}</span>
+            </li>
           ))}
-        </div>
-      ))}
-      <hr />
-      <div className="row">
-        <span>รวม {qty} รายการ</span>
-        <span>{baht(order.subtotal)}</span>
-      </div>
-      {order.discount_amount > 0 && (
-        <div className="row">
-          <span>ส่วนลด (อนุมัติแล้ว)</span>
-          <span>-{baht(order.discount_amount)}</span>
-        </div>
-      )}
-      <div className="row">
-        <span>มูลค่าก่อน VAT</span>
-        <span>{baht(beforeVat)}</span>
-      </div>
-      <div className="row">
-        <span>VAT 7%</span>
-        <span>{baht(order.vat_amount)}</span>
-      </div>
-      <div className="row total">
-        <span>ยอดสุทธิ</span>
-        <span>{baht(order.total)}</span>
-      </div>
-      {payment && (
-        <>
-          <hr />
-          <div className="row">
-            <span>ชำระโดย</span>
-            <span>{METHOD_LABEL[payment.method] || payment.method}</span>
+        </ul>
+
+        <dl className="co-receipt-totals">
+          <div>
+            <dt>ยอดก่อน VAT</dt>
+            <dd>{fmt(order.subtotal)}</dd>
+          </div>
+          {Number(order.discount_amount) > 0 && (
+            <div>
+              <dt>ส่วนลด</dt>
+              <dd>−{fmt(order.discount_amount)}</dd>
+            </div>
+          )}
+          <div>
+            <dt>VAT 7%</dt>
+            <dd>{fmt(order.vat_amount)}</dd>
+          </div>
+          <div className="co-receipt-grand">
+            <dt>ยอดสุทธิ</dt>
+            <dd>{fmt(payment.amount)}</dd>
+          </div>
+          <div>
+            <dt>ชำระโดย</dt>
+            <dd>{METHOD[payment.method] || payment.method}</dd>
           </div>
           {payment.method === 'cash' && (
             <>
-              <div className="row">
-                <span>รับเงิน</span>
-                <span>{baht(payment.cash_received)}</span>
+              <div>
+                <dt>รับเงิน</dt>
+                <dd>{fmt(payment.cash_received)}</dd>
               </div>
-              <div className="row">
-                <span>เงินทอน</span>
-                <span>{baht(payment.change_amount)}</span>
+              <div>
+                <dt>เงินทอน</dt>
+                <dd>{fmt(changeAmount)}</dd>
               </div>
             </>
           )}
-        </>
-      )}
-      <hr />
-      <div className="center title">ขอบคุณที่ใช้บริการ</div>
+        </dl>
+        <footer>ขอบคุณที่ใช้บริการ</footer>
+      </article>
+
+      <div className="co-receipt-actions">
+        <button className="co-btn" onClick={() => window.print()}>
+          🖨️ พิมพ์ใบเสร็จ
+        </button>
+        {onDone && (
+          <button className="co-btn co-btn-primary" onClick={onDone}>
+            เสร็จสิ้น กลับไปหน้าโต๊ะ
+          </button>
+        )}
+      </div>
     </div>
   )
 }

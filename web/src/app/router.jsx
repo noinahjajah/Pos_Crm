@@ -11,10 +11,24 @@ import { RequireAuth, RequireRole } from '../features/auth/RequireRole.jsx'
 import { BranchesPage } from '../features/backoffice/branches/BranchesPage.jsx'
 import { UsersPage } from '../features/backoffice/users/UsersPage.jsx'
 import { PrintPreviewPage } from '../features/checkout/PrintPreviewPage.jsx'
+import CheckoutPage from '../features/checkout/CheckoutPage.jsx'
+import ReportsPage from '../features/backoffice/reports/ReportsPage.jsx'
+import MenusPage from '../features/backoffice/menus/MenusPage.jsx'
+import CategoriesPage from '../features/backoffice/menus/CategoriesPage.jsx'
+import OptionGroupsPage from '../features/backoffice/menus/OptionGroupsPage.jsx'
+import StocksPage from '../features/backoffice/stocks/StocksPage.jsx'
+import ExpensesPage from '../features/backoffice/expenses/ExpensesPage.jsx'
 import { DEV_LABEL, HOME_BY_ROLE, MENU } from '../lib/constants.js'
 
 // หน้าที่ทำเสร็จแล้ว · หน้าอื่นในเมนูจะแสดงหน้ารอ (Dev 2/3 เพิ่มหน้าของตัวเองที่นี่)
 const PAGES = {
+  '/dashboard': <ReportsPage />,
+  '/menus': <MenusPage />,
+  '/categories': <CategoriesPage />,
+  '/option-groups': <OptionGroupsPage />,
+  '/stocks': <StocksPage />,
+  '/expenses': <ExpensesPage />,
+  '/checkout': <CheckoutPage />,
   '/branches': <BranchesPage />,
   '/users': <UsersPage />,
   '/print': <PrintPreviewPage />,

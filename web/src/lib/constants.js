@@ -9,7 +9,10 @@ export const BRANCH_TYPE_LABEL = { restaurant: 'ร้านอาหาร', dr
 // เมนูด้านซ้ายตาม role
 export const MENU = [
   { path: '/dashboard', label: 'แดชบอร์ด', labelByRole: { owner: 'ภาพรวมทุกสาขา', manager: 'แดชบอร์ดสาขา' }, roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.34–1.37' },
-  { path: '/menus', label: 'เมนู ตัวเลือก สต็อก', roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.14–1.22' },
+  { path: '/menus', label: 'จัดการเมนู', roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.14' },
+  { path: '/categories', label: 'หมวดหมู่', roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.14' },
+  { path: '/option-groups', label: 'กลุ่มตัวเลือก', roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.16–1.18' },
+  { path: '/stocks', label: 'สต็อก', roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.19–1.22' },
   { path: '/menu-availability', label: 'เปิด/ปิดขายเมนู', roles: ['staff'], dev: 'dev2', reqs: '1.15' },
   { path: '/expenses', label: 'รายจ่าย', roles: ['manager', 'owner'], dev: 'dev2', reqs: '1.32–1.33' },
 
@@ -18,6 +21,7 @@ export const MENU = [
 
   { path: '/tables', label: 'ผังโต๊ะ', roles: ['staff', 'manager'], dev: 'dev3', reqs: '1.7–1.13' },
   { path: '/kitchen', label: 'จอครัว', roles: ['staff', 'manager'], dev: 'dev3', reqs: '1.9–1.10' },
+  { path: '/checkout', label: 'รับเงิน', roles: ['staff', 'manager'], dev: 'dev2', reqs: '1.23–1.25' },
   { path: '/approvals', label: 'คำขออนุมัติ', labelByRole: { staff: 'คำขอของฉัน' }, roles: ['staff', 'manager', 'owner'], dev: 'dev3', reqs: '1.27–1.31' },
 
   { path: '/print', label: 'ตัวอย่างใบพิมพ์', roles: ['staff', 'manager', 'owner'], dev: 'dev1' },
