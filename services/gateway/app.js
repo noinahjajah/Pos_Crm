@@ -45,6 +45,7 @@ export function buildRoutes(env = process.env) {
     { name: 'catalog', prefix: '/api/v1/catalog', target: env.CATALOG_URL || 'http://catalog:3002' },
     { name: 'pos', prefix: '/api/v1/pos', target: env.POS_URL || 'http://pos:3003' },
     { name: 'payment', prefix: '/api/v1/payment', target: env.PAYMENT_URL || 'http://payment:3004' },
+    { name: 'membership', prefix: '/api/v1/membership', target: env.MEMBERSHIP_URL || 'http://membership:3005' },
   ];
 }
 

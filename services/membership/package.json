@@ -1,0 +1,16 @@
+{
+  "name": "@pos/membership",
+  "private": true,
+  "description": "membership :3005 — สมาชิกลูกค้า ระดับ แต้ม",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

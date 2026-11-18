@@ -79,6 +79,18 @@ export const PERMISSIONS = {
     { method: 'GET', path: '/reports/branches', roles: [O] },
     { method: 'GET', path: '/reports/profit', roles: [O] },
   ],
+  membership: [
+    { method: 'GET', path: '/customers', roles: SMO },
+    { method: 'GET', path: '/customers/lookup', roles: SMO },
+    { method: 'GET', path: '/customers/:id', roles: SMO },
+    { method: 'POST', path: '/customers', roles: SMO },
+    { method: 'PATCH', path: '/customers/:id', roles: MO },
+    { method: 'POST', path: '/customers/:id/visits', roles: SMO },
+    { method: 'POST', path: '/customers/:id/redeem', roles: SMO },
+    { method: 'POST', path: '/customers/:id/adjust', roles: MO },
+    { method: 'GET', path: '/tiers', roles: SMO },
+    { method: 'PATCH', path: '/tiers/:id', roles: [O] },
+  ],
 };
 
 function compile(path) {

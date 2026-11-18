@@ -24,6 +24,7 @@ export const MENU = [
   { path: '/checkout', label: 'รับเงิน', roles: ['staff', 'manager'], dev: 'dev2', reqs: '1.23–1.25', hidden: true }, // เปิดจากบิล: /checkout?order_id=...
   { path: '/approvals', label: 'คำขออนุมัติ', labelByRole: { staff: 'คำขอของฉัน' }, roles: ['staff', 'manager', 'owner'], dev: 'dev3', reqs: '1.27–1.31' },
 
+  { path: '/members', label: 'สมาชิก', roles: ['staff', 'manager', 'owner'], dev: 'dev1' },
   { path: '/print', label: 'ตัวอย่างใบพิมพ์', roles: ['staff', 'manager', 'owner'], dev: 'dev1' },
 ]
 

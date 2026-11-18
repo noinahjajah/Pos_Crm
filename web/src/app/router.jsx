@@ -12,6 +12,7 @@ import { RequireAuth, RequireRole } from '../features/auth/RequireRole.jsx'
 import { BranchesPage } from '../features/backoffice/branches/BranchesPage.jsx'
 import { UsersPage } from '../features/backoffice/users/UsersPage.jsx'
 import { PrintPreviewPage } from '../features/checkout/PrintPreviewPage.jsx'
+import { MembersPage } from '../features/membership/MembersPage.jsx'
 import CheckoutPage from '../features/checkout/CheckoutPage.jsx'
 import ReportsPage from '../features/backoffice/reports/ReportsPage.jsx'
 import MenusPage from '../features/backoffice/menus/MenusPage.jsx'
@@ -32,6 +33,7 @@ const PAGES = {
   '/checkout': <CheckoutPage />,
   '/branches': <BranchesPage />,
   '/users': <UsersPage />,
+  '/members': <MembersPage />,
   '/print': <PrintPreviewPage />,
 }
 
