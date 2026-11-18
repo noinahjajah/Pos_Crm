@@ -1,0 +1,35 @@
+# รันทั้งหมด:  docker compose up -d --build
+# โหมดพัฒนา (reload อัตโนมัติ): ดู docker-compose.dev.yml
+# ก่อนรัน: copy services/<name>/.env.example → services/<name>/.env แล้วใส่ค่าจริง
+name: pos-crm
+
+services:
+  catalog:
+    build: ./services/catalog
+    env_file: ./services/catalog/.env
+    environment:
+      PORT: 3002
+    # ตามเอกสาร gateway: service ไม่ควรเปิดออกนอก — เปิดเฉพาะ localhost ไว้ทดสอบตอน dev
+    ports:
+      - "127.0.0.1:3002:3002"
+    restart: unless-stopped
+
+  payment:
+    build: ./services/payment
+    env_file: ./services/payment/.env
+    environment:
+      PORT: 3004
+      POS_URL: http://pos:3003
+    ports:
+      - "127.0.0.1:3004:3004"
+    depends_on:
+      - catalog
+    restart: unless-stopped
+
+  web:
+    build: ./web
+    ports:
+      - "8000:80"
+    restart: unless-stopped
+
+  # TODO: เพิ่ม gateway (:8080), identity (:3001), pos (:3003) เมื่อโค้ดพร้อม
