@@ -29,7 +29,7 @@ export function loadConfig(overrides = {}) {
     .filter(([key]) => !config[key])
     .map(([, name]) => name);
   if (missing.length) {
-    throw new Error(`identity: ขาด environment variable: ${missing.join(', ')} (ดู server/.env.example)`);
+    throw new Error(`identity: ขาด environment variable: ${missing.join(', ')} (ดู services/.env.example)`);
   }
   assertNotDevSecrets({ INTERNAL_KEY: config.internalKey });
   return config;

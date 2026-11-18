@@ -25,7 +25,7 @@ const password = env.SEED_PASSWORD || 'password123';
 const need = (...names) => {
   const missing = names.filter((n) => !env[n]);
   if (missing.length) {
-    console.error(`ต้องตั้ง ${missing.join(', ')} ใน server/.env`);
+    console.error(`ต้องตั้ง ${missing.join(', ')} ใน services/.env`);
     process.exit(1);
   }
 };

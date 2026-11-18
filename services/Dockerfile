@@ -1,4 +1,4 @@
-# Dockerfile กลางของ backend · เลือก service ด้วย build arg SERVICE (gateway / identity / ...)
+# Dockerfile ของ gateway และ identity (ใช้ package.json กลางของ services/) · เลือกด้วย build arg SERVICE
 FROM node:22-alpine
 ARG SERVICE
 ENV NODE_ENV=production SERVICE=${SERVICE}
