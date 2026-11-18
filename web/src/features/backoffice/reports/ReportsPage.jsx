@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { EXPENSE_CATEGORIES, getBranchReport, getDailyReport, getProfitReport } from '../../../api/payment'
 import { useBranchScope } from '../useBranchScope'
 import { baht, errorText, thaiDate, todayTh } from '../../../lib/format.js'
-import '../menus/menus.css'
 import '../backoffice.css'
 
 // แดชบอร์ด (หลังร้าน) — 1.34–1.37

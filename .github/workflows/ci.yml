@@ -15,10 +15,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: ติดตั้งทีละ service
-        run: for s in identity gateway catalog payment; do (cd services/$s && npm ci --no-audit --no-fund); done
+          cache: npm
+      - run: npm ci --no-audit --no-fund
       - name: เทสต์
-        run: npm --prefix services/identity test && npm --prefix services/gateway test
+        run: npm test
       - name: catalog / payment โหลดโมดูลได้ครบ
         env: { SUPABASE_URL: abcdefghijklmnopqrst, SUPABASE_SERVICE_ROLE_KEY: x }
         run: |
@@ -30,19 +30,15 @@ jobs:
   web:
     name: web (lint + build)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: web/package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run build
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint -w web
+      - run: npm run build -w web
 
   docker:
     name: docker compose + Supabase จริง

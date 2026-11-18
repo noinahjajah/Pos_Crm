@@ -7,8 +7,7 @@ import {
   updateOption,
   updateOptionGroup,
 } from '../../../api/catalog'
-import './menus.css'
-import './option-groups.css'
+import '../backoffice.css'
 import { errorText } from '../../../lib/format.js'
 
 // หน้าจัดการกลุ่มตัวเลือก (หลังร้าน) — 1.16, 1.17

@@ -8,8 +8,7 @@
   },
   "scripts": {
     "dev": "node --env-file-if-exists=.env --watch server.js",
-    "start": "node server.js",
-    "postinstall": "npm --prefix ../shared install --no-audit --no-fund"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^5.1.0"

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { createExpense, deleteExpense, EXPENSE_CATEGORIES, listExpenses, updateExpense } from '../../../api/payment'
 import { useBranchScope, useNotify } from '../useBranchScope'
 import { baht, errorText, thaiDate, todayTh } from '../../../lib/format.js'
-import '../menus/menus.css'
 import '../backoffice.css'
 
 // หน้ารายจ่าย (หลังร้าน) — 1.32, 1.33

@@ -1,14 +1,10 @@
-# Dockerfile เดียวของทุก service · เลือกด้วย build arg SERVICE (gateway / identity / catalog / payment / pos)
+# Dockerfile เดียวของทุก service (build จากโฟลเดอร์บนสุดของ repo) · เลือกด้วย build arg SERVICE
 FROM node:22-alpine
 ARG SERVICE
 ENV NODE_ENV=production
 WORKDIR /app
-COPY shared/package.json shared/package-lock.json shared/
-RUN cd shared && npm ci --omit=dev
-COPY ${SERVICE}/package.json ${SERVICE}/package-lock.json ${SERVICE}/
-RUN cd ${SERVICE} && npm ci --omit=dev --ignore-scripts
-COPY shared shared
-COPY ${SERVICE} ${SERVICE}
-WORKDIR /app/${SERVICE}
+COPY . .
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund -w services/shared -w services/${SERVICE}
+WORKDIR /app/services/${SERVICE}
 USER node
 CMD ["node", "server.js"]

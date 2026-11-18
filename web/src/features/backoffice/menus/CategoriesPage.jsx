@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { createCategory, listCategories, updateCategory } from '../../../api/catalog'
 import { useBranchScope, useNotify } from '../useBranchScope'
 import { errorText } from '../../../lib/format.js'
-import './menus.css'
 import '../backoffice.css'
 
 // หน้าหมวดหมู่ — ของกลางทุกสาขา จัดการได้เฉพาะ owner (1.14)

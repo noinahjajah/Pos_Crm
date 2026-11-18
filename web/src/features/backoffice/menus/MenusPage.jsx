@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useBranchScope, useNotify } from '../useBranchScope'
 import { copyMenu, deleteMenu, listCategories, listMenus, setMenuAvailability } from '../../../api/catalog'
 import MenuFormDialog from './MenuFormDialog'
-import './menus.css'
+import '../backoffice.css'
 import { errorText } from '../../../lib/format.js'
 
 // หน้าจัดการเมนู (หลังร้าน) — 1.14, 1.15, 1.18

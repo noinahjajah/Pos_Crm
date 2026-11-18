@@ -11,8 +11,7 @@
     "start": "node server.js",
     "test": "node --test \"test/*.test.js\"",
     "tokens": "node tools.mjs tokens",
-    "seed:users": "node tools.mjs seed-users",
-    "postinstall": "npm --prefix ../shared install --no-audit --no-fund"
+    "seed:users": "node tools.mjs seed-users"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",

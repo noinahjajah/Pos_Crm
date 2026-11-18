@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { adjustStock, listStocks, setMenuAvailability } from '../../../api/catalog'
 import { useBranchScope, useNotify } from '../useBranchScope'
 import { errorText } from '../../../lib/format.js'
-import '../menus/menus.css'
 import '../backoffice.css'
 
 // หน้าสต็อก (หลังร้าน) — 1.19–1.22
