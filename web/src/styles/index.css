@@ -1,5 +1,5 @@
 /* สไตล์พื้นฐานทั้งแอป
-   ★ ตัวแปรสี --app-* ที่นี่คือ "แหล่งเดียว" ของสีทั้งเว็บ (โหมดสว่าง + โหมดมืด)
+   ★ ตัวแปรสี --app-* ที่นี่คือ "แหล่งเดียว" ของสีทั้งเว็บ (ล็อกโหมดสว่างให้ตรง Figma)
    - layout, login, ผู้ใช้/สาขา ใช้ --app-* ตรง ๆ
    - หน้าหลังร้านและหน้าคิดเงินของ Dev 2 ใช้ --mm-* / --co-* ซึ่งอ้างมาที่ --app-* อีกที
    อยากเปลี่ยนสีหลักหรือธีม แก้ที่นี่ที่เดียว ไม่ต้องไล่แก้ไฟล์อื่น
@@ -26,27 +26,9 @@
   font-family: var(--app-sans);
   color: var(--app-ink);
   background: var(--app-bg);
-  color-scheme: light dark;
+  color-scheme: light;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --app-ink: #f5f5f4;
-    --app-muted: #a8a29e;
-    --app-line: #3a3633;
-    --app-soft: #1f1d1b;
-    --app-card: #26231f;
-    --app-bg: #181614;
-    /* โหมดมืด: Figma ไม่มีให้ — สีหลักเป็นเขียวที่สว่างขึ้นให้อ่านออกบนพื้นมืด (คำนวณเอง) */
-    --app-brand: #2f9e86;
-    --app-brand-soft: #12302a;
-    --app-ok: #4ade80;
-    --app-ok-soft: #14301f;
-    --app-danger: #f87171;
-    --app-danger-soft: #3a1717;
-  }
 }
 
 *,
