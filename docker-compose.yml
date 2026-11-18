@@ -4,6 +4,30 @@
 name: pos-crm
 
 services:
+  # ทางเข้าเดียวจากข้างนอก — ตรวจ JWT + ตัดสินสิทธิ์จาก role (services/gateway/src/access.config.js)
+  gateway:
+    build: ./services/gateway
+    env_file: ./services/gateway/.env
+    environment:
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - identity
+      - catalog
+      - payment
+    restart: unless-stopped
+
+  # login · ผู้ใช้ · สาขา (Dev 1) — schema identity1
+  identity:
+    build: ./services/identity
+    env_file: ./services/identity/.env
+    environment:
+      PORT: 3001
+    ports:
+      - "127.0.0.1:3001:3001"
+    restart: unless-stopped
+
   catalog:
     build: ./services/catalog
     env_file: ./services/catalog/.env
@@ -32,4 +56,4 @@ services:
       - "8000:80"
     restart: unless-stopped
 
-  # TODO: เพิ่ม gateway (:8080), identity (:3001), pos (:3003) เมื่อโค้ดพร้อม
+  # TODO: เพิ่ม pos (:3003) เมื่อโค้ดพร้อม (ระหว่างนี้ gateway ตอบ 502 ให้ route ของ pos)

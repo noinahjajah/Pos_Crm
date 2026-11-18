@@ -1,39 +1,24 @@
 /* หน้าคิดเงิน — class ขึ้นต้นด้วย co- กันชนกับไฟล์อื่น */
 
+/* สีทั้งหมดมาจากตัวแปรกลางใน styles/index.css (--app-*) แก้สีที่นั่นที่เดียว */
 .co-page {
-  --co-ink: #1c1917;
-  --co-muted: #78716c;
-  --co-line: #e7e5e4;
-  --co-soft: #fafaf9;
-  --co-card: #ffffff;
-  --co-brand: #c2410c;
-  --co-brand-soft: #fff7ed;
-  --co-ok: #15803d;
-  --co-ok-soft: #dcfce7;
-  --co-danger: #b91c1c;
-  --co-danger-soft: #fef2f2;
+  --co-ink: var(--app-ink);
+  --co-muted: var(--app-muted);
+  --co-line: var(--app-line);
+  --co-soft: var(--app-soft);
+  --co-card: var(--app-card);
+  --co-brand: var(--app-brand);
+  --co-brand-soft: var(--app-brand-soft);
+  --co-ok: var(--app-ok);
+  --co-ok-soft: var(--app-ok-soft);
+  --co-danger: var(--app-danger);
+  --co-danger-soft: var(--app-danger-soft);
 
   text-align: left;
   color: var(--co-ink);
   padding: 24px 32px 64px;
   font-size: 15px;
   line-height: 1.5;
-}
-
-@media (prefers-color-scheme: dark) {
-  .co-page {
-    --co-ink: #f5f5f4;
-    --co-muted: #a8a29e;
-    --co-line: #3a3633;
-    --co-soft: #1f1d1b;
-    --co-card: #26231f;
-    --co-brand: #fb923c;
-    --co-brand-soft: #3b2414;
-    --co-ok: #4ade80;
-    --co-ok-soft: #14301f;
-    --co-danger: #f87171;
-    --co-danger-soft: #3a1717;
-  }
 }
 
 .co-header {

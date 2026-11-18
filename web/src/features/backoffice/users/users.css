@@ -1,0 +1,122 @@
+/* หน้าพนักงานและสาขา (Dev 1) — ใช้ตัวแปรและปุ่ม mm-/bo- ของหน้าหลังร้าน · class ขึ้นต้นด้วย us- */
+
+.us-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.us-toolbar .bo-filters {
+  margin-bottom: 0;
+}
+
+.us-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--mm-muted);
+  padding-bottom: 9px;
+  cursor: pointer;
+}
+
+.us-role {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--mm-soft);
+  color: var(--mm-muted);
+  border: 1px solid var(--mm-line);
+}
+.us-role.is-owner {
+  background: var(--mm-brand);
+  border-color: var(--mm-brand);
+  color: #fff;
+}
+.us-role.is-manager {
+  background: var(--mm-brand-soft);
+  border-color: transparent;
+  color: var(--mm-brand);
+}
+
+.us-me {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--mm-ok-soft);
+  color: var(--mm-ok);
+}
+
+.us-inactive {
+  opacity: 0.6;
+}
+
+/* ---------- การ์ดสาขา ---------- */
+.us-branches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.us-branch {
+  background: var(--mm-card);
+  border: 1px solid var(--mm-line);
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+}
+.us-branch-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.us-code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mm-muted);
+}
+.us-branch-name {
+  margin: 8px 0 2px;
+  font-size: 18px;
+  color: var(--mm-ink);
+}
+.us-branch-type {
+  font-size: 13px;
+  color: var(--mm-brand);
+  font-weight: 500;
+}
+.us-branch-meta {
+  margin: 12px 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+.us-branch-meta div {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 8px;
+}
+.us-branch-meta dt {
+  color: var(--mm-muted);
+}
+.us-branch-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.us-branch-actions {
+  margin-top: auto;
+}
+
+@media (max-width: 640px) {
+  .us-toolbar > .mm-btn {
+    width: 100%;
+  }
+}

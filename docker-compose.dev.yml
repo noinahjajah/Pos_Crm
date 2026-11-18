@@ -2,12 +2,36 @@
 #
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml watch
 #
-# - catalog / payment รันด้วย node --watch → แก้ไฟล์แล้ว restart เอง
+# - gateway / identity / catalog / payment รันด้วย node --watch → แก้ไฟล์แล้ว restart เอง
 # - web รันเป็น Vite dev server ที่ http://localhost:5173 (HMR)
 # - แก้ package.json → build image ใหม่ให้อัตโนมัติ
 # กด Ctrl+C เพื่อหยุดดูการเปลี่ยนแปลง แล้วใช้ `docker compose down` เพื่อปิด
 
 services:
+  gateway:
+    command: ["node", "--watch", "src/server.js"]
+    develop:
+      watch:
+        - action: sync
+          path: ./services/gateway/src
+          target: /app/src
+        - action: rebuild
+          path: ./services/gateway/package.json
+
+  identity:
+    command: ["node", "--watch", "server.js"]
+    develop:
+      watch:
+        - action: sync
+          path: ./services/identity
+          target: /app
+          ignore:
+            - node_modules/
+            - .env
+            - db/
+        - action: rebuild
+          path: ./services/identity/package.json
+
   catalog:
     command: ["node", "--watch", "server.js"]
     develop:
