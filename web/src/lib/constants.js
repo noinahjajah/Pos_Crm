@@ -21,7 +21,7 @@ export const MENU = [
 
   { path: '/tables', label: 'ผังโต๊ะ', roles: ['staff', 'manager'], dev: 'dev3', reqs: '1.7–1.13' },
   { path: '/kitchen', label: 'จอครัว', roles: ['staff', 'manager'], dev: 'dev3', reqs: '1.9–1.10' },
-  { path: '/checkout', label: 'รับเงิน', roles: ['staff', 'manager'], dev: 'dev2', reqs: '1.23–1.25' },
+  { path: '/checkout', label: 'รับเงิน', roles: ['staff', 'manager'], dev: 'dev2', reqs: '1.23–1.25', hidden: true }, // เปิดจากบิล: /checkout?order_id=...
   { path: '/approvals', label: 'คำขออนุมัติ', labelByRole: { staff: 'คำขอของฉัน' }, roles: ['staff', 'manager', 'owner'], dev: 'dev3', reqs: '1.27–1.31' },
 
   { path: '/print', label: 'ตัวอย่างใบพิมพ์', roles: ['staff', 'manager', 'owner'], dev: 'dev1' },
@@ -30,7 +30,7 @@ export const MENU = [
 export const DEV_LABEL = { dev1: 'Dev 1', dev2: 'Dev 2', dev3: 'Dev 3' }
 
 export function menuFor(role) {
-  return MENU.filter((m) => m.roles.includes(role)).map((m) => ({ ...m, label: m.labelByRole?.[role] ?? m.label }))
+  return MENU.filter((m) => !m.hidden && m.roles.includes(role)).map((m) => ({ ...m, label: m.labelByRole?.[role] ?? m.label }))
 }
 
 export const HOME_BY_ROLE = { owner: '/dashboard', manager: '/dashboard', staff: '/tables' }
