@@ -1,70 +1,39 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api } from '../../../api/client'
+import { useBranchScope, useNotify } from '../useBranchScope'
 import { copyMenu, deleteMenu, listCategories, listMenus, setMenuAvailability } from '../../../api/catalog'
 import MenuFormDialog from './MenuFormDialog'
 import './menus.css'
+import { errorText } from '../../../lib/format.js'
 
 // หน้าจัดการเมนู (หลังร้าน) — 1.14, 1.15, 1.18
 // manager: เมนูของสาขาตัวเอง · owner: เลือกสาขาได้ และคัดลอกเมนูข้ามสาขาได้
 
 
-// แปลง error จาก API เป็นข้อความอ่านง่าย (รวมรายละเอียดรายช่องถ้ามี)
-function errorText(err) {
-  if (!err) return ''
-  const fields = (err.details || [])
-    .map((d) => d.message && (d.field ? `${d.field}: ${d.message}` : d.message))
-    .filter(Boolean)
-  return fields.length ? `${err.message} — ${fields.join(', ')}` : err.message || 'เกิดข้อผิดพลาด'
-}
-
 const baht = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' })
 
 export default function MenusPage() {
-  const [me, setMe] = useState(null)
-  const [branches, setBranches] = useState([])
-  const [branchId, setBranchId] = useState('')
+  const { me, branches, branchId, setBranchId, isOwner, canManage } = useBranchScope()
+  const notify = useNotify()
   const [categories, setCategories] = useState([])
   const [menus, setMenus] = useState([])
   const [categoryId, setCategoryId] = useState('')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [toast, setToast] = useState(null)
   const [editing, setEditing] = useState(null) // null = ปิด, {} = เพิ่มใหม่, menu = แก้ไข
   const [copying, setCopying] = useState(null)
   const [busyId, setBusyId] = useState(null)
 
-  const isOwner = me?.role === 'owner'
-  const canManage = me?.role === 'owner' || me?.role === 'manager'
-
-  const notify = useCallback((message, type = 'success') => {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
-  }, [])
-
-  // ข้อมูลผู้ใช้ สาขา หมวดหมู่ (โหลดครั้งเดียว)
+  // หมวดหมู่ (โหลดครั้งเดียว)
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const [meRes, branchRes, cats] = await Promise.all([
-          api.get('/identity/me'),
-          api.get('/identity/branches'),
-          listCategories(),
-        ])
+    listCategories()
+      .then((cats) => !cancelled && setCategories(cats))
+      .catch((err) => {
         if (cancelled) return
-        const user = meRes.data
-        setMe(user)
-        setBranches(branchRes.data || [])
-        setCategories(cats)
-        setBranchId(user.role === 'owner' ? branchRes.data?.[0]?.id || '' : user.branch_id)
-      } catch (err) {
-        if (!cancelled) {
-          setError(errorText(err))
-          setLoading(false)
-        }
-      }
-    })()
+        setError(errorText(err))
+        setLoading(false)
+      })
     return () => {
       cancelled = true
     }
@@ -304,8 +273,6 @@ export default function MenusPage() {
           onCopy={doCopy}
         />
       )}
-
-      {toast && <div className={`mm-toast ${toast.type === 'error' ? 'is-error' : ''}`}>{toast.message}</div>}
     </div>
   )
 }

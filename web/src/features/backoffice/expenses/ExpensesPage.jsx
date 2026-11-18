@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createExpense, deleteExpense, EXPENSE_CATEGORIES, listExpenses, updateExpense } from '../../../api/payment'
-import { baht, errorText, thaiDate, todayTh, useBranchScope, useToast } from '../useBranchScope'
+import { useBranchScope, useNotify } from '../useBranchScope'
+import { baht, errorText, thaiDate, todayTh } from '../../../lib/format.js'
 import '../menus/menus.css'
 import '../backoffice.css'
 
@@ -20,7 +21,7 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(null) // null | {} | expense
-  const [toast, notify] = useToast()
+  const notify = useNotify()
 
   const [reloadKey, setReloadKey] = useState(0)
   useEffect(() => {
@@ -219,8 +220,6 @@ export default function ExpensesPage() {
           }}
         />
       )}
-
-      {toast && <div className={`mm-toast ${toast.type === 'error' ? 'is-error' : ''}`}>{toast.message}</div>}
     </div>
   )
 }

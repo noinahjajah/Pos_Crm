@@ -38,19 +38,12 @@ services:
       timeout: 3s
       retries: 3
 
-  # service ที่มี package.json ของตัวเอง (catalog, payment ของ Dev 2 · pos ของ Dev 3)
+  # Dev 2
   catalog:
     <<: *node-service
     build:
-      context: ./catalog
-      dockerfile_inline: &own-package |
-        FROM node:22-alpine
-        ENV NODE_ENV=production
-        WORKDIR /app
-        COPY . .
-        RUN rm -rf node_modules .env && npm ci --omit=dev --ignore-scripts
-        USER node
-        CMD ["node", "server.js"]
+      context: .
+      args: { SERVICE: catalog }
     environment:
       PORT: 3002
       POS_URL: http://pos:3003
@@ -63,8 +56,8 @@ services:
   payment:
     <<: *node-service
     build:
-      context: ./payment
-      dockerfile_inline: *own-package
+      context: .
+      args: { SERVICE: payment }
     environment:
       PORT: 3004
       POS_URL: http://pos:3003
@@ -74,13 +67,13 @@ services:
       timeout: 3s
       retries: 3
 
-  # pos ของ Dev 3 (เปิดด้วย --profile all เมื่อมีโฟลเดอร์ services/pos แล้ว)
+  # Dev 3 (เปิดด้วย --profile all เมื่อมี services/pos แล้ว)
   pos:
     <<: *node-service
     profiles: [all]
     build:
-      context: ./pos
-      dockerfile_inline: *own-package
+      context: .
+      args: { SERVICE: pos }
     environment:
       PORT: 3003
       CATALOG_URL: http://catalog:3002

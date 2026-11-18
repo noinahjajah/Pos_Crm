@@ -1,15 +1,8 @@
 // ต่อ Supabase (schema catalog) — ใช้ service_role key ฝั่ง server เท่านั้น
-import 'dotenv/config'
-import { createClient } from '@supabase/supabase-js'
-import { AppError, badRequest, dbError } from './helpers.js'
 
-const url = process.env.SUPABASE_URL
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-if (!url || !key) {
-  throw new Error('ยังไม่ได้ใส่ SUPABASE_URL หรือ SUPABASE_SERVICE_ROLE_KEY ในไฟล์ .env')
-}
+import { AppError, badRequest, dbError, serviceClient } from './helpers.js'
 
-export const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+export const supabase = serviceClient()
 
 /** ตารางใน schema catalog เช่น db.from('menus') */
 export const db = supabase.schema('catalog')

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { fmt } from './checkoutUtils'
+import { baht } from '../../lib/format.js'
 
 // รับเงินสด: พิมพ์จำนวนเงินที่รับ หรือกดปุ่มลัด แล้วระบบคิดเงินทอนให้ (1.25)
 
@@ -37,7 +37,7 @@ export default function CashForm({ total, paying, onPay }) {
           step="0.01"
           value={received}
           onChange={(e) => setReceived(e.target.value)}
-          placeholder={fmt(total)}
+          placeholder={baht(total)}
           autoFocus
           disabled={paying}
         />
@@ -52,18 +52,18 @@ export default function CashForm({ total, paying, onPay }) {
             onClick={() => setReceived(String(amount))}
             disabled={paying}
           >
-            {i === 0 ? `พอดี ${fmt(amount)}` : fmt(amount)}
+            {i === 0 ? `พอดี ${baht(amount)}` : baht(amount)}
           </button>
         ))}
       </div>
 
       <div className={`co-change ${received !== '' && !enough ? 'is-short' : ''}`}>
         <span>{received !== '' && !enough ? 'ยังขาดอีก' : 'เงินทอน'}</span>
-        <strong>฿{fmt(received !== '' && !enough ? total - (Number(received) || 0) : change)}</strong>
+        <strong>฿{baht(received !== '' && !enough ? total - (Number(received) || 0) : change)}</strong>
       </div>
 
       <button className="co-btn co-btn-primary co-btn-block" disabled={!enough || paying}>
-        {paying ? 'กำลังบันทึก…' : `รับเงินสด ฿${fmt(total)}`}
+        {paying ? 'กำลังบันทึก…' : `รับเงินสด ฿${baht(total)}`}
       </button>
     </form>
   )

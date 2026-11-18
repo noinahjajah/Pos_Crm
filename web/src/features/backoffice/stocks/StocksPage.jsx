@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { adjustStock, listStocks, setMenuAvailability } from '../../../api/catalog'
-import { errorText, useBranchScope, useToast } from '../useBranchScope'
+import { useBranchScope, useNotify } from '../useBranchScope'
+import { errorText } from '../../../lib/format.js'
 import '../menus/menus.css'
 import '../backoffice.css'
 
@@ -19,7 +20,7 @@ export default function StocksPage() {
   const [search, setSearch] = useState('')
   const [inputs, setInputs] = useState({}) // menu_id → ตัวเลขที่พิมพ์
   const [busyId, setBusyId] = useState(null)
-  const [toast, notify] = useToast()
+  const notify = useNotify()
 
   const [reloadKey, setReloadKey] = useState(0)
   useEffect(() => {
@@ -240,8 +241,6 @@ export default function StocksPage() {
           </table>
         </div>
       )}
-
-      {toast && <div className={`mm-toast ${toast.type === 'error' ? 'is-error' : ''}`}>{toast.message}</div>}
     </div>
   )
 }

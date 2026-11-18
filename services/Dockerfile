@@ -1,4 +1,4 @@
-# Dockerfile ของ gateway และ identity (ใช้ package.json กลางของ services/) · เลือกด้วย build arg SERVICE
+# Dockerfile เดียวของทุก service · เลือกด้วย build arg SERVICE (gateway / identity / catalog / payment / pos)
 FROM node:22-alpine
 ARG SERVICE
 ENV NODE_ENV=production SERVICE=${SERVICE}
@@ -8,4 +8,5 @@ RUN npm ci --omit=dev --ignore-scripts
 COPY shared.js ./
 COPY ${SERVICE} ./${SERVICE}
 USER node
-CMD ["sh", "-c", "node ${SERVICE}/server.js"]
+WORKDIR /app/${SERVICE}
+CMD ["node", "server.js"]

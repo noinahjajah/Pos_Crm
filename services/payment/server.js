@@ -1,6 +1,5 @@
 // payment service :3004 (Dev 2) — จุดเริ่มต้น รันด้วย npm run dev
 // gateway ตัด /api/v1/payment ออกก่อนส่งมา เช่น /api/v1/payment/payments → /payments
-import 'dotenv/config'
 import express from 'express'
 import { db } from './db.js'
 import { checkInternalKey, errorHandler, notFound } from './helpers.js'

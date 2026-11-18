@@ -4,7 +4,8 @@ import { createPayment } from '../../api/payment'
 import CashForm from './CashForm'
 import PromptPayQR from './PromptPayQR'
 import Receipt from './Receipt'
-import { errorText, fmt, lineTotal, tableLabel } from './checkoutUtils'
+import { lineTotal, tableLabel } from './bill.js'
+import { baht, errorText } from '../../lib/format.js'
 import './checkout.css'
 
 // หน้าคิดเงิน — 1.23, 1.25 (ฝั่งเงินของ Dev 2)
@@ -114,7 +115,7 @@ export default function CheckoutPage({ orderId: orderIdProp, onDone, onBack }) {
                   )}
                   {it.note && <small className="co-note">หมายเหตุ: {it.note}</small>}
                 </div>
-                <span className="co-amount">{fmt(lineTotal(it))}</span>
+                <span className="co-amount">{baht(lineTotal(it))}</span>
               </li>
             ))}
           </ul>
@@ -122,21 +123,21 @@ export default function CheckoutPage({ orderId: orderIdProp, onDone, onBack }) {
           <dl className="co-totals">
             <div>
               <dt>ยอดก่อน VAT</dt>
-              <dd>{fmt(order.subtotal)}</dd>
+              <dd>{baht(order.subtotal)}</dd>
             </div>
             {Number(order.discount_amount) > 0 && (
               <div className="co-discount">
                 <dt>ส่วนลด</dt>
-                <dd>−{fmt(order.discount_amount)}</dd>
+                <dd>−{baht(order.discount_amount)}</dd>
               </div>
             )}
             <div>
               <dt>VAT 7%</dt>
-              <dd>{fmt(order.vat_amount)}</dd>
+              <dd>{baht(order.vat_amount)}</dd>
             </div>
             <div className="co-grand">
               <dt>ยอดสุทธิ</dt>
-              <dd>฿{fmt(total)}</dd>
+              <dd>฿{baht(total)}</dd>
             </div>
           </dl>
         </section>

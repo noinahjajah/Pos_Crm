@@ -1,6 +1,7 @@
 // ของกลางที่ทุก service ใช้ร่วมกัน: รูปแบบ response/error, ตรวจข้อมูลด้วย zod, อ่านผู้ใช้จาก header ของ gateway
 
 import { timingSafeEqual, randomUUID } from 'node:crypto';
+import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 // error ที่ส่งให้ client ได้ (มี status, code, ข้อความ)
@@ -192,6 +193,98 @@ export function requireRole(...roles) {
   };
 }
 
+// ===================== ชื่อสั้นที่ catalog / payment ใช้ =====================
+export const { badRequest, forbidden, notFound, conflict } = errors;
+export const send = ok;
+export const allow = requireRole;
+/** ตรวจ X-Internal-Key แล้วอ่าน X-User-* เป็น req.user */
+export const checkInternalKey = (internalKey) => internalAuth({ internalKey });
+
+/** ต่อ Supabase ด้วย service_role key (ฝั่ง server เท่านั้น) */
+export function serviceClient(env = process.env) {
+  const url = supabaseUrl(env.SUPABASE_URL);
+  const key = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !key) throw new Error('ยังไม่ได้ใส่ SUPABASE_URL หรือ SUPABASE_SERVICE_ROLE_KEY ใน services/.env');
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+// ===================== ตรวจข้อมูล (zod) =====================
+/** ตรวจข้อมูลตาม schema ไม่ผ่าน → 400 พร้อมบอกว่าช่องไหนผิด */
+export function parse(schema, data) {
+  const result = schema.safeParse(data ?? {})
+  if (!result.success) {
+    throw badRequest(
+      'ข้อมูลไม่ถูกต้อง',
+      result.error.issues.map((i) => ({ field: i.path.join('.') || null, message: i.message })),
+    )
+  }
+  return result.data
+}
+
+export const uuid = z.string().uuid('ต้องเป็น uuid')
+export const idParam = z.object({ id: uuid })
+export const name = z.string().trim().min(1, 'กรุณากรอกชื่อ').max(100)
+/** เงิน: ไม่ติดลบ ปัดทศนิยม 2 ตำแหน่ง */
+export const money = z
+  .number({ error: 'ต้องเป็นตัวเลข' })
+  .min(0, 'ต้องไม่ติดลบ')
+  .max(999999.99)
+  .transform((v) => Math.round(v * 100) / 100)
+export const atLeastOne = (v) => Object.keys(v).length > 0
+
+// ===================== สาขา =====================
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * สาขาที่ใช้กรองตอนอ่านข้อมูล
+ * staff/manager = สาขาตัวเองเสมอ · owner = ?branch_id= ที่ส่งมา (ไม่ส่ง = ทุกสาขา → null)
+ */
 export function branchFilter(req) {
-  return req.user?.branchId || null;
+  if (req.user?.role !== 'owner') return req.user?.branchId || null
+  const fromQuery = typeof req.query.branch_id === 'string' && UUID_RE.test(req.query.branch_id) ? req.query.branch_id : null
+  return req.user.branchId || fromQuery
+}
+
+/** สาขาที่ใช้ตอนสร้างข้อมูล: staff/manager = สาขาตัวเอง · owner ต้องส่ง branch_id */
+export function branchForCreate(req, requested) {
+  const branchId = req.user.role === 'owner' ? requested || branchFilter(req) : req.user.branchId
+  if (!branchId) throw badRequest('owner ต้องระบุ branch_id', [{ field: 'branch_id', message: 'กรุณาเลือกสาขา' }])
+  return branchId
+}
+
+/** ข้อมูลของสาขาอื่น → 403 (owner ผ่านทุกสาขา) */
+export function mustBeMyBranch(req, branchId) {
+  if (req.user.role === 'owner') return
+  if (req.user.branchId !== branchId) throw forbidden('ข้อมูลนี้เป็นของสาขาอื่น', 'FORBIDDEN_BRANCH')
+}
+
+// ===================== เงินและวันที่ (เวลาไทย) =====================
+export const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100
+
+/** วันนี้ตามเวลาไทย 'YYYY-MM-DD' */
+export const todayTh = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10)
+
+export const dateString = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'รูปแบบ YYYY-MM-DD')
+  .refine((v) => !Number.isNaN(Date.parse(v)), 'วันที่ไม่ถูกต้อง')
+
+/** ช่วงวันที่ from..to (ค่าเริ่มต้น: ต้นเดือนถึงวันนี้ หรือวันนี้วันเดียวถ้า defaultToday) */
+export function dateRange(query, { defaultToday = false } = {}) {
+  const today = todayTh()
+  const { from, to } = parse(z.object({ from: dateString.optional(), to: dateString.optional() }), query)
+  const range = {
+    from: from ?? (to || (defaultToday ? today : `${today.slice(0, 7)}-01`)),
+    to: to ?? (from && from > today ? from : today),
+  }
+  if (range.from > range.to) throw badRequest('from ต้องไม่เกิน to', [{ field: 'from', message: 'from ต้องไม่เกิน to' }])
+  if ((Date.parse(range.to) - Date.parse(range.from)) / 86_400_000 > 366) throw badRequest('ช่วงวันที่ยาวเกิน 1 ปี')
+  return range
+}
+
+/** ช่วงเวลาของวันที่ from..to ตามเวลาไทย → [เริ่ม, ก่อน) แบบ ISO ใช้กรอง timestamptz */
+export function dayRangeIso(from, to) {
+  const start = new Date(`${from}T00:00:00+07:00`)
+  const end = new Date(Date.parse(`${to}T00:00:00+07:00`) + 86_400_000)
+  return [start.toISOString(), end.toISOString()]
 }

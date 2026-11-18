@@ -26,7 +26,7 @@ const category = z.enum(['labor', 'rent_utilities', 'ingredients', 'other'], {
   message: 'หมวดต้องเป็น labor, rent_utilities, ingredients หรือ other',
 })
 const amount = z
-  .number({ invalid_type_error: 'ต้องเป็นตัวเลข' })
+  .number({ error: 'ต้องเป็นตัวเลข' })
   .positive('ต้องมากกว่า 0')
   .max(10_000_000)
   .transform((v) => round2(v))

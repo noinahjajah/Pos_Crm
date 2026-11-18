@@ -1,13 +1,13 @@
 {
   "name": "pos-crm-services",
   "private": true,
-  "description": "POS CRM backend: gateway, identity (Dev 1) + รันทุก service ใน services/ พร้อมกัน",
+  "description": "POS CRM backend: ทุก service ใน services/ ใช้ package เดียวกัน",
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "setup": "npm install && npm --prefix catalog install && npm --prefix payment install && npm --prefix ../web install",
+    "setup": "npm install && npm --prefix ../web install",
     "dev": "concurrently -n identity,gateway,catalog,payment,web -c blue,green,yellow,cyan,magenta \"npm run dev:identity\" \"npm run dev:gateway\" \"npm run dev:catalog\" \"npm run dev:payment\" \"npm --prefix ../web run dev\"",
     "dev:identity": "cd identity && node --env-file-if-exists=../.env --watch server.js",
     "dev:gateway": "cd gateway && node --env-file-if-exists=../.env --watch server.js",

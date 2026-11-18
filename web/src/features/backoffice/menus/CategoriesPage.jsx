@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createCategory, listCategories, updateCategory } from '../../../api/catalog'
-import { errorText, useBranchScope, useToast } from '../useBranchScope'
+import { useBranchScope, useNotify } from '../useBranchScope'
+import { errorText } from '../../../lib/format.js'
 import './menus.css'
 import '../backoffice.css'
 
@@ -13,7 +14,7 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(null) // null | {} | category
-  const [toast, notify] = useToast()
+  const notify = useNotify()
 
   const [reloadKey, setReloadKey] = useState(0)
   useEffect(() => {
@@ -118,8 +119,6 @@ export default function CategoriesPage() {
           }}
         />
       )}
-
-      {toast && <div className={`mm-toast ${toast.type === 'error' ? 'is-error' : ''}`}>{toast.message}</div>}
     </div>
   )
 }

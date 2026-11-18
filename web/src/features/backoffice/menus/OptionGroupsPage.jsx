@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api } from '../../../api/client'
+import { useBranchScope, useNotify } from '../useBranchScope'
 import {
   createOption,
   createOptionGroup,
@@ -9,62 +9,23 @@ import {
 } from '../../../api/catalog'
 import './menus.css'
 import './option-groups.css'
+import { errorText } from '../../../lib/format.js'
 
 // หน้าจัดการกลุ่มตัวเลือก (หลังร้าน) — 1.16, 1.17
 // กลุ่มตัวเลือกเป็นของแต่ละสาขา เช่น "ระดับความเผ็ด" (เลือกได้ 1) หรือ "ท็อปปิ้ง" (เลือกได้หลายอย่าง)
 // manager: สาขาตัวเอง · owner: เลือกสาขาได้ · ปิดใช้แทนการลบ
 
-// แปลง error จาก API เป็นข้อความอ่านง่าย (รวมรายละเอียดรายช่องถ้ามี)
-function errorText(err) {
-  if (!err) return ''
-  const fields = (err.details || [])
-    .map((d) => d.message && (d.field ? `${d.field}: ${d.message}` : d.message))
-    .filter(Boolean)
-  return fields.length ? `${err.message} — ${fields.join(', ')}` : err.message || 'เกิดข้อผิดพลาด'
-}
-
 const price = (n) => (Number(n) > 0 ? `+${Number(n).toLocaleString('th-TH')} บาท` : 'ไม่บวกเพิ่ม')
 
 export default function OptionGroupsPage() {
-  const [me, setMe] = useState(null)
-  const [branches, setBranches] = useState([])
-  const [branchId, setBranchId] = useState('')
+  const { me, branches, branchId, setBranchId, isOwner, canManage } = useBranchScope()
+  const notify = useNotify()
   const [groups, setGroups] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [toast, setToast] = useState(null)
   const [groupDialog, setGroupDialog] = useState(null) // null = ปิด, {} = เพิ่ม, group = แก้ไข
   const [optionDialog, setOptionDialog] = useState(null) // { group, option? }
   const [busyId, setBusyId] = useState(null)
-
-  const isOwner = me?.role === 'owner'
-  const canManage = me?.role === 'owner' || me?.role === 'manager'
-
-  const notify = useCallback((message, type = 'success') => {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
-  }, [])
-
-  // ข้อมูลผู้ใช้และสาขา (โหลดครั้งเดียว)
-  useEffect(() => {
-    let cancelled = false
-    Promise.all([api.get('/identity/me'), api.get('/identity/branches')])
-      .then(([meRes, branchRes]) => {
-        if (cancelled) return
-        const user = meRes.data
-        setMe(user)
-        setBranches(branchRes.data || [])
-        setBranchId(user.role === 'owner' ? branchRes.data?.[0]?.id || '' : user.branch_id)
-      })
-      .catch((err) => {
-        if (cancelled) return
-        setError(errorText(err))
-        setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   // โหลดกลุ่มตัวเลือกของสาขา (รวมที่ปิดใช้)
   const [reloadKey, setReloadKey] = useState(0)
@@ -259,8 +220,6 @@ export default function OptionGroupsPage() {
           onSaved={onSaved}
         />
       )}
-
-      {toast && <div className={`mm-toast ${toast.type === 'error' ? 'is-error' : ''}`}>{toast.message}</div>}
     </div>
   )
 }

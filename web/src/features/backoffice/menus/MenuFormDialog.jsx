@@ -7,18 +7,10 @@ import {
   setMenuOptionGroups,
   updateMenu,
 } from '../../../api/catalog'
+import { errorText } from '../../../lib/format.js'
 
 // ฟอร์มเพิ่ม/แก้ไขเมนู: ชื่อ หมวด ราคา รายละเอียด รูป และกลุ่มตัวเลือกของสาขา (1.14, 1.18)
 
-
-// แปลง error จาก API เป็นข้อความอ่านง่าย (รวมรายละเอียดรายช่องถ้ามี)
-function errorText(err) {
-  if (!err) return ''
-  const fields = (err.details || [])
-    .map((d) => d.message && (d.field ? `${d.field}: ${d.message}` : d.message))
-    .filter(Boolean)
-  return fields.length ? `${err.message} — ${fields.join(', ')}` : err.message || 'เกิดข้อผิดพลาด'
-}
 
 const MAX_IMAGE = 2 * 1024 * 1024
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']

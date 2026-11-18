@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { fmt } from './checkoutUtils'
+import { baht } from '../../lib/format.js'
 
 // PromptPay แบบจำลอง (1.25): แสดง QR ตัวอย่างให้ลูกค้าดู แล้วพนักงานกดยืนยันว่าได้รับเงิน
 // ไม่ได้ตรวจกับธนาคารจริง และ QR นี้สแกนจ่ายจริงไม่ได้
@@ -52,14 +52,14 @@ export default function PromptPayQR({ total, reference, paying, onConfirm }) {
             <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill="#0f2b46" />
           ))}
         </svg>
-        <div className="co-qr-amount">฿{fmt(total)}</div>
+        <div className="co-qr-amount">฿{baht(total)}</div>
         <div className="co-qr-ref">อ้างอิง {reference}</div>
       </div>
 
       <p className="co-hint">ให้ลูกค้าสแกนแล้วตรวจยอดในแอปธนาคารของลูกค้า · ระบบนี้เป็นแบบจำลอง กดยืนยันแล้วถือว่ารับเงินสำเร็จทันที</p>
 
       <button className="co-btn co-btn-primary co-btn-block" onClick={onConfirm} disabled={paying}>
-        {paying ? 'กำลังบันทึก…' : `ยืนยันได้รับเงิน ฿${fmt(total)}`}
+        {paying ? 'กำลังบันทึก…' : `ยืนยันได้รับเงิน ฿${baht(total)}`}
       </button>
     </div>
   )
