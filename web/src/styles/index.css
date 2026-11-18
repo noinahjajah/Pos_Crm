@@ -20,6 +20,16 @@
   --app-ok-soft: #dcfce7;
   --app-danger: #b91c1c;
   --app-danger-soft: #fef2f2;
+  /* เหลือง/ส้ม = สถานะ "มีลูกค้า" ในผังโต๊ะ (Figma POS Prototype หน้าผังโต๊ะ) */
+  --app-warn: #b45309;
+  --app-warn-soft: #fdf1df;
+  /* สีกราฟหลายชุด (1 สีต่อสาขา/ชุดข้อมูล ตามลำดับเสมอ ห้ามวนสี) — ผ่านตัวตรวจ dataviz validate_palette ทั้ง 2 โหมด
+     เกิน 4 ชุด → รวมเป็น "อื่น ๆ" ใช้ --app-series-other */
+  --app-series-1: #00806a;
+  --app-series-2: #b77a10;
+  --app-series-3: #3d6fd1;
+  --app-series-4: #b4478f;
+  --app-series-other: #8a847b;
 
   --app-sans: 'Sarabun', 'Noto Sans Thai', system-ui, 'Segoe UI', Roboto, sans-serif;
 
@@ -46,6 +56,13 @@
     --app-ok-soft: #14301f;
     --app-danger: #f87171;
     --app-danger-soft: #3a1717;
+    --app-warn: #fbbf24;
+    --app-warn-soft: #3a2a12;
+    --app-series-1: #2fa78d;
+    --app-series-2: #b98316;
+    --app-series-3: #5b8ae6;
+    --app-series-4: #c460a4;
+    --app-series-other: #8a847b;
   }
 }
 

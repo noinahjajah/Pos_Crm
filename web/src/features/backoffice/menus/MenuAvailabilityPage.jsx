@@ -1,14 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { listMenus, setMenuAvailability } from '../../../api/catalog'
-import { baht, errorText, useToast } from '../useBranchScope'
-import './menus.css'
-import '../backoffice.css'
+import { thb, useToast } from '../../pos/posUtils'
+import { Toast } from '../../pos/posUi'
+import { errorText } from '../useBranchScope'
+import '../../pos/pos.css'
 
-// หน้าเปิด/ปิดขายเมนูของพนักงานหน้าร้าน — 1.15 · สต็อกเป็น 0 เปิดขายไม่ได้
+// หน้าเปิด/ปิดขายเมนูของพนักงานหน้าร้าน — 1.15 · มีผลทันทีกับหน้ารับออร์เดอร์ของสาขานี้
+// สต็อกเป็น 0 ระบบปิดขายให้อัตโนมัติ (1.21) และเปิดขายไม่ได้จนกว่าผู้จัดการ/เจ้าของจะเติม (1.22)
+
+const ALL = '__all__'
+const LOW_STOCK = 5 // เหลือไม่เกินเท่านี้ = ใกล้หมด
+
+function menuStatus(m) {
+  if (Number(m.quantity) <= 0) return { label: 'ปิดอัตโนมัติ · สต็อกหมด', cls: 'is-waiting' }
+  if (!m.is_available) return { label: 'ปิดโดยพนักงาน', cls: 'is-muted' }
+  if (Number(m.quantity) <= LOW_STOCK) return { label: 'ใกล้หมด', cls: 'is-occupied' }
+  return { label: 'เปิดขาย', cls: 'is-available' }
+}
 
 export default function MenuAvailabilityPage() {
   const [menus, setMenus] = useState([])
   const [search, setSearch] = useState('')
+  const [category, setCategory] = useState(ALL)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
@@ -20,7 +33,7 @@ export default function MenuAvailabilityPage() {
     listMenus()
       .then((rows) => {
         if (cancelled) return
-        setMenus(rows)
+        setMenus(rows || [])
         setError('')
       })
       .catch((err) => !cancelled && setError(errorText(err)))
@@ -35,10 +48,18 @@ export default function MenuAvailabilityPage() {
     setReloadKey((k) => k + 1)
   }, [])
 
+  const categories = useMemo(() => {
+    const seen = new Map()
+    for (const m of menus) if (m.category_id && !seen.has(m.category_id)) seen.set(m.category_id, m.category_name || 'อื่น ๆ')
+    return [...seen.entries()]
+  }, [menus])
+
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return menus.filter((m) => !q || m.name.toLowerCase().includes(q))
-  }, [menus, search])
+    return menus.filter((m) => (category === ALL || m.category_id === category) && (!q || m.name.toLowerCase().includes(q)))
+  }, [menus, search, category])
+
+  const closedCount = menus.filter((m) => !m.is_available || Number(m.quantity) <= 0).length
 
   async function toggle(menu) {
     setBusyId(menu.id)
@@ -54,63 +75,83 @@ export default function MenuAvailabilityPage() {
   }
 
   return (
-    <div className="mm-page">
-      <header className="mm-header">
+    <div className="pos-page">
+      <header className="pos-header">
         <div>
-          <h1 className="mm-title">เปิด/ปิดขายเมนู</h1>
-          <p className="mm-subtitle">ปิดเมนูเมื่อของไม่พร้อม · เมนูที่สต็อกเป็น 0 ต้องให้ผู้จัดการเติมก่อน</p>
+          <h1 className="pos-title">เปิด/ปิดการขายเมนู</h1>
+          <p className="pos-subtitle">มีผลทันทีกับหน้ารับออร์เดอร์ของสาขานี้ (1.15)</p>
         </div>
       </header>
 
-      <div className="mm-toolbar">
-        <input className="mm-input mm-search" placeholder="ค้นหาชื่อเมนู" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="pos-menu-toolbar">
+        <div className="pos-chips" style={{ alignItems: 'center' }}>
+          <input className="pos-search" type="search" placeholder="ค้นหาเมนู" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="ค้นหาเมนู" />
+          <button type="button" className={`pos-chip ${category === ALL ? 'is-active' : ''}`} onClick={() => setCategory(ALL)}>
+            ทั้งหมด
+          </button>
+          {categories.map(([id, name]) => (
+            <button key={id} type="button" className={`pos-chip ${category === id ? 'is-active' : ''}`} onClick={() => setCategory(id)}>
+              {name}
+            </button>
+          ))}
+        </div>
+        {!loading && closedCount > 0 && <span className="pos-pill is-waiting">ปิดขายอยู่ {closedCount} เมนู</span>}
       </div>
 
       {error && (
-        <div className="mm-alert">
+        <div className="pos-alert">
           {error}
-          <button className="mm-link" onClick={reload}>
+          <button className="pos-link" onClick={reload}>
             ลองใหม่
           </button>
         </div>
       )}
 
       {loading ? (
-        <div className="mm-card mm-skeleton" />
+        <div className="pos-skeleton" />
       ) : shown.length === 0 ? (
-        <div className="mm-empty">{menus.length ? 'ไม่พบเมนูที่ค้นหา' : 'ยังไม่มีเมนูในสาขานี้'}</div>
+        <div className="pos-empty">{menus.length ? 'ไม่พบเมนูที่ค้นหา' : 'ยังไม่มีเมนูในสาขานี้'}</div>
       ) : (
-        <div className="bo-table-wrap">
-          <table className="bo-table">
+        <div className="pos-rtable-wrap" style={{ background: 'var(--app-card)' }}>
+          <table className="pos-rtable pos-avail-table">
             <thead>
               <tr>
+                <th aria-label="รูป" />
                 <th>เมนู</th>
                 <th>หมวด</th>
-                <th className="bo-num">ราคา (บาท)</th>
-                <th className="bo-num">คงเหลือ</th>
-                <th>เปิดขาย</th>
+                <th className="is-num">ราคา</th>
+                <th className="is-num">คงเหลือ</th>
+                <th>สถานะ</th>
+                <th className="is-center">เปิดขาย</th>
               </tr>
             </thead>
             <tbody>
               {shown.map((m) => {
-                const empty = m.quantity <= 0
+                const empty = Number(m.quantity) <= 0
+                const status = menuStatus(m)
                 return (
                   <tr key={m.id}>
+                    <td style={{ width: 56 }}>
+                      <div className="pos-thumb-sm">{m.image_url ? <img src={m.image_url} alt="" loading="lazy" /> : <span aria-hidden="true">▧</span>}</div>
+                    </td>
                     <td>
                       <strong>{m.name}</strong>
                     </td>
-                    <td className="bo-muted">{m.category_name}</td>
-                    <td className="bo-num">{baht(m.price)}</td>
-                    <td className={`bo-num ${empty ? 'bo-neg' : ''}`}>
+                    <td className="pos-muted">{m.category_name}</td>
+                    <td className="is-num">{thb(m.price)}</td>
+                    <td className={`is-num ${empty ? 'pos-danger-text' : ''}`}>
                       <strong>{m.quantity}</strong>
                     </td>
                     <td>
-                      <label className="mm-switch" title={empty && !m.is_available ? 'สต็อกเป็น 0 ต้องเติมก่อน' : ''}>
+                      <span className={`pos-pill ${status.cls}`}>{status.label}</span>
+                    </td>
+                    <td className="is-center">
+                      <label className="pos-switch" title={empty && !m.is_available ? 'สต็อกเป็น 0 ต้องให้ผู้จัดการเติมก่อน' : ''}>
                         <input
                           type="checkbox"
                           aria-label={`เปิดขาย ${m.name}`}
-                          checked={m.is_available}
-                          disabled={busyId === m.id || (empty && !m.is_available)}
+                          checked={m.is_available && !empty}
+                          disabled={busyId === m.id || empty}
                           onChange={() => toggle(m)}
                         />
                         <span />
@@ -124,7 +165,11 @@ export default function MenuAvailabilityPage() {
         </div>
       )}
 
-      {toast && <div className={`mm-toast ${toast.type === 'error' ? 'is-error' : ''}`}>{toast.message}</div>}
+      <p className="pos-note is-muted" style={{ marginTop: 14 }}>
+        เมนูที่สต็อกเหลือ 0 ระบบปิดขายให้อัตโนมัติ (1.21) · การเติมสต็อกทำได้โดยผู้จัดการและเจ้าของ (1.22)
+      </p>
+
+      <Toast toast={toast} />
     </div>
   )
 }

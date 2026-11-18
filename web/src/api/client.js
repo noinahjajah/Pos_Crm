@@ -59,6 +59,10 @@ export function setTokens(next) {
 
 export const hasToken = () => Boolean(tokens?.access_token)
 
+/** header สำหรับ request ที่ยิงเองนอก api.* (เช่น SSE ผ่าน fetch ที่ต้องอ่านเป็น stream) */
+export const authHeaders = () => (tokens?.access_token ? { Authorization: `Bearer ${tokens.access_token}` } : {})
+export const API_BASE = BASE
+
 // AuthContext ฟังเหตุการณ์นี้เพื่อพากลับหน้า login เมื่อ refresh ไม่สำเร็จ
 const listeners = new Set()
 export function onSessionExpired(fn) {

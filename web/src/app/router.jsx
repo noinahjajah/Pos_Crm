@@ -9,10 +9,16 @@ import CategoriesPage from '../features/backoffice/menus/CategoriesPage'
 import MenusPage from '../features/backoffice/menus/MenusPage'
 import OptionGroupsPage from '../features/backoffice/menus/OptionGroupsPage'
 import PaymentsPage from '../features/backoffice/payments/PaymentsPage'
+import ProfitPage from '../features/backoffice/reports/ProfitPage'
 import ReportsPage from '../features/backoffice/reports/ReportsPage'
+import BranchesPage from '../features/backoffice/users/BranchesPage'
 import StocksPage from '../features/backoffice/stocks/StocksPage'
 import UsersPage from '../features/backoffice/users/UsersPage'
 import CashierPage from '../features/checkout/CashierPage'
+import ApprovalsPage from '../features/pos/approvals/ApprovalsPage'
+import RefundRequestPage from '../features/pos/approvals/RefundRequestPage'
+import OrderPage from '../features/pos/orders/OrderPage'
+import TablesPage from '../features/pos/tables/TablesPage'
 import { CheckoutRoute, Home, Placeholder } from './routeElements'
 
 // เส้นทางทั้งหมด + role ต่อหน้า (ตามตารางใน เอกสาร/frontend-folder-structure.md)
@@ -36,8 +42,8 @@ export const router = createBrowserRouter([
           {
             element: <RequireRole roles={SM} />,
             children: [
-              { path: '/tables', element: <Placeholder title="ผังโต๊ะ" owner="Dev 3" /> },
-              { path: '/orders/:id', element: <Placeholder title="สั่งอาหาร" owner="Dev 3" /> },
+              { path: '/tables', element: <TablesPage /> },
+              { path: '/orders/:id', element: <OrderPage /> },
               { path: '/kitchen', element: <Placeholder title="จอครัว" owner="Dev 3" /> },
               { path: '/cashier', element: <CashierPage /> },
               { path: '/checkout/:orderId', element: <CheckoutRoute /> },
@@ -45,11 +51,17 @@ export const router = createBrowserRouter([
             ],
           },
 
+          // ขอคืนเงิน — ส่งคำขอได้เฉพาะ staff (POST /pos/orders/:id/approvals = S)
+          {
+            element: <RequireRole roles={['staff']} />,
+            children: [{ path: '/refunds/request', element: <RefundRequestPage /> }],
+          },
+
           // อนุมัติ + หลังร้าน M O
           {
             element: <RequireRole roles={MO} />,
             children: [
-              { path: '/approvals', element: <Placeholder title="รายการรออนุมัติ" owner="Dev 3" /> },
+              { path: '/approvals', element: <ApprovalsPage /> },
               { path: '/admin/menus', element: <MenusPage /> },
               { path: '/admin/menus/option-groups', element: <OptionGroupsPage /> },
               { path: '/admin/stocks', element: <StocksPage /> },
@@ -63,7 +75,11 @@ export const router = createBrowserRouter([
           // หมวดหมู่เป็นของกลาง owner จัดการเท่านั้น (1.14) — หน้าของ Dev 2 ก็ไม่ให้ manager เข้า
           {
             element: <RequireRole roles={['owner']} />,
-            children: [{ path: '/admin/menus/categories', element: <CategoriesPage /> }],
+            children: [
+              { path: '/admin/menus/categories', element: <CategoriesPage /> },
+              { path: '/admin/profit', element: <ProfitPage /> },
+              { path: '/admin/branches', element: <BranchesPage /> },
+            ],
           },
 
           { path: '*', element: <Home /> },

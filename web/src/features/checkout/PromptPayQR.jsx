@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
-import { fmt } from './checkoutUtils'
+import { useMemo, useState } from 'react'
+import { thb2 } from './checkoutUtils'
 
-// PromptPay แบบจำลอง (1.25): แสดง QR ตัวอย่างให้ลูกค้าดู แล้วพนักงานกดยืนยันว่าได้รับเงิน
+// PromptPay แบบจำลอง (1.25): แสดง QR ตัวอย่าง → กด "จำลอง: ลูกค้าโอนสำเร็จ" → กด "ปิดโต๊ะ" เพื่อบันทึกรับเงิน
 // ไม่ได้ตรวจกับธนาคารจริง และ QR นี้สแกนจ่ายจริงไม่ได้
 
 const SIZE = 25
@@ -39,28 +39,42 @@ function fakeQr(seed) {
   return cells
 }
 
-export default function PromptPayQR({ total, reference, paying, onConfirm }) {
+export default function PromptPayQR({ total, reference, branchName, paying, onConfirm }) {
   const cells = useMemo(() => fakeQr(`${reference}|${total}`), [reference, total])
+  const [received, setReceived] = useState(false)
 
   return (
-    <div className="co-qr">
-      <div className="co-qr-card">
-        <div className="co-qr-brand">PromptPay</div>
-        <svg viewBox={`-2 -2 ${SIZE + 4} ${SIZE + 4}`} className="co-qr-code" role="img" aria-label="QR PromptPay (จำลอง)">
+    <div className="pos-pay-form">
+      <div className="pos-qr">
+        <svg viewBox={`-2 -2 ${SIZE + 4} ${SIZE + 4}`} className="pos-qr-code" role="img" aria-label="QR PromptPay (จำลอง)">
           <rect x="-2" y="-2" width={SIZE + 4} height={SIZE + 4} fill="#fff" />
           {cells.map(([x, y]) => (
-            <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill="#0f2b46" />
+            <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill="#1f1d1a" />
           ))}
         </svg>
-        <div className="co-qr-amount">฿{fmt(total)}</div>
-        <div className="co-qr-ref">อ้างอิง {reference}</div>
+      </div>
+      <p className="pos-muted pos-small" style={{ textAlign: 'center', margin: '8px 0 2px' }}>
+        PromptPay{branchName ? ` · ${branchName}` : ''} · อ้างอิง {reference}
+      </p>
+      <div className="pos-qr-amount">{thb2(total)}</div>
+      <div style={{ textAlign: 'center' }}>
+        <span className={`pos-pill ${received ? 'is-available' : 'is-occupied'}`} aria-live="polite">
+          {received ? 'ได้รับเงินแล้ว' : 'รอการชำระเงิน…'}
+        </span>
       </div>
 
-      <p className="co-hint">ให้ลูกค้าสแกนแล้วตรวจยอดในแอปธนาคารของลูกค้า · ระบบนี้เป็นแบบจำลอง กดยืนยันแล้วถือว่ารับเงินสำเร็จทันที</p>
+      <p className="pos-note is-muted" style={{ marginTop: 14 }}>
+        QR นี้เป็นแบบจำลอง ยังไม่เชื่อมธนาคาร (1.25) · ยอดเงินฝังอยู่ใน QR อัตโนมัติ
+      </p>
 
-      <button className="co-btn co-btn-primary co-btn-block" onClick={onConfirm} disabled={paying}>
-        {paying ? 'กำลังบันทึก…' : `ยืนยันได้รับเงิน ฿${fmt(total)}`}
-      </button>
+      <div className="pos-side-actions pos-pay-submit">
+        <button type="button" className="pos-btn pos-grow" onClick={() => setReceived(true)} disabled={received || paying}>
+          จำลอง: ลูกค้าโอนสำเร็จ
+        </button>
+        <button type="button" className="pos-btn pos-btn-primary pos-grow" onClick={onConfirm} disabled={!received || paying}>
+          {paying ? 'กำลังบันทึก…' : 'ปิดโต๊ะ'}
+        </button>
+      </div>
     </div>
   )
 }

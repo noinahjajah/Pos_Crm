@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { createPayment, getOrder } from '../../api/payment'
+import { thaiTime } from '../../lib/format'
+import { useAuth } from '../auth/AuthContext'
+import { useBranchName } from '../pos/posUtils'
+import BillSummary from './BillSummary'
 import CashForm from './CashForm'
 import PromptPayQR from './PromptPayQR'
 import Receipt from './Receipt'
-import { errorText, fmt, lineTotal, tableLabel } from './checkoutUtils'
-import './checkout.css'
+import { billItems, billNumbers, errorText, lineTotal, tableLabel, thb, thb2 } from './checkoutUtils'
+import '../pos/pos.css'
 
-// หน้าคิดเงิน — 1.23, 1.25 (ฝั่งเงินของ Dev 2)
+// หน้าชำระเงิน — 1.23, 1.25 (ฝั่งเงินของ Dev 2)
 // ใช้: <CheckoutPage orderId="..." onDone={() => ...} onBack={() => ...} />
 // ถ้าไม่ส่ง orderId จะอ่านจาก URL ?order_id=...
 // ยอดเงินมาจากบิลผ่าน payment service · บิลต้องอยู่สถานะ "รอชำระ" (waiting_payment) ก่อน
@@ -15,6 +19,8 @@ const newKey = () => (crypto.randomUUID ? crypto.randomUUID() : `pay-${Date.now(
 
 export default function CheckoutPage({ orderId: orderIdProp, onDone, onBack }) {
   const orderId = orderIdProp || new URLSearchParams(window.location.search).get('order_id')
+  const { user } = useAuth()
+  const branchName = useBranchName()
   const [order, setOrder] = useState(null)
   const [loadError, setLoadError] = useState(orderId ? '' : 'ไม่ได้ระบุบิลที่จะคิดเงิน')
   const [method, setMethod] = useState('cash')
@@ -28,7 +34,7 @@ export default function CheckoutPage({ orderId: orderIdProp, onDone, onBack }) {
     if (!orderId) return
     let cancelled = false
     getOrder(orderId)
-      .then((data) => !cancelled && setOrder(data))
+      .then((data) => !cancelled && setOrder({ ...data, items: billItems(data) }))
       .catch((err) => !cancelled && setLoadError(errorText(err)))
     return () => {
       cancelled = true
@@ -50,10 +56,10 @@ export default function CheckoutPage({ orderId: orderIdProp, onDone, onBack }) {
 
   if (loadError) {
     return (
-      <div className="co-page">
-        <div className="co-alert">{loadError}</div>
+      <div className="pos-page">
+        <div className="pos-alert">{loadError}</div>
         {onBack && (
-          <button className="co-btn" onClick={onBack}>
+          <button className="pos-btn" onClick={onBack}>
             ← กลับ
           </button>
         )}
@@ -63,120 +69,111 @@ export default function CheckoutPage({ orderId: orderIdProp, onDone, onBack }) {
 
   if (!order) {
     return (
-      <div className="co-page">
-        <div className="co-skeleton" />
+      <div className="pos-page">
+        <div className="pos-skeleton" />
       </div>
     )
   }
+
+  const tables = tableLabel(order)
+  const staffName = user?.full_name || user?.username || ''
 
   if (result) {
     return (
-      <div className="co-page">
-        <Receipt order={order} payment={result.payment} changeAmount={result.change_amount} onDone={onDone} />
+      <div className="pos-page">
+        <header className="pos-header">
+          <div>
+            <h1 className="pos-title">ชำระเงินสำเร็จ · โต๊ะ {tables}</h1>
+            <p className="pos-subtitle">
+              บิล {order.order_no || order.id.slice(0, 8)} · {thaiTime(result.payment.paid_at)}
+            </p>
+          </div>
+        </header>
+        <Receipt order={order} payment={result.payment} changeAmount={result.change_amount} branchName={branchName} staffName={staffName} onDone={onDone} />
       </div>
     )
   }
 
-  const total = Number(order.total)
+  const total = billNumbers(order).total
   const waiting = order.status === 'waiting_payment'
+  const items = order.items || []
 
   return (
-    <div className="co-page">
-      <header className="co-header">
-        {onBack && (
-          <button className="co-btn co-btn-ghost" onClick={onBack}>
-            ← กลับ
-          </button>
-        )}
+    <div className="pos-page">
+      <header className="pos-header">
         <div>
-          <h1 className="co-title">คิดเงิน</h1>
-          <p className="co-sub">
-            บิล {order.order_no || order.id.slice(0, 8)} · โต๊ะ {tableLabel(order)}
+          <h1 className="pos-title">ชำระเงิน · โต๊ะ {tables}</h1>
+          <p className="pos-subtitle">
+            บิล {order.order_no || order.id.slice(0, 8)}
             {order.guest_count ? ` · ${order.guest_count} คน` : ''}
           </p>
         </div>
+        {onBack && (
+          <button className="pos-btn" onClick={onBack} disabled={paying}>
+            ← กลับ
+          </button>
+        )}
       </header>
 
-      <div className="co-layout">
-        {/* ---------- รายการในบิล ---------- */}
-        <section className="co-bill">
-          <h2 className="co-section-title">รายการ</h2>
-          <ul className="co-items">
-            {(order.items || []).map((it, i) => (
-              <li key={it.id || i}>
-                <span className="co-qty">{it.quantity}×</span>
-                <div className="co-item-name">
-                  {it.menu_name}
-                  {(it.options || []).length > 0 && (
-                    <small>{it.options.map((o) => o.option_name || o.name).join(', ')}</small>
-                  )}
-                  {it.note && <small className="co-note">หมายเหตุ: {it.note}</small>}
-                </div>
-                <span className="co-amount">{fmt(lineTotal(it))}</span>
-              </li>
-            ))}
-          </ul>
-
-          <dl className="co-totals">
-            <div>
-              <dt>ยอดก่อน VAT</dt>
-              <dd>{fmt(order.subtotal)}</dd>
-            </div>
-            {Number(order.discount_amount) > 0 && (
-              <div className="co-discount">
-                <dt>ส่วนลด</dt>
-                <dd>−{fmt(order.discount_amount)}</dd>
+      <div className="pos-checkout-layout">
+        {/* ---------- สรุปยอด + รายการ ---------- */}
+        <div className="pos-refund-side">
+          <BillSummary order={order} />
+          <div className="pos-panel">
+            <h2 className="pos-panel-title">รายการ ({items.length})</h2>
+            {items.map((it, i) => (
+              <div key={it.id || i} className="pos-bill-line">
+                <span>
+                  {it.menu_name} <span className="pos-muted">x{it.quantity}</span>
+                  {it.options?.length > 0 && <span className="pos-line-sub">{it.options.map((o) => o.option_name || o.name).join(' · ')}</span>}
+                </span>
+                <span>{thb(lineTotal(it))}</span>
               </div>
-            )}
-            <div>
-              <dt>VAT 7%</dt>
-              <dd>{fmt(order.vat_amount)}</dd>
-            </div>
-            <div className="co-grand">
-              <dt>ยอดสุทธิ</dt>
-              <dd>฿{fmt(total)}</dd>
-            </div>
-          </dl>
-        </section>
+            ))}
+          </div>
+        </div>
 
         {/* ---------- รับเงิน ---------- */}
-        <section className="co-pay">
+        <section className="pos-panel pos-pay-panel" aria-label="รับเงิน">
           {!waiting ? (
-            <div className="co-alert">
+            <div className="pos-alert">
               {order.status === 'paid' || order.status === 'refunded'
                 ? 'บิลนี้ชำระเงินแล้ว'
-                : 'บิลนี้ยังไม่ได้กด “เรียกเก็บเงิน” ให้กลับไปที่โต๊ะแล้วกดเรียกเก็บเงินก่อน'}
+                : 'บิลนี้ยังไม่ได้กด “เรียกเก็บเงิน” ให้กลับไปที่หน้าคิดเงินแล้วกดเรียกเก็บเงินก่อน'}
             </div>
           ) : (
             <>
-              <div className="co-methods" role="tablist">
-                <button
-                  role="tab"
-                  aria-selected={method === 'cash'}
-                  className={`co-method ${method === 'cash' ? 'is-active' : ''}`}
-                  onClick={() => setMethod('cash')}
-                  disabled={paying}
-                >
-                  <span aria-hidden="true">💵</span> เงินสด
-                </button>
-                <button
-                  role="tab"
-                  aria-selected={method === 'promptpay'}
-                  className={`co-method ${method === 'promptpay' ? 'is-active' : ''}`}
-                  onClick={() => setMethod('promptpay')}
-                  disabled={paying}
-                >
-                  <span aria-hidden="true">📱</span> PromptPay
-                </button>
+              <div className="pos-tabs" role="tablist" aria-label="วิธีชำระเงิน">
+                {[
+                  ['cash', 'เงินสด'],
+                  ['promptpay', 'QR พร้อมเพย์ (จำลอง)'],
+                ].map(([m, label]) => (
+                  <button
+                    key={m}
+                    type="button"
+                    role="tab"
+                    aria-selected={method === m}
+                    className={method === m ? 'is-active' : ''}
+                    onClick={() => setMethod(m)}
+                    disabled={paying}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
+
+              <div className="pos-due">
+                <span>ยอดที่ต้องชำระ</span>
+                <strong>{thb2(total)}</strong>
+              </div>
+
+              {payError && <p className="pos-error" style={{ margin: '0 0 12px' }}>{payError}</p>}
 
               {method === 'cash' ? (
                 <CashForm total={total} paying={paying} onPay={(cash) => pay({ cash_received: cash })} />
               ) : (
-                <PromptPayQR total={total} reference={order.order_no || order.id} paying={paying} onConfirm={() => pay({})} />
+                <PromptPayQR total={total} reference={order.order_no || order.id} branchName={branchName} paying={paying} onConfirm={() => pay({})} />
               )}
-
-              {payError && <div className="co-alert co-alert-pay">{payError}</div>}
             </>
           )}
         </section>

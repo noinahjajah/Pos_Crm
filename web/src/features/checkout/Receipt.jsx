@@ -1,102 +1,72 @@
-import { fmt, lineTotal, tableLabel } from './checkoutUtils'
+import { useCallback, useState } from 'react'
+import ReceiptPrint from '../../components/print/ReceiptPrint'
+import { tableLabel, thb2 } from './checkoutUtils'
 
-// ใบเสร็จหลังรับเงินสำเร็จ (1.23): ยอดก่อน VAT / VAT / ยอดสุทธิ + เงินทอน
-// ปุ่มพิมพ์ใช้ window.print() พิมพ์เฉพาะกล่องใบเสร็จ (ดู @media print ใน checkout.css)
+// หลังรับเงินสำเร็จ (1.23, 1.26): สรุปการชำระ + ตัวอย่างใบเสร็จ (ใบพิมพ์ของ Dev 1) · พิมพ์ใบเสร็จได้
 
 const METHOD = { cash: 'เงินสด', promptpay: 'PromptPay' }
 
-export default function Receipt({ order, payment, changeAmount, onDone }) {
-  const paidAt = new Date(payment.paid_at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
+export default function Receipt({ order, payment, changeAmount, branchName, staffName, onDone }) {
+  const [printing, setPrinting] = useState(false)
+  const donePrinting = useCallback(() => setPrinting(false), [])
+  const pay = { cashier_name: staffName, change_amount: changeAmount, ...payment }
 
   return (
-    <div className="co-receipt-wrap">
-      <div className="co-success">
-        <div className="co-success-icon" aria-hidden="true">
+    <div className="pos-success-layout">
+      <section className="pos-panel pos-success">
+        <div className="pos-success-icon" aria-hidden="true">
           ✓
         </div>
-        <div>
-          <strong>รับเงินเรียบร้อย</strong>
-          {payment.method === 'cash' && (
-            <div className="co-success-change">
-              เงินทอน <b>฿{fmt(changeAmount)}</b>
-            </div>
-          )}
-          {!payment.order_status_synced && (
-            <div className="co-hint">บันทึกเงินแล้ว ระบบกำลังอัปเดตสถานะโต๊ะ (ลองใหม่อัตโนมัติ)</div>
-          )}
-        </div>
-      </div>
+        <h2 className="pos-success-title">ชำระเงินสำเร็จ</h2>
+        <p className="pos-muted" style={{ margin: '0 0 16px' }}>
+          โต๊ะ {tableLabel(order)} ปิดแล้ว และกลับเป็นสถานะ “ว่าง” ในผังโต๊ะ (1.26)
+        </p>
+        {payment.order_status_synced === false && (
+          <p className="pos-note is-warn">บันทึกเงินแล้ว ระบบกำลังอัปเดตสถานะโต๊ะ (ลองใหม่อัตโนมัติ)</p>
+        )}
 
-      <article className="co-receipt" id="co-receipt">
-        <header>
-          <h2>ใบเสร็จรับเงิน</h2>
-          <p>
-            บิล {order.order_no || order.id.slice(0, 8)} · โต๊ะ {tableLabel(order)}
-          </p>
-          <p>{paidAt}</p>
-        </header>
-
-        <ul className="co-receipt-items">
-          {(order.items || []).map((it, i) => (
-            <li key={it.id || i}>
-              <span>
-                {it.quantity} × {it.menu_name}
-                {(it.options || []).length > 0 && <small>{it.options.map((o) => o.option_name || o.name).join(', ')}</small>}
-              </span>
-              <span>{fmt(lineTotal(it))}</span>
-            </li>
-          ))}
-        </ul>
-
-        <dl className="co-receipt-totals">
+        <div className="pos-infobox">
           <div>
-            <dt>ยอดก่อน VAT</dt>
-            <dd>{fmt(order.subtotal)}</dd>
-          </div>
-          {Number(order.discount_amount) > 0 && (
-            <div>
-              <dt>ส่วนลด</dt>
-              <dd>−{fmt(order.discount_amount)}</dd>
-            </div>
-          )}
-          <div>
-            <dt>VAT 7%</dt>
-            <dd>{fmt(order.vat_amount)}</dd>
-          </div>
-          <div className="co-receipt-grand">
-            <dt>ยอดสุทธิ</dt>
-            <dd>{fmt(payment.amount)}</dd>
+            <span>วิธีชำระ</span>
+            <strong>{METHOD[payment.method] || payment.method}</strong>
           </div>
           <div>
-            <dt>ชำระโดย</dt>
-            <dd>{METHOD[payment.method] || payment.method}</dd>
+            <span>ยอดสุทธิ</span>
+            <strong>{thb2(payment.amount)}</strong>
           </div>
           {payment.method === 'cash' && (
             <>
               <div>
-                <dt>รับเงิน</dt>
-                <dd>{fmt(payment.cash_received)}</dd>
+                <span>รับเงิน</span>
+                <strong>{thb2(payment.cash_received)}</strong>
               </div>
               <div>
-                <dt>เงินทอน</dt>
-                <dd>{fmt(changeAmount)}</dd>
+                <span>เงินทอน</span>
+                <strong>{thb2(changeAmount)}</strong>
               </div>
             </>
           )}
-        </dl>
-        <footer>ขอบคุณที่ใช้บริการ</footer>
-      </article>
+        </div>
 
-      <div className="co-receipt-actions">
-        <button className="co-btn" onClick={() => window.print()}>
-          🖨️ พิมพ์ใบเสร็จ
-        </button>
-        {onDone && (
-          <button className="co-btn co-btn-primary" onClick={onDone}>
-            เสร็จสิ้น กลับไปหน้าคิดเงิน
+        <div className="pos-side-actions" style={{ marginTop: 16, justifyContent: 'flex-start' }}>
+          <button type="button" className="pos-btn" onClick={() => setPrinting(true)}>
+            พิมพ์ใบเสร็จ
           </button>
-        )}
-      </div>
+          {onDone && (
+            <button type="button" className="pos-btn pos-btn-primary" onClick={onDone}>
+              กลับไปหน้าโต๊ะ
+            </button>
+          )}
+        </div>
+      </section>
+
+      <aside className="pos-receipt-preview" aria-label="ตัวอย่างใบเสร็จ">
+        <ReceiptPrint order={order} payment={pay} branch={branchName ? { name: branchName } : null} preview />
+      </aside>
+
+      {printing && (
+        <ReceiptPrint order={order} payment={pay} branch={branchName ? { name: branchName } : null} autoPrint onAfterPrint={donePrinting} />
+      )}
     </div>
   )
 }
