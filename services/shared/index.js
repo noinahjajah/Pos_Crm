@@ -204,7 +204,7 @@ export const checkInternalKey = (internalKey) => internalAuth({ internalKey });
 export function serviceClient(env = process.env) {
   const url = supabaseUrl(env.SUPABASE_URL);
   const key = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!url || !key) throw new Error('ยังไม่ได้ใส่ SUPABASE_URL หรือ SUPABASE_SERVICE_ROLE_KEY ใน services/.env');
+  if (!url || !key) throw new Error('ยังไม่ได้ใส่ SUPABASE_URL หรือ SUPABASE_SERVICE_ROLE_KEY ใน .env ของ service');
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 

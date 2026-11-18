@@ -8,20 +8,24 @@ on:
 
 jobs:
   backend:
-    name: backend (gateway + identity)
+    name: backend (identity + gateway)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: services
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: services/package-lock.json
-      - run: npm ci
-      - run: npm test
+      - name: ติดตั้งทีละ service
+        run: for s in identity gateway catalog payment; do (cd services/$s && npm ci --no-audit --no-fund); done
+      - name: เทสต์
+        run: npm --prefix services/identity test && npm --prefix services/gateway test
+      - name: catalog / payment โหลดโมดูลได้ครบ
+        env: { SUPABASE_URL: abcdefghijklmnopqrst, SUPABASE_SERVICE_ROLE_KEY: x }
+        run: |
+          for f in services/catalog/*.js services/payment/*.js; do
+            case "$f" in */server.js) continue;; esac
+            node --input-type=module -e "await import('./$f')"
+          done
 
   web:
     name: web (lint + build)
@@ -43,25 +47,24 @@ jobs:
   docker:
     name: docker compose + Supabase จริง
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: services
     steps:
       - uses: actions/checkout@v4
-      - name: เตรียม .env (Supabase จริง จาก GitHub Secrets)
+      - name: เตรียม .env ของแต่ละ service (Supabase จริง จาก GitHub Secrets)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           test -n "$SUPABASE_URL" || { echo "ไม่มี GitHub Secrets ของ Supabase"; exit 1; }
-          cp .env.example .env
-          sed -i "s|^INTERNAL_KEY=.*|INTERNAL_KEY=$(openssl rand -hex 32)|" .env
-          sed -i "s|^SUPABASE_URL=.*|SUPABASE_URL=$SUPABASE_URL|" .env
-          sed -i "s|^SUPABASE_ANON_KEY=.*|SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY|" .env
-          sed -i "s|^SUPABASE_SERVICE_ROLE_KEY=.*|SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY|" .env
-          sed -i "s|^LOGIN_RATE_LIMIT_PER_MIN=.*|LOGIN_RATE_LIMIT_PER_MIN=100|" .env
-      - name: build + up (เปิดแค่ gateway :8080 + เว็บ)
+          KEY=$(openssl rand -hex 32)
+          for s in identity gateway catalog payment; do
+            f=services/$s/.env
+            cp services/$s/.env.example $f
+            sed -i "s|^INTERNAL_KEY=.*|INTERNAL_KEY=$KEY|; s|^SUPABASE_URL=.*|SUPABASE_URL=$SUPABASE_URL|" $f
+            sed -i "s|^SUPABASE_ANON_KEY=.*|SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY|; s|^SUPABASE_SERVICE_ROLE_KEY=.*|SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY|" $f
+          done
+          sed -i "s|^LOGIN_RATE_LIMIT_PER_MIN=.*|LOGIN_RATE_LIMIT_PER_MIN=100|" services/gateway/.env
+      - name: build + up ทุก service (เปิดแค่ gateway :8080 + เว็บ)
         run: docker compose --profile web up --build -d
       - name: รอ gateway พร้อม
         run: |
@@ -84,7 +87,7 @@ jobs:
           curl -sf -X POST http://localhost:5173/api/v1/identity/auth/login \
             -H 'Content-Type: application/json' -d '{"username":"owner","password":"password123"}' -o /dev/null
       - name: e2e กับ Supabase จริง (36 รายการ)
-        run: node test/e2e.mjs http://localhost:8080/api/v1
+        run: node services/gateway/test/e2e.mjs http://localhost:8080/api/v1
       - name: log เมื่อพัง
         if: failure()
         run: docker compose logs

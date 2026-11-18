@@ -2,7 +2,7 @@
 
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { assertNotDevSecrets, errorHandler, internalAuth, notFoundHandler, requestId, supabaseUrl } from '../shared.js';
+import { assertNotDevSecrets, errorHandler, internalAuth, notFoundHandler, requestId, supabaseUrl } from '../shared/index.js';
 import { authRoutes, branchRoutes, createLoginGuard, meRoutes, roleRoutes, userRoutes } from './routes.js';
 import { createSupabaseAuth, createSupabaseRepo } from './supabase.js';
 
@@ -29,7 +29,7 @@ export function loadConfig(overrides = {}) {
     .filter(([key]) => !config[key])
     .map(([, name]) => name);
   if (missing.length) {
-    throw new Error(`identity: ขาด environment variable: ${missing.join(', ')} (ดู services/.env.example)`);
+    throw new Error(`identity: ขาด environment variable: ${missing.join(', ')} (ดู services/identity/.env.example)`);
   }
   assertNotDevSecrets({ INTERNAL_KEY: config.internalKey });
   return config;

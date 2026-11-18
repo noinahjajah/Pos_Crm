@@ -3,7 +3,7 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import { createApp } from '../identity/app.js';
+import { createApp } from '../app.js';
 import { createMemoryAuth, createMemoryRepo, SEED_BRANCHES, SEED_USERS } from './fake-supabase.js';
 import { makeKeys } from './keys.js';
 

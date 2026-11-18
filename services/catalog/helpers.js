@@ -1,8 +1,8 @@
-// ตัวช่วยของ catalog: ของกลางอยู่ใน ../shared.js · ที่นี่มีแค่ข้อความ error ของฐานข้อมูล catalog
+// ตัวช่วยของ catalog: ของกลางอยู่ใน ../shared/ · ที่นี่มีแค่ข้อความ error ของฐานข้อมูล catalog
 
-import { AppError, badRequest, conflict, notFound, errorHandler as makeErrorHandler } from '../shared.js'
+import { AppError, badRequest, conflict, notFound, errorHandler as makeErrorHandler } from '../shared/index.js'
 
-export * from '../shared.js'
+export * from '../shared/index.js'
 
 export const errorHandler = makeErrorHandler()
 

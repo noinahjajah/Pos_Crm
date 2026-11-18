@@ -1,0 +1,25 @@
+{
+  "name": "@pos/identity",
+  "private": true,
+  "description": "identity :3001 — login · ผู้ใช้ · สาขา (Dev 1)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch server.js",
+    "start": "node server.js",
+    "test": "node --test \"test/*.test.js\"",
+    "tokens": "node tools.mjs tokens",
+    "seed:users": "node tools.mjs seed-users",
+    "postinstall": "npm --prefix ../shared install --no-audit --no-fund"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "jose": "^5.9.6",
+    "supertest": "^7.0.0"
+  }
+}

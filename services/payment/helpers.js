@@ -1,8 +1,8 @@
-// ตัวช่วยของ payment: ของกลางอยู่ใน ../shared.js · ที่นี่มีแค่ข้อความ error ของฐานข้อมูล payment
+// ตัวช่วยของ payment: ของกลางอยู่ใน ../shared/ · ที่นี่มีแค่ข้อความ error ของฐานข้อมูล payment
 
-import { AppError, conflict, errorHandler as makeErrorHandler } from '../shared.js'
+import { AppError, conflict, errorHandler as makeErrorHandler } from '../shared/index.js'
 
-export * from '../shared.js'
+export * from '../shared/index.js'
 
 export const errorHandler = makeErrorHandler()
 

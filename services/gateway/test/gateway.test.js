@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import request from 'supertest';
 import { SignJWT } from 'jose';
-import { makeKeys } from './keys.js';
-import { createApp } from '../gateway/app.js';
+import { makeKeys } from '../../identity/test/keys.js';
+import { createApp } from '../app.js';
 
 const KEYS = await makeKeys();
 const OTHER_KEYS = await makeKeys();
@@ -215,9 +215,9 @@ test('path แปลก (.. / %2F) → 400 ไม่ส่งต่อให้ 
   assert.equal(b.status, 400);
 });
 
-import { PERMISSIONS } from '../gateway/permissions.js';
-import { createApp as createIdentityApp } from '../identity/app.js';
-import { createMemoryAuth, createMemoryRepo, SEED_USERS, SEED_BRANCHES } from './fake-supabase.js';
+import { PERMISSIONS } from '../permissions.js';
+import { createApp as createIdentityApp } from '../../identity/app.js';
+import { createMemoryAuth, createMemoryRepo, SEED_USERS, SEED_BRANCHES } from '../../identity/test/fake-supabase.js';
 
 async function startStack() {
   const repo = createMemoryRepo();

@@ -1,16 +1,16 @@
-# รันทั้งระบบด้วย Docker · เปิดออกนอกแค่ gateway :8080
+# รันทั้งระบบด้วย Docker: docker compose --profile web up --build · เปิดออกนอกแค่ gateway :8080 และเว็บ :5173
+# แต่ละ service อ่าน .env ในโฟลเดอร์ของตัวเอง (services/<ชื่อ>/.env)
 
 x-node-service: &node-service
-  env_file: .env
   restart: unless-stopped
   networks: [internal]
 
 services:
   gateway:
     build:
-      context: .
+      context: ./services
       args: { SERVICE: gateway }
-    env_file: .env
+    env_file: ./services/gateway/.env
     environment:
       PORT: 8080
       IDENTITY_URL: http://identity:3001
@@ -28,8 +28,9 @@ services:
   identity:
     <<: *node-service
     build:
-      context: .
+      context: ./services
       args: { SERVICE: identity }
+    env_file: ./services/identity/.env
     environment:
       PORT: 3001
     healthcheck:
@@ -42,8 +43,9 @@ services:
   catalog:
     <<: *node-service
     build:
-      context: .
+      context: ./services
       args: { SERVICE: catalog }
+    env_file: ./services/catalog/.env
     environment:
       PORT: 3002
       POS_URL: http://pos:3003
@@ -56,8 +58,9 @@ services:
   payment:
     <<: *node-service
     build:
-      context: .
+      context: ./services
       args: { SERVICE: payment }
+    env_file: ./services/payment/.env
     environment:
       PORT: 3004
       POS_URL: http://pos:3003
@@ -72,8 +75,9 @@ services:
     <<: *node-service
     profiles: [all]
     build:
-      context: .
+      context: ./services
       args: { SERVICE: pos }
+    env_file: ./services/pos/.env
     environment:
       PORT: 3003
       CATALOG_URL: http://catalog:3002
@@ -87,7 +91,7 @@ services:
   web:
     profiles: [web]
     build:
-      context: ../web
+      context: ./web
       dockerfile_inline: |
         FROM node:22-alpine AS build
         WORKDIR /app

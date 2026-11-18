@@ -1,0 +1,26 @@
+{
+  "name": "@pos/gateway",
+  "private": true,
+  "description": "gateway :8080 — ตรวจ JWT · route guard · proxy (Dev 1)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch server.js",
+    "start": "node server.js",
+    "test": "node --test \"test/*.test.js\"",
+    "e2e": "node test/e2e.mjs",
+    "postinstall": "npm --prefix ../shared install --no-audit --no-fund"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "http-proxy-middleware": "^3.0.3",
+    "jose": "^5.9.6"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}

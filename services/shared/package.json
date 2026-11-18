@@ -1,0 +1,11 @@
+{
+  "name": "@pos/shared",
+  "private": true,
+  "description": "โค้ดกลางทุก service: error, ตรวจข้อมูล (zod), สิทธิ์, สาขา, ต่อ Supabase",
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "zod": "^4.6.7"
+  }
+}

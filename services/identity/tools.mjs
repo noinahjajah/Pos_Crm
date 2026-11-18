@@ -2,9 +2,9 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
-import { supabaseUrl } from '../shared.js';
+import { supabaseUrl } from '../shared/index.js';
 
-const envFile = new URL('../.env', import.meta.url);
+const envFile = new URL('./.env', import.meta.url);
 if (existsSync(envFile)) {
   for (const line of readFileSync(envFile, 'utf8').split('\n')) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
@@ -25,7 +25,7 @@ const password = env.SEED_PASSWORD || 'password123';
 const need = (...names) => {
   const missing = names.filter((n) => !env[n]);
   if (missing.length) {
-    console.error(`ต้องตั้ง ${missing.join(', ')} ใน services/.env`);
+    console.error(`ต้องตั้ง ${missing.join(', ')} ใน services/identity/.env`);
     process.exit(1);
   }
 };

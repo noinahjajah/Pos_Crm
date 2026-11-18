@@ -1,6 +1,6 @@
 // อ่าน/เขียนฐานข้อมูล Supabase: ข้อมูลอยู่ใน schema identity · login ด้วย Supabase Auth
 
-import { AppError } from '../shared.js';
+import { AppError } from '../shared/index.js';
 
 export function createSupabaseRepo(adminClient) {
   const db = adminClient.schema('identity');

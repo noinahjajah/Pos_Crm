@@ -9,7 +9,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { ALL_ROLES, AppError, HEADERS, assertNotDevSecrets, errorHandler, errors, sendError, supabaseUrl } from '../shared.js';
+import { ALL_ROLES, AppError, HEADERS, assertNotDevSecrets, errorHandler, errors, sendError, supabaseUrl } from '../shared/index.js';
 import { compilePermissions, findRule, PERMISSIONS } from './permissions.js';
 
 const env = process.env;

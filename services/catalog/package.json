@@ -1,0 +1,17 @@
+{
+  "name": "@pos/catalog",
+  "private": true,
+  "description": "catalog :3002 — หมวดหมู่ · เมนู · ตัวเลือก · สต็อก (Dev 2)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch server.js",
+    "start": "node server.js",
+    "postinstall": "npm --prefix ../shared install --no-audit --no-fund"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

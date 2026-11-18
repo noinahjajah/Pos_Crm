@@ -12,7 +12,7 @@ import {
   validate,
   z,
   zx,
-} from '../shared.js';
+} from '../shared/index.js';
 
 const username = z
   .string()
