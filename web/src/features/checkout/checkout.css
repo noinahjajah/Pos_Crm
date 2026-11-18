@@ -1,40 +1,13 @@
 /* หน้าคิดเงิน — class ขึ้นต้นด้วย co- กันชนกับไฟล์อื่น */
 
 .co-page {
-  --co-ink: #1c1917;
-  --co-muted: #78716c;
-  --co-line: #e7e5e4;
-  --co-soft: #fafaf9;
-  --co-card: #ffffff;
-  --co-brand: #c2410c;
-  --co-brand-soft: #fff7ed;
-  --co-ok: #15803d;
-  --co-ok-soft: #dcfce7;
-  --co-danger: #b91c1c;
-  --co-danger-soft: #fef2f2;
-
   text-align: left;
-  color: var(--co-ink);
+  color: var(--ink);
   padding: 24px 32px 64px;
   font-size: 15px;
   line-height: 1.5;
 }
 
-@media (prefers-color-scheme: dark) {
-  .co-page {
-    --co-ink: #f5f5f4;
-    --co-muted: #a8a29e;
-    --co-line: #3a3633;
-    --co-soft: #1f1d1b;
-    --co-card: #26231f;
-    --co-brand: #fb923c;
-    --co-brand-soft: #3b2414;
-    --co-ok: #4ade80;
-    --co-ok-soft: #14301f;
-    --co-danger: #f87171;
-    --co-danger-soft: #3a1717;
-  }
-}
 
 .co-header {
   display: flex;
@@ -46,11 +19,11 @@
   margin: 0;
   font-size: 28px;
   line-height: 1.2;
-  color: var(--co-ink);
+  color: var(--ink);
 }
 .co-sub {
   margin: 4px 0 0;
-  color: var(--co-muted);
+  color: var(--muted);
 }
 
 .co-layout {
@@ -61,8 +34,8 @@
 }
 .co-bill,
 .co-pay {
-  background: var(--co-card);
-  border: 1px solid var(--co-line);
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 18px;
   padding: 20px;
 }
@@ -73,7 +46,7 @@
 .co-section-title {
   margin: 0 0 12px;
   font-size: 16px;
-  color: var(--co-ink);
+  color: var(--ink);
 }
 
 /* ---------- รายการในบิล ---------- */
@@ -89,15 +62,15 @@
   grid-template-columns: 36px 1fr auto;
   gap: 8px;
   padding: 10px 0;
-  border-bottom: 1px dashed var(--co-line);
+  border-bottom: 1px dashed var(--line);
 }
 .co-qty {
   font-weight: 700;
-  color: var(--co-brand);
+  color: var(--green);
 }
 .co-item-name small {
   display: block;
-  color: var(--co-muted);
+  color: var(--muted);
   font-size: 13px;
 }
 .co-note {
@@ -113,20 +86,20 @@
   display: flex;
   justify-content: space-between;
   padding: 4px 0;
-  color: var(--co-muted);
+  color: var(--muted);
 }
 .co-totals dd {
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
 .co-discount {
-  color: var(--co-ok) !important;
+  color: var(--ok) !important;
 }
 .co-grand {
   margin-top: 8px;
   padding-top: 12px !important;
-  border-top: 2px solid var(--co-ink);
-  color: var(--co-ink) !important;
+  border-top: 2px solid var(--ink);
+  color: var(--ink) !important;
   font-size: 22px;
   font-weight: 700;
 }
@@ -139,9 +112,9 @@
   margin-bottom: 18px;
 }
 .co-method {
-  border: 2px solid var(--co-line);
-  background: var(--co-card);
-  color: var(--co-ink);
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
   border-radius: 14px;
   padding: 14px;
   font: inherit;
@@ -149,9 +122,9 @@
   cursor: pointer;
 }
 .co-method.is-active {
-  border-color: var(--co-brand);
-  background: var(--co-brand-soft);
-  color: var(--co-brand);
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: var(--green);
 }
 
 /* ---------- ฟอร์ม ---------- */
@@ -163,20 +136,20 @@
 .co-field > span {
   font-size: 13px;
   font-weight: 600;
-  color: var(--co-muted);
+  color: var(--muted);
 }
 .co-input {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid var(--co-line);
-  background: var(--co-card);
-  color: var(--co-ink);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
   border-radius: 12px;
   padding: 10px 14px;
   font: inherit;
 }
 .co-input:focus {
-  outline: 2px solid var(--co-brand);
+  outline: 2px solid var(--green);
   outline-offset: -1px;
 }
 .co-input-big {
@@ -192,9 +165,9 @@
   margin: 12px 0 16px;
 }
 .co-chip {
-  border: 1px solid var(--co-line);
-  background: var(--co-soft);
-  color: var(--co-ink);
+  border: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--ink);
   border-radius: 999px;
   padding: 8px 14px;
   font: inherit;
@@ -202,9 +175,9 @@
   cursor: pointer;
 }
 .co-chip.is-active {
-  background: var(--co-ink);
-  border-color: var(--co-ink);
-  color: var(--co-card);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--card);
 }
 .co-change {
   display: flex;
@@ -212,8 +185,8 @@
   align-items: baseline;
   padding: 14px 16px;
   border-radius: 14px;
-  background: var(--co-ok-soft);
-  color: var(--co-ok);
+  background: var(--ok-soft);
+  color: var(--ok);
   margin-bottom: 16px;
 }
 .co-change strong {
@@ -221,16 +194,16 @@
   font-variant-numeric: tabular-nums;
 }
 .co-change.is-short {
-  background: var(--co-danger-soft);
-  color: var(--co-danger);
+  background: var(--danger-soft);
+  color: var(--brown);
 }
 
 /* ---------- ปุ่ม ---------- */
 .co-btn {
   appearance: none;
-  border: 1px solid var(--co-line);
-  background: var(--co-card);
-  color: var(--co-ink);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
   border-radius: 12px;
   padding: 10px 16px;
   font: inherit;
@@ -242,8 +215,8 @@
   cursor: not-allowed;
 }
 .co-btn-primary {
-  background: var(--co-brand);
-  border-color: var(--co-brand);
+  background: var(--green);
+  border-color: var(--green);
   color: #fff;
 }
 .co-btn-ghost {
@@ -288,7 +261,7 @@
   opacity: 0.75;
 }
 .co-hint {
-  color: var(--co-muted);
+  color: var(--muted);
   font-size: 13px;
   margin: 12px 0 16px;
 }
@@ -297,8 +270,8 @@
 .co-alert {
   padding: 12px 16px;
   border-radius: 12px;
-  background: var(--co-danger-soft);
-  color: var(--co-danger);
+  background: var(--danger-soft);
+  color: var(--brown);
   margin-bottom: 16px;
 }
 .co-alert-pay {
@@ -307,7 +280,7 @@
 .co-skeleton {
   height: 420px;
   border-radius: 18px;
-  background: linear-gradient(90deg, var(--co-soft) 25%, var(--co-line) 50%, var(--co-soft) 75%);
+  background: linear-gradient(90deg, var(--soft) 25%, var(--line) 50%, var(--soft) 75%);
   background-size: 200% 100%;
   animation: co-shimmer 1.2s infinite;
 }
@@ -328,8 +301,8 @@
   align-items: center;
   padding: 16px;
   border-radius: 16px;
-  background: var(--co-ok-soft);
-  color: var(--co-ok);
+  background: var(--ok-soft);
+  color: var(--ok);
   margin-bottom: 16px;
 }
 .co-success-icon {
@@ -339,13 +312,13 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--co-ok);
+  background: var(--ok);
   color: #fff;
   font-size: 22px;
   font-weight: 700;
 }
 .co-success-change {
-  color: var(--co-ink);
+  color: var(--ink);
 }
 .co-success-change b {
   font-size: 22px;
@@ -356,7 +329,7 @@
 .co-receipt {
   background: #fff;
   color: #111;
-  border: 1px solid var(--co-line);
+  border: 1px solid var(--line);
   border-radius: 6px;
   padding: 20px;
   font-family: ui-monospace, Consolas, monospace;

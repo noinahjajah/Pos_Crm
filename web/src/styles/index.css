@@ -9,6 +9,9 @@
   --soft: #f7f5f1;
   --card: #ffffff;
   --purple: #6b3fd6;
+  --ok: #2e7d4f;
+  --ok-soft: #e4f1e8;
+  --danger-soft: #f9e4da;
   --radius: 12px;
   --font: 'IBM Plex Sans Thai', system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-family: var(--font);
@@ -83,9 +86,9 @@ a { color: inherit; }
 .btn-sm { padding: 6px 10px; font-size: 13px; }
 
 .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
-.badge-success { background: #e4f1e8; color: #2e7d4f; }
+.badge-success { background: var(--ok-soft); color: var(--ok); }
 .badge-warning { background: #faf0de; color: #9a6b12; }
-.badge-danger { background: #f9e4da; color: var(--brown); }
+.badge-danger { background: var(--danger-soft); color: var(--brown); }
 .badge-neutral { background: #eceae6; color: #5a5752; }
 .badge-info { background: #e2eeea; color: var(--green); }
 .badge-phase { background: var(--purple); color: #fff; }
@@ -170,7 +173,7 @@ dl.info { display: grid; grid-template-columns: 120px 1fr; gap: 10px 12px; margi
 dl.info dt { color: var(--muted); }
 dl.info dd { margin: 0; }
 .rules { list-style: none; margin: -6px 0 0; padding: 0; display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
-.rules li.ok { color: #2e7d4f; }
+.rules li.ok { color: var(--ok); }
 .user-box .name { color: #fff; text-decoration: none; display: block; }
 .user-box .name:hover { text-decoration: underline; }
 @media (max-width: 1000px) { .account-grid { grid-template-columns: 1fr; } }
