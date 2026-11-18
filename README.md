@@ -120,8 +120,8 @@ Pos_Crm/
 
 ### 1. ตั้งค่าฐานข้อมูล (ครั้งแรกครั้งเดียว)
 
-1. รัน SQL ใน `supabase/` ทีละไฟล์ที่ **SQL Editor**
-2. **Project Settings → Data API → Exposed schemas** เพิ่ม `identity`, `catalog`, `pos`, `payment`
+1. รัน SQL ใน `supabase/migrations/` ทีละไฟล์ตามลำดับชื่อที่ **SQL Editor** (รันซ้ำได้)
+2. **Integrations → Data API → Settings → Exposed schemas** เพิ่ม `identity`, `catalog`, `pos`, `payment`, `membership` (เจ้าของโปรเจคเท่านั้นที่กดได้)
 3. **Authentication → Hooks** เปิด *Custom access token hook* (ใส่ `user_role` และ `branch_id` ลง JWT)
 
 ### 2. ตั้งค่า `.env` ของแต่ละ service
