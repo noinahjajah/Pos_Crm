@@ -1,124 +1,347 @@
-# POS CRM — ระบบหลังบ้านร้านอาหาร
+<div align="center">
 
-## วิธีติดตั้งและใช้งาน
+# 🍽️ POS & CRM — ระบบขายหน้าร้าน 3 สาขา
 
-**Windows** (เปิด PowerShell แล้ววางบรรทัดเดียว)
-```powershell
-winget install -e --id Git.Git --accept-source-agreements --accept-package-agreements; winget install -e --id OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements; $env:Path=[Environment]::GetEnvironmentVariable('Path','Machine')+';'+[Environment]::GetEnvironmentVariable('Path','User'); git clone -b dev1-identity https://github.com/noinahjajah/Pos_Crm.git; cd Pos_Crm\services; Copy-Item .env.example .env; npm.cmd run setup; Start-Process notepad .env -Wait; Start-Process powershell -ArgumentList '-NoExit','-Command','npm.cmd run dev'; Start-Sleep 12; Start-Process http://localhost:5173
-```
+ระบบ POS สำหรับร้านที่มี 3 สาขา (ร้านอาหาร · ร้านเครื่องดื่ม · บาร์)
+เปิดโต๊ะ สั่งอาหาร ส่งเข้าครัว คิดเงิน ขออนุมัติส่วนลด/คืนเงิน จัดการเมนูและสต็อก พร้อมแดชบอร์ดกำไรรายสาขา
 
-**Mac** (เปิด Terminal แล้ววาง)
-```bash
-command -v brew >/dev/null || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null || /usr/local/bin/brew shellenv)"; brew install git node; git clone -b dev1-identity https://github.com/noinahjajah/Pos_Crm.git && cd Pos_Crm/services && cp .env.example .env && npm run setup && open -W -a TextEdit .env && (sleep 12 && open http://localhost:5173 &) && npm run dev
-```
+![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Auth-3FCF8E?logo=supabase&logoColor=white)
+![Architecture](https://img.shields.io/badge/Architecture-Microservices-orange)
+![Phase](https://img.shields.io/badge/Phase-1-blue)
 
-ระหว่างติดตั้งจะเปิดไฟล์ `services/.env` ให้ใส่ key ของ Supabase (ขอจาก Dev 1) แล้วบันทึกปิดไฟล์ ระบบจะเปิดต่อเอง
+</div>
 
-เปิด http://localhost:5173 · login `owner` / `manager1` / `staff1` รหัส `password123`
+---
+---
 
-ครั้งต่อไป: เข้าโฟลเดอร์ `Pos_Crm/services` แล้วรัน `npm run dev` คำสั่งเดียว เปิดครบทั้ง identity, gateway, catalog, payment และเว็บ (Windows ใช้ `npm.cmd run dev`)
+## 👥 ผู้จัดทำ
 
-### ต่อ Supabase
-- ระบบใช้ฐานข้อมูลจริงของทีมเสมอ (ไม่มีโหมดจำลองแล้ว) · ต้องใส่ `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` ใน `services/.env` ก่อนรัน (ขอ key จาก Dev 1 ทางส่วนตัว · key ถูกเก็บไว้ใน GitHub Secrets ของ repo ด้วย ใช้ได้ใน GitHub Actions เท่านั้น)
-- schema `identity`, hook และผู้ใช้ทดสอบตั้งไว้ในโปรเจกต์ Supabase ของทีมแล้ว · schema `catalog` และ `payment` ของ Dev 2 ต้องอยู่ในโปรเจกต์เดียวกัน
+| ชื่อ-นามสกุล | บทบาท | GitHub |
+|---|---|---|
+| [67133846 วรัตถา เตนากุล] | full stack developer| [@warattha48](https://github.com/warattha48) |
+| [67167033 เปมิกา เมฆลอย] | full stack developer | [@l0w0l-0](https://github.com/l0w0l-0) |
+| [67180663 ภัทรพล ถ่อมดี] |full stack developer | [@noinahjajah](https://github.com/noinahjajah) |
 
-## โครงสร้างโฟลเดอร์
 
-โครงเดียวกับ branch `MO` ของ Dev 2: backend ทุก service อยู่ `services/<ชื่อ>/`, หน้าเว็บอยู่ `web/src/features/<ฟีเจอร์>/`
+> จัดทำในรายวิชา **CSI400 - เว็บเซอร์วิส**
 
-```
-Pos_Crm/
-├─ web/                        ← หน้าเว็บ React (Vite) · โครงเดิมของทีม
-│  ├─ .env.example             ค่าตั้งค่าเว็บ (ไม่บังคับ) คัดลอกเป็น web/.env
-│  └─ src/
-│     ├─ main.jsx              จุดเริ่ม → App.jsx
-│     ├─ App.jsx               providers + router
-│     ├─ app/
-│     │  ├─ router.jsx         เส้นทางทั้งหมด + กำหนด role ต่อหน้า ← ผูกหน้าใหม่ใน PAGES
-│     │  └─ providers.jsx      แจ้งเตือน, ผู้ใช้ที่ login, สาขาที่เลือก
-│     ├─ api/                  ← ที่เดียวที่เรียก backend
-│     │  ├─ client.js          base /api/v1, แนบ token, refresh เมื่อใกล้หมดอายุ
-│     │  ├─ identity.js        login, me, users, branches (Dev 1)
-│     │  ├─ catalog.js         categories, menus, option-groups, stocks (Dev 2)
-│     │  └─ payment.js         payments, refunds, expenses, reports (Dev 2)
-│     ├─ features/             ← 1 โฟลเดอร์ = 1 ฟีเจอร์ (หน้า + component)
-│     │  ├─ auth/              LoginPage, AccountPage, AuthContext, RequireRole (Dev 1)
-│     │  ├─ backoffice/
-│     │  │  ├─ useBranchScope.js  ผู้ใช้ + สาขาที่ดูอยู่ + แจ้งเตือน (ใช้ร่วมทุกหน้าหลังร้าน)
-│     │  │  ├─ users/          UsersPage (Dev 1)
-│     │  │  ├─ branches/       BranchesPage (Dev 1)
-│     │  │  ├─ menus/          MenusPage, CategoriesPage, OptionGroupsPage, MenuFormDialog (Dev 2)
-│     │  │  ├─ stocks/         StocksPage (Dev 2)
-│     │  │  ├─ expenses/       ExpensesPage (Dev 2)
-│     │  │  └─ reports/        ReportsPage = แดชบอร์ด (Dev 2)
-│     │  ├─ checkout/          CheckoutPage, CashForm, PromptPayQR, Receipt (Dev 2) · ReceiptSlip, PrintPreviewPage (Dev 1) · bill.js (ยอดเงิน VAT ใช้ร่วมกัน)
-│     │  ├─ kitchen/           KitchenTicket ใบเข้าครัว (Dev 1) · Dev 3 เพิ่ม KitchenPage, TicketCard
-│     │  └─ (tables/ orders/ approvals/)  Dev 3 สร้างตามโครงนี้
-│     ├─ components/
-│     │  ├─ ui/                index.jsx (Button, Badge, Card, Field, SidePanel …) + Notice.jsx (toast, ยืนยัน)
-│     │  └─ layout/            AppLayout, Sidebar, Topbar
-│     ├─ hooks/                useForm, usePrintSlip
-│     ├─ lib/                  constants.js (ROLES, เมนูตาม role), format.js (เงินบาท วันที่ไทย ข้อความ error)
-│     └─ styles/index.css
-├─ services/                   ← backend ทุก service (1 โฟลเดอร์ = 1 service)
-│  ├─ gateway/                 API Gateway :8080 (Dev 1)
-│  │  ├─ app.js                middleware 10 ตัวตาม spec + proxy ไป service
-│  │  ├─ permissions.js        ตารางสิทธิ์ {method, path, roles} ← เพิ่มสิทธิ์ของ endpoint ใหม่ที่นี่
-│  │  └─ server.js
-│  ├─ identity/                login / ผู้ใช้ / role / สาขา :3001 (Dev 1)
-│  │  ├─ app.js, routes.js, supabase.js, server.js
-│  │  └─ tools.mjs             npm run tokens / seed:users
-│  ├─ catalog/                 หมวดหมู่ เมนู กลุ่มตัวเลือก สต็อก :3002 (Dev 2)
-│  ├─ payment/                 รับเงิน คืนเงิน รายจ่าย รายงาน :3004 (Dev 2)
-│  ├─ (pos/)                   โต๊ะ ออร์เดอร์ จอครัว คำขออนุมัติ :3003 (Dev 3 สร้างตามแบบ catalog: server.js + helpers.js + db.js)
-│  ├─ shared.js                โค้ดกลางทุก service: error, ตรวจข้อมูล (zod), สิทธิ์, สาขา, ต่อ Supabase
-│  ├─ test/                    npm test (gateway, identity) · e2e.mjs = npm run e2e กับ Supabase จริง
-│  ├─ supabase/                migration ของ schema identity + seed 3 สาขา
-│  ├─ Dockerfile               Dockerfile เดียวของทุก service (build arg SERVICE)
-│  ├─ docker-compose.yml       รันทุก service ด้วย Docker (เปิดแค่ :8080)
-│  ├─ .env.example             ค่าตั้งค่าใช้ร่วมทุก service คัดลอกเป็น services/.env (ห้ามใส่ key จริง)
-│  └─ package.json             package เดียวของทุก service + คำสั่งรันพร้อมกัน
-├─ เอกสาร/                      ← spec เฟส 1 + ภาพ ERD ของทีม
-└─ .github/workflows/ci.yml    ← CI ตรวจ services + web + docker
-```
+---
 
-**คำสั่งที่ใช้บ่อย** (รันในโฟลเดอร์ `services` · Windows ใช้ `npm.cmd`)
+## 📑 สารบัญ
 
-| คำสั่ง | ทำอะไร |
+- [ภาพรวมระบบ](#-ภาพรวมระบบ)
+- [สถาปัตยกรรม](#️-สถาปัตยกรรม)
+- [ทีมและขอบเขตงาน](#-ทีมและขอบเขตงาน)
+- [โครงสร้าง Repository](#-โครงสร้าง-repository)
+- [เริ่มต้นใช้งาน](#-เริ่มต้นใช้งาน)
+- [ผู้ใช้และสิทธิ์](#-ผู้ใช้และสิทธิ์)
+- [API](#-api)
+- [ฐานข้อมูล](#️-ฐานข้อมูล)
+- [Flow สำคัญ](#-flow-สำคัญ)
+- [กติกาทางธุรกิจ](#-กติกาทางธุรกิจ)
+- [แนวทางการทำงานร่วมกัน](#-แนวทางการทำงานร่วมกัน)
+
+---
+
+## ✨ ภาพรวมระบบ
+
+| ด้าน | ทำอะไรได้ |
 |---|---|
-| `npm run setup` | ติดตั้งทุกอย่าง (services + web) |
-| `npm run dev` | เปิด identity, gateway, catalog, payment และเว็บพร้อมกัน |
-| `npm run dev:catalog` (หรือ `dev:payment` …) | เปิดทีละ service |
-| `npm test` | เทสต์ backend |
-| `npm run e2e` | ตรวจการเชื่อมต่อจริง gateway → identity → ฐานข้อมูล 36 รายการ (เปิด `npm run dev` ไว้ก่อน) |
-| `npm run tokens` | login จริงกับ Supabase ได้ token 3 role ไว้เรียก API ผ่าน gateway |
-| `npm --prefix ../web run lint` / `run build` | ตรวจโค้ดเว็บ / build เว็บ |
+| 🪑 **หน้าร้าน** | เปิดโต๊ะ ย้าย/รวมโต๊ะ สั่งอาหารหลายรอบ เลือกตัวเลือก ใส่หมายเหตุ |
+| 👨‍🍳 **ครัว** | ใบออร์เดอร์เข้าครัว จอครัวแจ้งตั๋วใหม่แบบ realtime |
+| 💵 **คิดเงิน** | เงินสดพร้อมคิดเงินทอน · PromptPay (จำลอง) · ใบเสร็จแยก VAT |
+| ✅ **อนุมัติ** | พนักงานขอส่วนลด/คืนเงิน → ผู้จัดการและเจ้าของอนุมัติแบบ realtime |
+| 📦 **เมนูและสต็อก** | เมนูแยกตามสาขา กลุ่มตัวเลือก สต็อกตัดอัตโนมัติ หมดแล้วปิดขายเอง |
+| 📊 **หลังร้าน** | รายจ่าย 4 หมวด · แดชบอร์ดรายวัน · เปรียบเทียบสาขา · กำไรรายเดือน |
 
-### Dev 2 / Dev 3 ใช้ต่อยังไง
-- สิทธิ์ของ endpoint: เพิ่มใน `services/gateway/permissions.js`
-- service ใหม่: สร้างโฟลเดอร์ `services/<ชื่อ>/` แบบ `services/catalog/` (`server.js`, `helpers.js` ที่ `export * from '../shared.js'`, `db.js`) แล้วเพิ่ม `dev:<ชื่อ>` ใน `services/package.json` · ใช้ package และ `services/.env` ร่วมกัน ไม่ต้องมี package.json ของตัวเอง
-- หน้าเว็บ: สร้างใน `web/src/features/<ฟีเจอร์>/` แล้วผูกใน `web/src/app/router.jsx` (`PAGES`) · เรียก API ผ่าน `web/src/api/`
-- ใบพิมพ์ 80 มม.: `KitchenTicket` (`features/kitchen/`), `ReceiptSlip` + `calcBill` (`features/checkout/`), `usePrintSlip` (`hooks/`)
-- token ทดสอบ 3 role: `npm run tokens` (ในโฟลเดอร์ `services`)
+---
 
-## มีอะไรบ้าง
-- `services/identity/` :3001 — login / refresh / logout / เปลี่ยนรหัสผ่าน, ล็อกบัญชีเมื่อใส่ผิด 5 ครั้ง, `GET /me`, สาขา, role, ผู้ใช้ (owner จัดการ, manager ดูเฉพาะสาขาตัวเอง)
-- `services/gateway/` :8080 — middleware 10 ตัว, ตารางสิทธิ์ `{method, path, roles}` ครบทุก service, branch scope, บล็อก `/internal/*`, 502/504
-- `services/shared.js` — response/error มาตรฐาน, zod, อ่าน `X-User-*` + `X-Internal-Key`
-- `services/supabase/` — schema identity + custom access token hook + seed 3 สาขา
-- `services/Dockerfile`, `services/docker-compose.yml` (เปิดแค่ 8080), `services/.env.example`
-- `services/catalog/`, `services/payment/` (Dev 2) — เมนู หมวดหมู่ กลุ่มตัวเลือก สต็อก, รับเงิน คืนเงิน รายจ่าย รายงาน · payment ใช้บิลจำลอง (`POS_MODE=mock`) จนกว่า pos ของ Dev 3 จะพร้อม
-- `web/` — login, เมนูตาม role, จัดการผู้ใช้/สาขา, บัญชีของฉัน, แจ้งเตือน, ใบพิมพ์ 80mm (Dev 1) · แดชบอร์ด เมนู หมวดหมู่ กลุ่มตัวเลือก สต็อก รายจ่าย รับเงิน (Dev 2) · หน้าของ Dev 3 เป็นหน้ารอพร้อมสิทธิ์
+## 🏗️ สถาปัตยกรรม
 
-## สิ่งที่อยากให้ทีมช่วยยืนยัน
-- เพิ่ม `GET /branches/:id` และ `GET /users/:id` (ไม่มีใน spec)
-- ปิดสาขาที่ยังมีผู้ใช้อยู่ไม่ได้ → 409 `BRANCH_HAS_ACTIVE_USERS`
-- ใส่ `GET /pos/kitchen/stream` (S M) ไว้ในตารางสิทธิ์ก่อน (ประเด็นเปิด 9.4)
-- โครงสร้าง: backend ทุก service อยู่ `services/<ชื่อ>/` ตามแบบของ Dev 2 · ใช้ package.json, `.env`, Dockerfile และ `shared.js` ร่วมกัน
+แยกเป็น **microservices** 4 ตัว ทุก request จากหน้าเว็บผ่าน **API Gateway** ที่เดียว
+ใช้ Supabase project เดียว แต่แบ่ง **schema ตาม service** และไม่มี foreign key ข้าม schema
 
-## ทดสอบ
-- [x] `npm test` — identity 27, gateway 20 ผ่าน
-- [x] เว็บ lint + build ผ่าน · CI ผ่านรวม `docker compose`
-- [x] ทดสอบกับ Supabase จริง 60 รายการ (login, สิทธิ์, สาขา, ผู้ใช้, session)
-- [x] `npm run e2e` กับ Supabase จริงผ่าน 36/36
-- [x] ทดสอบหน้าเว็บ 3 role ในเบราว์เซอร์
+
+
+| | |
+|---|---|
+| 🔐 **Gateway** | ตรวจ JWT · เช็ก role · กำหนดสาขา · แนบ header `X-User-*` + `X-Internal-Key` แล้วส่งต่อ |
+| 🔒 **Service** | ไม่เปิด port ออกนอก เชื่อ header เฉพาะเมื่อ `X-Internal-Key` ถูกต้อง |
+| 🔗 **Internal API** | `/internal/*` ให้ service เรียกกันเองเท่านั้น gateway บล็อกจากภายนอกเสมอ |
+
+---
+
+## 👥 ทีมและขอบเขตงาน
+
+| | Service | ขอบเขต (requirement เฟส 1) |
+|---|---|---|
+| **Dev 1** | 👤 identity · 🚪 gateway | ผู้ใช้ สิทธิ์ สาขา, login, gateway, Docker Compose, หน้า login/layout/ผู้ใช้/สาขา, layout งานพิมพ์ · `1.1–1.6`, `1.10` |
+| **Dev 2** | 📦 catalog · 💵 payment | เมนู ตัวเลือก สต็อก, รับเงิน คืนเงิน รายจ่าย รายงาน, หน้าหลังร้านและคิดเงิน · `1.14–1.22`, `1.25`, `1.32–1.37` |
+| **Dev 3** | 🧾 pos | โต๊ะ ออร์เดอร์ ตั๋วครัว คำขออนุมัติ, หน้าโต๊ะ สั่งอาหาร จอครัว · `1.7–1.13`, `1.23–1.24`, `1.26–1.31` |
+
+---
+
+## 📁 โครงสร้าง Repository
+
+```text
+Pos_Crm/
+├── services/
+│   ├── gateway/        🚪 :8080  ตรวจ JWT · route guard · proxy
+│   ├── identity/       👤 :3001  login · ผู้ใช้ · สาขา
+│   ├── catalog/        📦 :3002  หมวดหมู่ · เมนู · ตัวเลือก · สต็อก
+│   ├── pos/            🧾 :3003  โต๊ะ · ออร์เดอร์ · ครัว · อนุมัติ
+│   └── payment/        💵 :3004  รับเงิน · คืนเงิน · รายจ่าย · รายงาน
+├── supabase/           🗄️  SQL สร้าง schema และฟังก์ชัน
+├── web/
+│   └── src/
+│       ├── app/        router · providers
+│       ├── api/        ที่เดียวที่เรียก backend (1 ไฟล์ต่อ 1 service)
+│       ├── features/   1 โฟลเดอร์ = 1 ฟีเจอร์ (หน้า + component)
+│       │   ├── auth/  tables/  orders/  kitchen/
+│       │   ├── checkout/  approvals/
+│       │   └── backoffice/  menus/ stocks/ users/ expenses/ reports/
+│       ├── components/ ui/ · layout/
+│       └── lib/        supabase (realtime) · format · constants
+└── เอกสาร/             📄 spec · ER diagram · API gateway
+```
+
+---
+
+## 🚀 เริ่มต้นใช้งาน
+
+### สิ่งที่ต้องมี
+
+- **Node.js 20** ขึ้นไป
+- โปรเจกต์ **Supabase** (ขอ URL และ key จากหัวหน้าทีม)
+
+### 1. ตั้งค่าฐานข้อมูล (ครั้งแรกครั้งเดียว)
+
+1. รัน SQL ใน `supabase/` ทีละไฟล์ที่ **SQL Editor**
+2. **Project Settings → Data API → Exposed schemas** เพิ่ม `identity`, `catalog`, `pos`, `payment`
+3. **Authentication → Hooks** เปิด *Custom access token hook* (ใส่ `user_role` และ `branch_id` ลง JWT)
+
+### 2. ตั้งค่า `.env` ของแต่ละ service
+
+ทุก service มี `.env` ของตัวเอง โดยใช้ค่าร่วมกันแบบนี้
+
+```env
+PORT=3002                                   # ต่างกันทุก service
+INTERNAL_KEY=ต้องเหมือนกันทุก service
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_xxxx    # ใช้ฝั่ง server เท่านั้น
+```
+
+> [!CAUTION]
+> ห้าม commit ไฟล์ `.env` และห้ามใส่ `SUPABASE_SERVICE_ROLE_KEY` ในหน้าเว็บ key นี้ข้ามสิทธิ์ทุกอย่างในฐานข้อมูล
+
+### 3. รัน
+
+เปิด terminal แยกทีละ service
+
+```bash
+cd services/identity && npm install && npm run dev   # :3001
+cd services/catalog  && npm install && npm run dev   # :3002
+cd services/pos      && npm install && npm run dev   # :3003
+cd services/payment  && npm install && npm run dev   # :3004
+cd services/gateway  && npm install && npm run dev   # :8080
+cd web               && npm install && npm run dev   # :5173
+```
+
+ทุก service มี `GET /health` ไว้เช็กว่าทำงานและต่อฐานข้อมูลได้
+
+**ทางลัด: รันทุกอย่างคำสั่งเดียว** (ที่โฟลเดอร์บนสุดของ repo · Windows ใช้ `npm.cmd`)
+
+```bash
+npm run setup   # ติดตั้งทุก service + เว็บ (ครั้งแรก)
+npm run dev     # เปิด identity, gateway, catalog, payment และเว็บพร้อมกัน
+npm test        # เทสต์ identity + gateway
+```
+
+เปิด http://localhost:5173 · ผู้ใช้ทดสอบ `owner` / `manager1` / `staff1` รหัส `password123`
+
+### 4. รันด้วย Docker (ไม่บังคับ)
+
+ใช้ `.env` ของแต่ละ service เหมือนข้อ 2 แล้วรันที่โฟลเดอร์บนสุดของ repo
+
+```bash
+docker compose --profile web up --build   # เว็บ :5173 · gateway :8080 (service อื่นไม่เปิด port ออกนอก)
+docker compose down                        # ปิด
+```
+
+- ไฟล์: `docker-compose.yml` (บนสุด) + `services/Dockerfile` (ไฟล์เดียวใช้ทุก service)
+- pos ของ Dev 3 เปิดด้วย `--profile all` เมื่อมีโฟลเดอร์ `services/pos` แล้ว
+- ใน Docker ใช้ `NODE_ENV=production` จึงต้องตั้ง `INTERNAL_KEY` ใหม่ ห้ามใช้ค่าตัวอย่าง
+
+### 5. ทดสอบ
+
+| คำสั่ง | ที่ไหน | ทำอะไร |
+|---|---|---|
+| `npm test` | `services/identity`, `services/gateway` | เทสต์ (ไม่แตะฐานข้อมูลจริง) |
+| `npm run e2e` | `services/gateway` | ตรวจจริง gateway → identity → Supabase 36 รายการ (เปิดระบบไว้ก่อน) |
+| `npm run tokens` | `services/identity` | login จริงได้ token 3 role ไว้เรียก API |
+
+---
+
+## 🔑 ผู้ใช้และสิทธิ์
+
+| Role | ใคร | เห็นข้อมูล |
+|---|---|---|
+| **S** · `staff` | พนักงานหน้าร้าน (รวม waiter + cashier เพราะใช้ POS เครื่องเดียว) | สาขาตัวเอง |
+| **M** · `manager` | ผู้จัดการสาขา | สาขาตัวเอง |
+| **O** · `owner` | เจ้าของร้าน | ทุกสาขา เลือกดูทีละสาขาด้วย `?branch_id=` |
+
+- ไม่มีสิทธิ์ → **403**
+- staff/manager ส่ง `branch_id` ของสาขาอื่นมา → gateway ไม่สนใจ และใช้สาขาจาก JWT แทน
+
+---
+
+## 🔌 API
+
+Base URL: `http://localhost:8080/api/v1/<service>`
+
+<details>
+<summary><b>👤 identity</b></summary>
+
+| Method | Path | Role |
+|---|---|---|
+| POST | `/auth/login` · `/auth/refresh` | public |
+| POST | `/auth/logout` | S M O |
+| GET | `/me` · `/branches` | S M O |
+| POST · PATCH · DELETE | `/branches` | O |
+| GET | `/roles` | O |
+| GET | `/users` | M O (manager เห็นเฉพาะสาขาตัวเอง) |
+| POST · PATCH · DELETE | `/users` | O |
+
+</details>
+
+<details>
+<summary><b>📦 catalog</b></summary>
+
+| Method | Path | Role |
+|---|---|---|
+| GET | `/categories` · `/menus` · `/menus/:id` · `/option-groups` | S M O |
+| PATCH | `/menus/:id/availability` | S M O |
+| POST · PATCH · DELETE | `/menus` · `PUT /menus/:id/option-groups` | M O |
+| POST · PATCH | `/option-groups` · `/option-groups/:id/options` · `/options/:id` | M O |
+| GET · PATCH | `/stocks` · `/stocks/:menuId` (`{quantity}` หรือ `{add}`) | M O |
+| POST · PATCH | `/categories` | O |
+| POST | `/menus/:id/copy` | O |
+
+</details>
+
+<details>
+<summary><b>🧾 pos</b></summary>
+
+| Method | Path | Role |
+|---|---|---|
+| GET | `/tables` · `/orders` · `/orders/:id` | S M O |
+| POST · PATCH | `/tables` | M O |
+| POST | `/orders` · `/orders/:id/tickets` · `/orders/:id/request-payment` | S M |
+| POST | `/orders/:id/tables/move` · `/orders/:id/tables/merge` | S M |
+| GET · PATCH | `/kitchen/tickets` | S M |
+| POST | `/orders/:id/approvals` | S |
+| GET · POST | `/approvals` · `/approvals/:id/approve` · `/approvals/:id/reject` | M O |
+
+</details>
+
+<details>
+<summary><b>💵 payment</b></summary>
+
+| Method | Path | Role |
+|---|---|---|
+| POST | `/payments` (header `Idempotency-Key`) · `/refunds` | S M |
+| GET | `/payments` | M O |
+| GET · POST · PATCH · DELETE | `/expenses` | M O |
+| GET | `/reports/daily` | M O |
+| GET | `/reports/branches` · `/reports/profit` | O |
+
+</details>
+
+<details>
+<summary><b>🔗 Internal API</b> (service เรียกกันเอง ต้องมี <code>X-Internal-Key</code>)</summary>
+
+| จาก → ไป | Endpoint | ใช้ตอนไหน |
+|---|---|---|
+| pos → catalog | `POST /internal/menus/lookup` | ดึงชื่อ/ราคาไปเก็บ snapshot |
+| pos → catalog | `POST /internal/stocks/deduct` | ตัดสต็อกตอนสั่ง |
+| pos → catalog | `POST /internal/stocks/restore` | คืนสต็อกเมื่อสั่งไม่สำเร็จ |
+| payment → pos | `GET /internal/orders/:id/summary` | ยอดที่ต้องจ่ายและสถานะบิล |
+| payment → pos | `POST /internal/orders/:id/mark-paid` | ปิดบิล คืนโต๊ะเป็นว่าง |
+| payment → pos | `POST /internal/orders/:id/mark-refunded` | อัปเดตบิลหลังคืนเงิน |
+| payment → pos | `GET /internal/approvals/:id` | ข้อมูลคำขอคืนเงิน |
+
+</details>
+
+### รูปแบบ response
+
+```jsonc
+// สำเร็จ
+{ "data": { }, "meta": { "page": 1, "total": 42 } }
+
+// ผิดพลาด
+{ "error": { "code": "STOCK_NOT_ENOUGH", "message": "เมนูบางรายการหมด", "details": [] } }
+```
+
+| HTTP | ใช้เมื่อ |
+|:---:|---|
+| `400` | ข้อมูลไม่ถูกต้อง |
+| `401` | ไม่ได้ login หรือ token หมดอายุ |
+| `403` | role หรือสาขาไม่มีสิทธิ์ |
+| `404` | ไม่พบข้อมูล |
+| `409` | สถานะไม่ถูกต้อง เช่น สต็อกไม่พอ บิลจ่ายแล้ว |
+| `429` | เรียกถี่เกินไป |
+| `502` · `504` | service ปลายทางล่มหรือตอบช้า |
+
+---
+
+## 🗄️ ฐานข้อมูล
+
+| Schema | ตาราง |
+|---|---|
+| 👤 `identity` | `branches` · `roles` · `profiles` (+ `auth.users` ของ Supabase) |
+| 📦 `catalog` | `categories` · `menus` · `option_groups` · `options` · `menu_option_groups` · `stocks` · `stock_movements` |
+| 🧾 `pos` | `dining_tables` · `orders` · `order_tables` · `kitchen_tickets` · `order_items` · `order_item_options` · `approvals` · `refund_items` |
+| 💵 `payment` | `payments` · `expenses` |
+
+
+---
+
+## 🔄 Flow สำคัญ
+
+
+## 📐 กติกาทางธุรกิจ
+
+| เรื่อง | กติกา |
+|---|---|
+| 🧮 **VAT** | `vat = (subtotal − discount) × 7%` · `total = subtotal − discount + vat` |
+| 🏷️ **ราคาในบิล** | เก็บชื่อและราคาตอนสั่งเป็น snapshot แก้เมนูทีหลังบิลเก่าไม่เปลี่ยน |
+| 📦 **สต็อก** | ตัดทันทีตอนสั่ง (ตัดครบหรือไม่ตัดเลย) · เหลือ 0 ปิดขายอัตโนมัติ · เติมจาก 0 **ไม่**เปิดขายให้ ต้องกดเปิดเอง |
+| 🏪 **เมนู** | เป็นของแต่ละสาขา · หมวดหมู่เป็นของกลาง (owner จัดการ) · owner คัดลอกเมนูข้ามสาขาได้ |
+| 💳 **การจ่าย** | 1 บิลจ่ายได้ครั้งเดียว · กดซ้ำด้วย `Idempotency-Key` เดิมไม่รับเงินซ้ำ · ไม่มีการแยกบิล |
+| ↩️ **คืนเงิน** | เฉพาะบิลที่จ่ายแล้ว · ต้องได้รับอนุมัติ · ไม่คืนสต็อก · คืนรวมไม่เกินยอดที่จ่าย |
+| 📝 **คำขออนุมัติ** | บันทึกผู้ขอ ผู้อนุมัติ เวลา เหตุผล · **ห้ามลบ** |
+| 📊 **รายงาน** | รายรับ = รับเงิน − คืนเงิน · กำไร = รายรับ − รายจ่าย · นับวันและเดือนตามเวลาไทย |
+
+---
+
+## 🤝 แนวทางการทำงานร่วมกัน
+
+| เรื่อง | ข้อตกลง |
+|---|---|
+| 🌿 **Branch** | ทำงานใน branch ของตัวเอง → เปิด Pull Request เข้า `main` |
+| 🔄 **ก่อน push** | `git fetch origin` → `git merge origin/main` แก้ conflict ให้เรียบร้อยก่อน |
+| 🗂️ **ขอบเขตไฟล์** | แก้เฉพาะ service และโฟลเดอร์ใน `features/` ของตัวเอง ไฟล์กลางตกลงกันก่อน |
+| 🗄️ **ฐานข้อมูล** | แต่ละ service ใช้ schema ของตัวเองเท่านั้น ข้อมูลข้าม service ขอผ่าน API |
+| 🔐 **ความลับ** | `.env` ไม่ขึ้น git · แชร์ key ผ่านช่องทางส่วนตัวของทีม |
+
+<div align="center">
+
+---
+
+**POS & CRM** · เฟส 1 · โปรเจกต์กลุ่ม
+
+</div>
