@@ -397,6 +397,16 @@ export async function decideApproval(id, status, { note } = {}) {
   return clone(withOrderInfo(a))
 }
 
+export async function cancelOrder(orderId) {
+  await wait()
+  const order = findOrder(orderId)
+  mustBeOpen(order)
+  if (order.tickets.length) throw conflict('บิลนี้สั่งอาหารแล้ว ยกเลิกไม่ได้')
+  order.status = 'cancelled'
+  save()
+  return toOrder(order)
+}
+
 export async function requestPayment(orderId) {
   await wait()
   const order = findOrder(orderId)

@@ -2,6 +2,23 @@ import { useEffect, useId } from 'react'
 
 // component เล็ก ๆ ที่หน้าร้าน Dev 3 ใช้ร่วมกัน
 
+/** หน้าต่างยืนยัน (แทน window.confirm) — children = รายละเอียดที่อยากให้เห็นก่อนกดยืนยัน */
+export function ConfirmDialog({ title, subtitle, children, confirmLabel = 'ยืนยัน', cancelLabel = 'ยกเลิก', danger = false, busy = false, onConfirm, onCancel }) {
+  return (
+    <Dialog title={title} subtitle={subtitle} onClose={onCancel} busy={busy}>
+      {children}
+      <div className="pos-dialog-actions">
+        <button type="button" className="pos-btn" onClick={onCancel} disabled={busy} autoFocus>
+          {cancelLabel}
+        </button>
+        <button type="button" className={`pos-btn ${danger ? 'pos-btn-danger-solid' : 'pos-btn-primary'}`} onClick={onConfirm} disabled={busy}>
+          {confirmLabel}
+        </button>
+      </div>
+    </Dialog>
+  )
+}
+
 /** หน้าต่างกลางจอ · กด Esc หรือคลิกพื้นหลังเพื่อปิด (ยกเว้นตอน busy) */
 export function Dialog({ title, subtitle, onClose, busy = false, size, children }) {
   const titleId = useId()

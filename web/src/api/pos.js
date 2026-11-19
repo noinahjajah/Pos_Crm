@@ -66,6 +66,10 @@ export function sendTicket(orderId, items) {
   return data(api.post(`/pos/orders/${orderId}/tickets`, { body }))
 }
 
+/** ปิดโต๊ะที่เปิดแล้วลูกค้าไม่ได้สั่ง → บิล cancelled โต๊ะกลับเป็นว่าง (ใช้ได้เฉพาะบิลที่ยังไม่มีรายการอาหาร) */
+export const cancelOrder = (orderId) =>
+  POS_MOCK ? mock.cancelOrder(orderId) : data(api.post(`/pos/orders/${orderId}/cancel`))
+
 /** เรียกเก็บเงิน → waiting_payment (1.8, 1.24) */
 export const requestPayment = (orderId) =>
   POS_MOCK ? mock.requestPayment(orderId) : data(api.post(`/pos/orders/${orderId}/request-payment`))

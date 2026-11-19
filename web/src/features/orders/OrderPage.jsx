@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useBlocker, useNavigate, useParams } from 'react-router'
 import { getMenu, listMenus } from '../../api/catalog'
-import { APPROVAL_STATUS, POS_MOCK, getOrder, itemsAmount, lineAmount, listApprovals, requestPayment, sendTicket } from '../../api/pos'
+import { APPROVAL_STATUS, POS_MOCK, cancelOrder, getOrder, itemsAmount, lineAmount, listApprovals, requestPayment, sendTicket } from '../../api/pos'
 import KitchenTicketPrint from '../../components/print/KitchenTicketPrint'
 import { errorText } from '../../lib/format'
 import { useAuth } from '../auth/AuthContext'
 import DiscountRequestDialog from '../approvals/DiscountRequestDialog'
 import { hhmm, tablesText, thb, useBranchName, useToast } from '../../lib/posUtils'
-import { MockBanner, Stepper, Toast } from '../../components/ui/posUi'
+import { ConfirmDialog, MockBanner, Stepper, Toast } from '../../components/ui/posUi'
 import MenuOptionDialog from './MenuOptionDialog'
 import TicketSentDialog from './TicketSentDialog'
 import '../../styles/pos.css'
@@ -36,6 +36,9 @@ export default function OrderPage() {
   const [order, setOrder] = useState(null)
   const [discounts, setDiscounts] = useState([]) // คำขอส่วนลดของบิลนี้
   const [askDiscount, setAskDiscount] = useState(false)
+  const [closing, setClosing] = useState(false)
+  const [billing, setBilling] = useState(false)
+  const [confirm, setConfirm] = useState(null) // 'bill' | 'close' — หน้าต่างยืนยัน
   const [menus, setMenus] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -188,13 +191,28 @@ export default function OrderPage() {
     }
   }
 
+  // ปิดโต๊ะที่เปิดไว้แต่ลูกค้าไม่สั่ง (ยังไม่เคยส่งอะไรเข้าครัว) → โต๊ะกลับเป็นว่าง
+  async function closeEmptyTable() {
+    setClosing(true)
+    try {
+      await cancelOrder(order.id)
+      navigate('/tables')
+    } catch (err) {
+      notify(errorText(err), 'error')
+      setClosing(false)
+      setConfirm(null)
+    }
+  }
+
   async function bill() {
-    if (!window.confirm(`เรียกเก็บเงินโต๊ะ ${tablesText(order)} ? หลังจากนี้จะสั่งอาหารเพิ่มไม่ได้`)) return
+    setBilling(true)
     try {
       await requestPayment(order.id)
       navigate(`/checkout/${order.id}`)
     } catch (err) {
       notify(errorText(err), 'error')
+      setBilling(false)
+      setConfirm(null)
     }
   }
 
@@ -420,11 +438,16 @@ export default function OrderPage() {
                 </button>
               )}
               {isOpen && (
-                <button type="button" className="pos-btn" onClick={bill} disabled={!tickets.length || cart.length > 0} title={cart.length ? 'ส่งรายการที่ค้างเข้าครัวก่อน' : undefined}>
+                <button type="button" className="pos-btn" onClick={() => setConfirm('bill')} disabled={!tickets.length || cart.length > 0} title={cart.length ? 'ส่งรายการที่ค้างเข้าครัวก่อน' : undefined}>
                   เรียกเก็บเงิน
                 </button>
               )}
             </div>
+            {isOpen && tickets.length === 0 && (
+              <button type="button" className="pos-btn pos-btn-danger pos-btn-block pos-close-table" onClick={() => setConfirm('close')} disabled={closing || sending}>
+                {closing ? 'กำลังปิดโต๊ะ…' : 'ปิดโต๊ะ (ลูกค้าไม่ได้สั่ง)'}
+              </button>
+            )}
           </div>
         </aside>
       </div>
@@ -449,6 +472,53 @@ export default function OrderPage() {
             loadDiscounts().catch(() => {})
           }}
         />
+      )}
+
+      {confirm === 'bill' && (
+        <ConfirmDialog
+          title={`เรียกเก็บเงินโต๊ะ ${tables}`}
+          subtitle="หลังจากนี้จะสั่งอาหารเพิ่มไม่ได้"
+          confirmLabel="เรียกเก็บเงิน"
+          busy={billing}
+          onConfirm={bill}
+          onCancel={() => setConfirm(null)}
+        >
+          <div className="pos-infobox">
+            <div>
+              <span>โต๊ะ</span>
+              <strong>{tables}</strong>
+            </div>
+            <div>
+              <span>จำนวนรายการ</span>
+              <strong>{tickets.reduce((s, t) => s + (t.items || []).reduce((q, it) => q + Number(it.quantity || 0), 0), 0)} รายการ · {tickets.length} รอบ</strong>
+            </div>
+            <div>
+              <span>ยอดก่อน VAT</span>
+              <strong>{thb(sentTotal)}</strong>
+            </div>
+            {Number(order.discount_amount) > 0 && (
+              <div>
+                <span>ส่วนลด</span>
+                <strong>-{thb(order.discount_amount)}</strong>
+              </div>
+            )}
+          </div>
+          <p className="pos-dialog-sub" style={{ marginTop: 10 }}>ระบบจะคิด VAT 7% และพาไปหน้าคิดเงินต่อ</p>
+        </ConfirmDialog>
+      )}
+
+      {confirm === 'close' && (
+        <ConfirmDialog
+          title={`ปิดโต๊ะ ${tables}`}
+          subtitle="ลูกค้าไม่ได้สั่งอาหาร — บิลนี้จะถูกยกเลิกและโต๊ะกลับเป็นว่าง"
+          confirmLabel="ปิดโต๊ะ"
+          danger
+          busy={closing}
+          onConfirm={closeEmptyTable}
+          onCancel={() => setConfirm(null)}
+        >
+          {cart.length > 0 && <p className="pos-note is-warn">รายการที่เลือกไว้แต่ยังไม่ได้ส่งเข้าครัว {cart.length} รายการ จะถูกล้างทิ้ง</p>}
+        </ConfirmDialog>
       )}
 
       {sent && (
