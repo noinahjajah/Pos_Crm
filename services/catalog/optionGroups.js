@@ -2,11 +2,11 @@
 // เช่น "ระดับความเผ็ด" (เลือกได้ 1) หรือ "ท็อปปิ้ง" (เลือกได้หลายอย่าง) · ปิดใช้แทนการลบ
 import { Router } from 'express'
 import { db, run } from './db.js'
+import { branchForWrite } from './identity.js'
 import {
   allow,
   atLeastOne,
   branchFilter,
-  branchForCreate,
   dbError,
   idParam,
   money,
@@ -74,7 +74,7 @@ optionGroupRouter.get('/', allow('staff', 'manager', 'owner'), async (req, res) 
 // POST /option-groups — สร้างกลุ่ม (ส่ง options มาพร้อมกันได้)
 optionGroupRouter.post('/', allow('manager', 'owner'), async (req, res) => {
   const { options, branch_id, ...data } = parse(createGroupSchema, req.body)
-  const group = await run(db.from('option_groups').insert({ ...data, branch_id: branchForCreate(req, branch_id) }).select('id').single())
+  const group = await run(db.from('option_groups').insert({ ...data, branch_id: await branchForWrite(req, branch_id) }).select('id').single())
   if (options.length) {
     const rows = options.map((o, i) => ({ sort_order: i + 1, ...o, option_group_id: group.id }))
     const { error } = await db.from('options').insert(rows)

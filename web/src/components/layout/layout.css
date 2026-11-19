@@ -1,0 +1,225 @@
+/* โครงหน้า: เมนูข้าง + แถบบน — class ขึ้นต้นด้วย app- */
+
+.app-shell {
+  display: flex;
+  min-height: 100svh;
+}
+
+/* ---------- เมนูข้าง ---------- */
+.app-sidebar {
+  width: 232px;
+  flex-shrink: 0;
+  background: var(--app-card);
+  border-right: 1px solid var(--app-line);
+  padding: 18px 12px;
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow-y: auto;
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 18px;
+}
+.app-logo-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--app-brand);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+.app-logo-text {
+  font-weight: 700;
+  color: var(--app-ink);
+}
+
+.app-nav-section + .app-nav-section {
+  margin-top: 18px;
+}
+.app-nav-title {
+  padding: 0 10px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--app-muted);
+}
+.app-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  color: var(--app-ink);
+  text-decoration: none;
+  font-size: 15px;
+}
+.app-nav-link:hover {
+  background: var(--app-soft);
+}
+.app-nav-link.is-active {
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+  font-weight: 600;
+}
+.app-nav-icon {
+  width: 20px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+/* ---------- ส่วนเนื้อหา ---------- */
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.app-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- แถบบน ---------- */
+.app-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 24px;
+  background: var(--app-card);
+  border-bottom: 1px solid var(--app-line);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.app-menu-btn {
+  display: none;
+  border: 1px solid var(--app-line);
+  background: var(--app-card);
+  color: var(--app-ink);
+  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+}
+.app-branch {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--app-ink);
+}
+.app-branch-label {
+  font-size: 13px;
+  color: var(--app-muted);
+}
+.app-user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.app-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--app-brand-soft);
+  color: var(--app-brand);
+  font-weight: 700;
+}
+.app-user-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  font-size: 14px;
+  color: var(--app-ink);
+}
+.app-user-text span {
+  font-size: 12px;
+  color: var(--app-muted);
+}
+.app-logout {
+  margin-left: 6px;
+  border: 1px solid var(--app-line);
+  background: transparent;
+  color: var(--app-ink);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.app-logout:hover:not(:disabled) {
+  border-color: var(--app-danger);
+  color: var(--app-danger);
+}
+
+.app-scrim {
+  display: none;
+}
+
+/* ---------- จอเล็ก: เมนูข้างเลื่อนออกมา ---------- */
+@media (max-width: 900px) {
+  .app-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  }
+  .app-sidebar.is-open {
+    transform: none;
+  }
+  .app-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .app-menu-btn {
+    display: inline-grid;
+    place-items: center;
+  }
+  .app-topbar {
+    padding: 10px 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-user-text,
+  .app-branch-label {
+    display: none;
+  }
+}
+
+/* หน้าที่ยังไม่ได้ทำ */
+.app-placeholder {
+  margin: 48px auto;
+  max-width: 480px;
+  text-align: center;
+  color: var(--app-muted);
+  padding: 32px 24px;
+  border: 1px dashed var(--app-line);
+  border-radius: 16px;
+}
+.app-placeholder h1 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  color: var(--app-ink);
+}
+
+@media print {
+  .app-sidebar,
+  .app-topbar,
+  .app-scrim {
+    display: none !important;
+  }
+}

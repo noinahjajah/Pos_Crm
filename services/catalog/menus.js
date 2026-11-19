@@ -1,12 +1,12 @@
 // /menus — เมนูของแต่ละสาขา (1.14, 1.15, 1.18)
 import { Router } from 'express'
 import { db, run, uploadImage } from './db.js'
+import { branchForWrite, mustBeActiveBranch } from './identity.js'
 import {
   allow,
   atLeastOne,
   badRequest,
   branchFilter,
-  branchForCreate,
   conflict,
   idParam,
   money,
@@ -120,7 +120,7 @@ router.get('/:id', allow('staff', 'manager', 'owner'), async (req, res) => {
 // POST /menus — เพิ่มเมนู · ฐานข้อมูลสร้างสต็อก 0 ปิดขายให้อัตโนมัติ
 router.post('/', allow('manager', 'owner'), async (req, res) => {
   const { image: img, branch_id, ...data } = parse(createSchema, req.body)
-  const branchId = branchForCreate(req, branch_id)
+  const branchId = await branchForWrite(req, branch_id)
   await mustBeActiveCategory(data.category_id)
   if (img) data.image_url = await uploadImage(branchId, img)
 
@@ -155,6 +155,7 @@ router.delete('/:id', allow('manager', 'owner'), async (req, res) => {
 router.post('/:id/copy', allow('owner'), async (req, res) => {
   const { id } = parse(idParam, req.params)
   const { to_branch_id } = parse(z.object({ to_branch_id: uuid }), req.body)
+  await mustBeActiveBranch(to_branch_id, 'to_branch_id')
   const newId = await run(db.rpc('copy_menu', { p_menu_id: id, p_to_branch: to_branch_id }))
   send(res, await loadMenu(req, newId, { includeInactive: true }), { status: 201 })
 })

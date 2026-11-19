@@ -200,6 +200,23 @@ paymentRouter.get('/', allow('manager', 'owner'), async (req, res) => {
 // ===================== /refunds =====================
 export const refundRouter = Router()
 
+// GET /refunds/approved — คำขอที่อนุมัติแล้ว บิลจ่ายแล้ว และยังไม่ได้คืนเงิน (ของสาขาตัวเอง)
+refundRouter.get('/approved', allow('staff', 'manager'), async (req, res) => {
+  const approvals = await pos.listApprovedRefunds({ branchId: req.user.branchId })
+  const orderIds = [...new Set(approvals.map((a) => a.order_id))]
+  const rows = orderIds.length ? await run(db.from('payments').select('order_id, type, approval_id').in('order_id', orderIds)) : []
+  const charged = new Set(rows.filter((r) => r.type === 'charge').map((r) => r.order_id))
+  const refunded = new Set(rows.filter((r) => r.type === 'refund').map((r) => r.approval_id))
+  const open = approvals.filter((a) => charged.has(a.order_id) && !refunded.has(a.id))
+  const items = await Promise.all(
+    open.map(async (a) => {
+      const order = await pos.getOrder(a.order_id)
+      return { id: a.id, order_id: a.order_id, order_no: order?.order_no ?? null, amount: Number(a.amount), reason: a.reason ?? null }
+    }),
+  )
+  send(res, items, { meta: { total: items.length } })
+})
+
 // POST /refunds { approval_id, method } — คืนเงินได้เฉพาะคำขอที่อนุมัติแล้ว · ไม่คืนสต็อก
 refundRouter.post('/', allow('staff', 'manager'), async (req, res) => {
   const { approval_id, method: refundMethod } = parse(refundSchema, req.body)

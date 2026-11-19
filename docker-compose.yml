@@ -4,11 +4,39 @@
 name: pos-crm
 
 services:
+  # ทางเข้าเดียวจากข้างนอก — ตรวจ JWT + ตัดสินสิทธิ์จาก role (services/gateway/src/access.config.js)
+  gateway:
+    build: ./services/gateway
+    env_file: ./services/gateway/.env
+    environment:
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - identity
+      - catalog
+      - pos
+      - payment
+    restart: unless-stopped
+
+  # login · ผู้ใช้ · สาขา (Dev 1) — schema identity1
+  identity:
+    build: ./services/identity
+    env_file: ./services/identity/.env
+    environment:
+      PORT: 3001
+    ports:
+      - "127.0.0.1:3001:3001"
+    restart: unless-stopped
+
   catalog:
     build: ./services/catalog
     env_file: ./services/catalog/.env
     environment:
       PORT: 3002
+      IDENTITY_URL: http://identity:3001
+    depends_on:
+      - identity
     # ตามเอกสาร gateway: service ไม่ควรเปิดออกนอก — เปิดเฉพาะ localhost ไว้ทดสอบตอน dev
     ports:
       - "127.0.0.1:3002:3002"
@@ -20,9 +48,29 @@ services:
     environment:
       PORT: 3004
       POS_URL: http://pos:3003
+      # http = ใช้บิลจริงจาก pos · mock = บิลจำลองในหน่วยความจำ (ใช้ตอน pos ยังไม่พร้อม)
+      POS_MODE: http
+      IDENTITY_URL: http://identity:3001
     ports:
       - "127.0.0.1:3004:3004"
     depends_on:
+      - identity
+      - catalog
+      - pos
+    restart: unless-stopped
+
+  # โต๊ะ ออร์เดอร์ ตั๋วครัว คำขออนุมัติ (Dev 3) — schema pos
+  pos:
+    build: ./services/pos
+    env_file: ./services/pos/.env
+    environment:
+      PORT: 3003
+      IDENTITY_URL: http://identity:3001
+      CATALOG_URL: http://catalog:3002
+    ports:
+      - "127.0.0.1:3003:3003"
+    depends_on:
+      - identity
       - catalog
     restart: unless-stopped
 
@@ -32,4 +80,3 @@ services:
       - "8000:80"
     restart: unless-stopped
 
-  # TODO: เพิ่ม gateway (:8080), identity (:3001), pos (:3003) เมื่อโค้ดพร้อม

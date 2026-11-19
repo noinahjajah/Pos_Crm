@@ -1,111 +1,76 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api } from '../../../api/client'
-import { copyMenu, deleteMenu, listCategories, listMenus, setMenuAvailability } from '../../../api/catalog'
-import MenuFormDialog from './MenuFormDialog'
-import './menus.css'
+import { copyMenu, deleteMenu, listCategories, listMenus, listOptionGroups, setMenuAvailability } from '../../../api/catalog'
+import { thb, useToast } from '../../../lib/posUtils'
+import { Toast } from '../../../components/ui/posUi'
+import { loadMenuGroupLinks } from '../menuLinks'
+import { errorText, useBranchScope } from '../useBranchScope'
+import MenuEditor from './MenuEditor'
+import '../../../styles/pos.css'
 
 // หน้าจัดการเมนู (หลังร้าน) — 1.14, 1.15, 1.18
+// ซ้าย: ตารางเมนู · ขวา: แผงแก้ไข/เพิ่มเมนู
 // manager: เมนูของสาขาตัวเอง · owner: เลือกสาขาได้ และคัดลอกเมนูข้ามสาขาได้
 
-
-// แปลง error จาก API เป็นข้อความอ่านง่าย (รวมรายละเอียดรายช่องถ้ามี)
-function errorText(err) {
-  if (!err) return ''
-  const fields = (err.details || [])
-    .map((d) => d.message && (d.field ? `${d.field}: ${d.message}` : d.message))
-    .filter(Boolean)
-  return fields.length ? `${err.message} — ${fields.join(', ')}` : err.message || 'เกิดข้อผิดพลาด'
-}
-
-const baht = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' })
+const ALL = ''
 
 export default function MenusPage() {
-  const [me, setMe] = useState(null)
-  const [branches, setBranches] = useState([])
-  const [branchId, setBranchId] = useState('')
+  const scope = useBranchScope()
+  const { branchId, branches, isOwner, canManage, branchName } = scope
   const [categories, setCategories] = useState([])
   const [menus, setMenus] = useState([])
-  const [categoryId, setCategoryId] = useState('')
+  const [groups, setGroups] = useState([])
+  const [links, setLinks] = useState(new Map())
+  const [categoryId, setCategoryId] = useState(ALL)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [toast, setToast] = useState(null)
-  const [editing, setEditing] = useState(null) // null = ปิด, {} = เพิ่มใหม่, menu = แก้ไข
-  const [copying, setCopying] = useState(null)
+  const [selected, setSelected] = useState(null) // menu id | 'new' | null
   const [busyId, setBusyId] = useState(null)
+  const [reloadKey, setReloadKey] = useState(0)
+  const [toast, notify] = useToast()
 
-  const isOwner = me?.role === 'owner'
-  const canManage = me?.role === 'owner' || me?.role === 'manager'
-
-  const notify = useCallback((message, type = 'success') => {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
-  }, [])
-
-  // ข้อมูลผู้ใช้ สาขา หมวดหมู่ (โหลดครั้งเดียว)
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const [meRes, branchRes, cats] = await Promise.all([
-          api.get('/identity/me'),
-          api.get('/identity/branches'),
-          listCategories(),
-        ])
-        if (cancelled) return
-        const user = meRes.data
-        setMe(user)
-        setBranches(branchRes.data || [])
-        setCategories(cats)
-        setBranchId(user.role === 'owner' ? branchRes.data?.[0]?.id || '' : user.branch_id)
-      } catch (err) {
-        if (!cancelled) {
-          setError(errorText(err))
-          setLoading(false)
-        }
-      }
-    })()
+    listCategories()
+      .then((rows) => !cancelled && setCategories((rows || []).filter((c) => c.is_active !== false)))
+      .catch(() => {})
     return () => {
       cancelled = true
     }
   }, [])
 
-  // โหลดเมนูของสาขาที่เลือก (โหลดใหม่เมื่อเปลี่ยนสาขาหรือกด reload)
-  const [reloadKey, setReloadKey] = useState(0)
+  // เมนู + กลุ่มตัวเลือกของสาขา แล้วค่อยโหลดว่าเมนูไหนผูกกลุ่มไหน (ช้ากว่า แสดงตารางก่อน)
   useEffect(() => {
     if (!branchId) return
     let cancelled = false
-    listMenus({ branch_id: branchId })
-      .then((rows) => {
+    Promise.all([listMenus({ branch_id: branchId }), listOptionGroups({ branch_id: branchId })])
+      .then(([menuRows, groupRows]) => {
         if (cancelled) return
-        setMenus(rows)
+        setMenus(menuRows || [])
+        setGroups(groupRows || [])
         setError('')
+        setLoading(false)
+        return loadMenuGroupLinks(menuRows || []).then((map) => !cancelled && setLinks(map))
       })
-      .catch((err) => !cancelled && setError(errorText(err)))
-      .finally(() => !cancelled && setLoading(false))
+      .catch((err) => {
+        if (cancelled) return
+        setError(errorText(err))
+        setLoading(false)
+      })
     return () => {
       cancelled = true
     }
   }, [branchId, reloadKey])
 
-  const loadMenus = useCallback(() => {
-    setLoading(true)
-    setReloadKey((k) => k + 1)
-  }, [])
-
-  function changeBranch(id) {
-    setLoading(true)
-    setBranchId(id)
-  }
+  const reload = useCallback(() => setReloadKey((k) => k + 1), [])
 
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return menus
-      .filter((m) => !categoryId || m.category_id === categoryId)
-      .filter((m) => !q || m.name.toLowerCase().includes(q))
+    return menus.filter((m) => (!categoryId || m.category_id === categoryId) && (!q || m.name.toLowerCase().includes(q)))
   }, [menus, categoryId, search])
 
-  const branchName = (id) => branches.find((b) => b.id === id)?.name || ''
+  const usedCategories = useMemo(() => categories.filter((c) => menus.some((m) => m.category_id === c.id)), [categories, menus])
+  const current = selected === 'new' ? null : menus.find((m) => m.id === selected) || null
 
   async function toggleAvailable(menu) {
     setBusyId(menu.id)
@@ -126,6 +91,7 @@ export default function MenusPage() {
     try {
       await deleteMenu(menu.id)
       setMenus((list) => list.filter((m) => m.id !== menu.id))
+      if (selected === menu.id) setSelected(null)
       notify(`ลบ ${menu.name} แล้ว`)
     } catch (err) {
       notify(errorText(err), 'error')
@@ -134,218 +100,177 @@ export default function MenusPage() {
     }
   }
 
-  async function doCopy(toBranchId) {
+  async function copy(menu, toBranchId) {
     try {
-      await copyMenu(copying.id, toBranchId)
-      notify(`คัดลอก ${copying.name} ไป ${branchName(toBranchId)} แล้ว (สต็อก 0 ปิดขายไว้ก่อน)`)
-      setCopying(null)
+      await copyMenu(menu.id, toBranchId)
+      notify(`คัดลอก ${menu.name} ไป ${branchName(toBranchId)} แล้ว (สต็อก 0 ปิดขายไว้ก่อน)`)
     } catch (err) {
       notify(errorText(err), 'error')
     }
   }
 
   function onSaved(menu, isNew) {
-    setEditing(null)
     notify(isNew ? `เพิ่ม ${menu.name} แล้ว (สต็อก 0 ปิดขายไว้ก่อน)` : `บันทึก ${menu.name} แล้ว`)
-    loadMenus()
+    setSelected(menu.id)
+    reload()
   }
 
-  if (me && !canManage) {
+  if (scope.me && !canManage) {
     return (
-      <div className="mm-page">
-        <div className="mm-empty">หน้านี้สำหรับผู้จัดการและเจ้าของร้านเท่านั้น</div>
+      <div className="pos-page">
+        <div className="pos-empty">หน้านี้สำหรับผู้จัดการและเจ้าของร้านเท่านั้น</div>
       </div>
     )
   }
 
   return (
-    <div className="mm-page">
-      <header className="mm-header">
+    <div className="pos-page">
+      <header className="pos-header">
         <div>
-          <h1 className="mm-title">จัดการเมนู</h1>
-          <p className="mm-subtitle">
-            {isOwner ? 'เลือกสาขาที่ต้องการแก้ไข เมนูของแต่ละสาขาแยกกัน' : `สาขา ${branchName(branchId)}`}
+          <h1 className="pos-title">จัดการเมนู</h1>
+          <p className="pos-subtitle">
+            เพิ่ม แก้ไข ลบ เมนู พร้อมหมวดหมู่ ราคา และรูป{!isOwner && branchName(branchId) ? ` · สาขา${branchName(branchId)}` : ''}
           </p>
         </div>
-        <div className="mm-header-actions">
-          {isOwner && (
-            <select className="mm-select" value={branchId} onChange={(e) => changeBranch(e.target.value)}>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          )}
-          <button className="mm-btn mm-btn-primary" onClick={() => setEditing({})} disabled={!branchId}>
-            + เพิ่มเมนู
-          </button>
-        </div>
-      </header>
-
-      <div className="mm-toolbar">
-        <input
-          className="mm-input mm-search"
-          placeholder="ค้นหาชื่อเมนู"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <div className="mm-chips">
-          <button className={`mm-chip ${!categoryId ? 'is-active' : ''}`} onClick={() => setCategoryId('')}>
-            ทั้งหมด <span>{menus.length}</span>
-          </button>
-          {categories.map((c) => {
-            const count = menus.filter((m) => m.category_id === c.id).length
-            return (
-              <button
-                key={c.id}
-                className={`mm-chip ${categoryId === c.id ? 'is-active' : ''}`}
-                onClick={() => setCategoryId(c.id)}
-              >
-                {c.name} <span>{count}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {error && (
-        <div className="mm-alert">
-          {error}
-          <button className="mm-link" onClick={loadMenus}>
-            ลองใหม่
-          </button>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="mm-grid">
-          {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="mm-card mm-skeleton" />
-          ))}
-        </div>
-      ) : shown.length === 0 ? (
-        <div className="mm-empty">
-          {menus.length === 0 ? 'ยังไม่มีเมนูในสาขานี้ กด “+ เพิ่มเมนู” เพื่อเริ่ม' : 'ไม่พบเมนูที่ค้นหา'}
-        </div>
-      ) : (
-        <div className="mm-grid">
-          {shown.map((m) => {
-            const empty = m.quantity <= 0
-            return (
-              <article key={m.id} className={`mm-card ${m.is_available ? '' : 'is-off'}`}>
-                <div className="mm-thumb">
-                  {m.image_url ? <img src={m.image_url} alt={m.name} /> : <span aria-hidden="true">🍽️</span>}
-                  <span className={`mm-badge ${m.is_available ? 'is-on' : ''}`}>
-                    {m.is_available ? 'เปิดขาย' : 'ปิดขาย'}
-                  </span>
-                </div>
-                <div className="mm-body">
-                  <div className="mm-row">
-                    <h3 className="mm-name">{m.name}</h3>
-                    <strong className="mm-price">{baht.format(m.price)}</strong>
-                  </div>
-                  <div className="mm-meta">
-                    <span>{m.category_name}</span>
-                    <span className={empty ? 'mm-stock-empty' : ''}>คงเหลือ {m.quantity}</span>
-                  </div>
-                  {m.description && <p className="mm-desc">{m.description}</p>}
-                </div>
-                <footer className="mm-actions">
-                  <label
-                    className="mm-switch"
-                    title={empty && !m.is_available ? 'สต็อกเป็น 0 ต้องเติมสต็อกก่อนเปิดขาย' : ''}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={m.is_available}
-                      disabled={busyId === m.id || (empty && !m.is_available)}
-                      onChange={() => toggleAvailable(m)}
-                    />
-                    <span />
-                  </label>
-                  <div className="mm-action-btns">
-                    <button className="mm-btn" onClick={() => setEditing(m)} disabled={busyId === m.id}>
-                      แก้ไข
-                    </button>
-                    {isOwner && (
-                      <button className="mm-btn" onClick={() => setCopying(m)} disabled={busyId === m.id}>
-                        คัดลอก
-                      </button>
-                    )}
-                    <button className="mm-btn mm-btn-danger" onClick={() => remove(m)} disabled={busyId === m.id}>
-                      ลบ
-                    </button>
-                  </div>
-                </footer>
-              </article>
-            )
-          })}
-        </div>
-      )}
-
-      {editing && (
-        <MenuFormDialog
-          menu={editing.id ? editing : null}
-          branchId={branchId}
-          branchName={branchName(branchId)}
-          isOwner={isOwner}
-          categories={categories.filter((c) => c.is_active !== false)}
-          onClose={() => setEditing(null)}
-          onSaved={onSaved}
-        />
-      )}
-
-      {copying && (
-        <CopyDialog
-          menu={copying}
-          branches={branches.filter((b) => b.id !== copying.branch_id)}
-          onClose={() => setCopying(null)}
-          onCopy={doCopy}
-        />
-      )}
-
-      {toast && <div className={`mm-toast ${toast.type === 'error' ? 'is-error' : ''}`}>{toast.message}</div>}
-    </div>
-  )
-}
-
-/** owner เลือกสาขาปลายทางเพื่อคัดลอกเมนู */
-function CopyDialog({ menu, branches, onClose, onCopy }) {
-  const [target, setTarget] = useState(branches[0]?.id || '')
-  const [saving, setSaving] = useState(false)
-
-  async function submit(e) {
-    e.preventDefault()
-    setSaving(true)
-    await onCopy(target)
-    setSaving(false)
-  }
-
-  return (
-    <div className="mm-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <form className="mm-dialog mm-dialog-sm" onSubmit={submit}>
-        <h2 className="mm-dialog-title">คัดลอก “{menu.name}”</h2>
-        <p className="mm-hint">คัดลอกพร้อมกลุ่มตัวเลือก สาขาปลายทางเริ่มที่สต็อก 0 และปิดขายไว้ก่อน แก้ไขแยกกันได้ภายหลัง</p>
-        <label className="mm-field">
-          <span>ไปที่สาขา</span>
-          <select className="mm-select" value={target} onChange={(e) => setTarget(e.target.value)} required>
+        {isOwner && (
+          <select
+            className="pos-input pos-select-sm"
+            value={branchId}
+            onChange={(e) => {
+              setLoading(true)
+              setSelected(null)
+              scope.setBranchId(e.target.value)
+            }}
+            aria-label="สาขา"
+          >
             {branches.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
               </option>
             ))}
           </select>
-        </label>
-        <div className="mm-dialog-actions">
-          <button type="button" className="mm-btn" onClick={onClose}>
-            ยกเลิก
-          </button>
-          <button className="mm-btn mm-btn-primary" disabled={!target || saving}>
-            {saving ? 'กำลังคัดลอก…' : 'คัดลอก'}
+        )}
+      </header>
+
+      {(error || scope.error) && (
+        <div className="pos-alert">
+          {error || scope.error}
+          <button className="pos-link" onClick={reload}>
+            ลองใหม่
           </button>
         </div>
-      </form>
+      )}
+
+      <div className="pos-bo-layout">
+        <section aria-label="รายการเมนู" style={{ minWidth: 0 }}>
+          <div className="pos-menu-toolbar">
+            <div className="pos-chips" style={{ alignItems: 'center' }}>
+              <input className="pos-search" type="search" placeholder="ค้นหาเมนู" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="ค้นหาเมนู" />
+              <button type="button" className={`pos-chip ${!categoryId ? 'is-active' : ''}`} onClick={() => setCategoryId(ALL)}>
+                ทั้งหมด
+              </button>
+              {usedCategories.map((c) => (
+                <button key={c.id} type="button" className={`pos-chip ${categoryId === c.id ? 'is-active' : ''}`} onClick={() => setCategoryId(c.id)}>
+                  {c.name}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="pos-btn pos-btn-primary" onClick={() => setSelected('new')} disabled={!branchId}>
+              + เพิ่มเมนู
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="pos-skeleton" />
+          ) : shown.length === 0 ? (
+            <div className="pos-empty">{menus.length ? 'ไม่พบเมนูที่ค้นหา' : 'ยังไม่มีเมนูในสาขานี้ กด “+ เพิ่มเมนู” เพื่อเริ่ม'}</div>
+          ) : (
+            <div className="pos-rtable-wrap" style={{ background: 'var(--app-card)' }}>
+              <table className="pos-rtable pos-avail-table">
+                <thead>
+                  <tr>
+                    <th aria-label="รูป" />
+                    <th>เมนู</th>
+                    <th>หมวด</th>
+                    <th className="is-num">ราคา</th>
+                    <th>ตัวเลือกเสริม</th>
+                    <th className="is-center">ขาย</th>
+                    <th aria-label="จัดการ" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((m) => {
+                    const empty = Number(m.quantity) <= 0
+                    const linked = links.get(m.id)
+                    return (
+                      <tr key={m.id} className={selected === m.id ? 'is-selected' : ''}>
+                        <td style={{ width: 56 }}>
+                          <div className="pos-thumb-sm">{m.image_url ? <img src={m.image_url} alt="" loading="lazy" /> : <span aria-hidden="true">▧</span>}</div>
+                        </td>
+                        <td>
+                          <button type="button" className="pos-row-link" onClick={() => setSelected(m.id)}>
+                            {m.name}
+                          </button>
+                        </td>
+                        <td className="pos-muted">{m.category_name}</td>
+                        <td className="is-num">{thb(m.price)}</td>
+                        <td className="pos-muted pos-small">{linked ? linked.map((g) => g.name).join(', ') || '-' : '…'}</td>
+                        <td className="is-center">
+                          <label className="pos-switch" title={empty ? 'สต็อกเป็น 0 ต้องเติมสต็อกก่อนเปิดขาย' : ''}>
+                            <input
+                              type="checkbox"
+                              aria-label={`เปิดขาย ${m.name}`}
+                              checked={m.is_available && !empty}
+                              disabled={busyId === m.id || empty}
+                              onChange={() => toggleAvailable(m)}
+                            />
+                            <span />
+                          </label>
+                        </td>
+                        <td className="pos-row-actions">
+                          <button type="button" className="pos-link-btn" onClick={() => setSelected(m.id)}>
+                            แก้ไข
+                          </button>
+                          <button type="button" className="pos-link-btn is-danger" onClick={() => remove(m)} disabled={busyId === m.id}>
+                            ลบ
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <aside className="pos-panel pos-side-panel" aria-label="แก้ไขเมนู">
+          {selected ? (
+            <MenuEditor
+              key={`${selected}:${reloadKey}`}
+              menu={current}
+              branchId={branchId}
+              branchName={branchName(branchId)}
+              isOwner={isOwner}
+              branches={branches}
+              categories={categories}
+              groups={groups.filter((g) => g.is_active !== false)}
+              linkedIds={current ? (links.get(current.id) || []).map((g) => g.id) : []}
+              linksReady={!current || links.has(current.id)}
+              busy={busyId === current?.id}
+              onSaved={onSaved}
+              onDelete={() => current && remove(current)}
+              onToggle={() => current && toggleAvailable(current)}
+              onCopy={(toBranchId) => current && copy(current, toBranchId)}
+              onCancel={() => setSelected(null)}
+            />
+          ) : (
+            <div className="pos-cart-empty">เลือกเมนูในตารางเพื่อแก้ไข หรือกด “+ เพิ่มเมนู”</div>
+          )}
+        </aside>
+      </div>
+
+      <Toast toast={toast} />
     </div>
   )
 }

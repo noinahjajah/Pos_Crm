@@ -6,6 +6,7 @@ import { db } from './db.js'
 import { checkInternalKey, errorHandler, notFound } from './helpers.js'
 import { mockOrderList, posMode } from './pos.js'
 import { paymentRouter, refundRouter, syncPending } from './payments.js'
+import orders from './orders.js'
 import expenses from './expenses.js'
 import reports from './reports.js'
 
@@ -26,6 +27,7 @@ app.get('/health', async (req, res) => {
 app.use(checkInternalKey(INTERNAL_KEY))
 app.use(express.json({ limit: '100kb' }))
 
+app.use('/orders', orders)
 app.use('/payments', paymentRouter)
 app.use('/refunds', refundRouter)
 app.use('/expenses', expenses)

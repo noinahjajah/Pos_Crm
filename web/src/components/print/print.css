@@ -1,0 +1,165 @@
+/* ใบพิมพ์ 80 มม. (ใบออร์เดอร์เข้าครัว / ใบเสร็จ) — class ขึ้นต้นด้วย ps- / print-slip
+   พิมพ์ขาวดำเสมอ ไม่ใช้ตัวแปรสีของธีม */
+
+.print-slip {
+  display: none;
+  width: 80mm;
+  max-width: 100%;
+  padding: 4mm 3mm;
+  background: #fff;
+  color: #000;
+  font-family: 'Sarabun', 'Noto Sans Thai', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+}
+.print-slip.is-preview {
+  display: block;
+  border: 1px solid #d6d3d1;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.ps-center {
+  text-align: center;
+}
+.ps-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+.ps-subtitle {
+  margin-top: 4px;
+  font-weight: 600;
+}
+.ps-small {
+  font-size: 11px;
+}
+
+.ps-rule {
+  border: none;
+  border-top: 1px dashed #000;
+  margin: 6px 0;
+}
+
+.ps-meta {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+.ps-meta div {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+}
+.ps-meta dt {
+  font-weight: 600;
+}
+.ps-meta dd {
+  margin: 0;
+}
+
+.ps-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ps-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ps-items,
+.ps-kitchen-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ps-items li + li {
+  margin-top: 3px;
+}
+.ps-options {
+  font-size: 11px;
+  padding-left: 14px;
+}
+.ps-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ps-grand {
+  margin-top: 3px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.ps-footer {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+/* ---------- ใบครัว: ตัวใหญ่ อ่านง่ายจากระยะไกล ---------- */
+.ps-table-no {
+  margin: 6px 0 2px;
+  padding: 4px 0;
+  border: 2px solid #000;
+  border-radius: 4px;
+  text-align: center;
+}
+.ps-table-no span {
+  font-size: 12px;
+  margin-right: 6px;
+}
+.ps-table-no strong {
+  font-size: 24px;
+}
+.ps-kitchen-items li {
+  padding: 4px 0;
+}
+.ps-kitchen-items li + li {
+  border-top: 1px dotted #000;
+}
+.ps-kitchen-line {
+  display: flex;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.ps-qty {
+  min-width: 30px;
+}
+.ps-kitchen-items .ps-options {
+  font-size: 13px;
+  padding-left: 36px;
+}
+.ps-note {
+  font-size: 13px;
+  font-weight: 700;
+  padding-left: 36px;
+}
+
+/* ---------- ตอนพิมพ์: ถ้ามีใบพิมพ์อยู่ในหน้า แสดงเฉพาะใบพิมพ์ ----------
+   ซ่อนส่วนอื่นของหน้าด้วย display:none (ไม่ใช่ visibility) ไม่งั้นหน้าแอปที่ซ่อนยังกินที่
+   จนพิมพ์ออกมาเป็นหน้าเปล่าหลายหน้า · ใบพิมพ์ถูก portal มาไว้ที่ body โดยตรง จึงไม่ถูกซ่อนไปด้วย */
+@page {
+  size: 80mm auto;
+  margin: 0;
+}
+@media print {
+  body:has(> .print-slip) > *:not(.print-slip) {
+    display: none !important;
+  }
+  html,
+  body:has(> .print-slip) {
+    background: #fff !important;
+    color: #000 !important;
+    margin: 0;
+    padding: 0;
+  }
+  .print-slip {
+    display: block !important;
+    position: static;
+    width: 80mm;
+    margin: 0;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    break-inside: avoid;
+  }
+}

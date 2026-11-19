@@ -307,6 +307,7 @@ Base URL: `http://localhost:8080/api/v1/<service>` (ผ่าน gateway)
 | Method | Path | Role |
 |---|---|---|
 | POST | `/payments` (header `Idempotency-Key`) · `/refunds` | S M |
+| GET | `/orders` · `/orders/:id` · `/refunds/approved` | S M |
 | GET | `/payments` | M O |
 | GET · POST · PATCH · DELETE | `/expenses` | M O |
 | GET | `/reports/daily` | M O |
@@ -326,6 +327,8 @@ Base URL: `http://localhost:8080/api/v1/<service>` (ผ่าน gateway)
 | payment → pos | `POST /internal/orders/:id/mark-paid` | ปิดบิล คืนโต๊ะเป็นว่าง |
 | payment → pos | `POST /internal/orders/:id/mark-refunded` | อัปเดตบิลหลังคืนเงิน |
 | payment → pos | `GET /internal/approvals/:id` | ข้อมูลคำขอคืนเงิน |
+| payment → pos | `GET /internal/orders?status=waiting_payment&branch_id=` | บิลรอชำระของสาขา |
+| payment → pos | `GET /internal/approvals?type=refund&status=approved&branch_id=` | คำขอคืนเงินที่อนุมัติแล้ว |
 
 </details>
 

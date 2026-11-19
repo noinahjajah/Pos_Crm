@@ -1,60 +1,40 @@
-import { useCallback, useEffect, useState } from 'react'
-import { api } from '../../../api/client'
-import {
-  createOption,
-  createOptionGroup,
-  listOptionGroups,
-  updateOption,
-  updateOptionGroup,
-} from '../../../api/catalog'
-import './menus.css'
-import './option-groups.css'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createOption, createOptionGroup, listMenus, listOptionGroups, updateOption, updateOptionGroup } from '../../../api/catalog'
+import { useToast } from '../../../lib/posUtils'
+import { Toast } from '../../../components/ui/posUi'
+import MenuPickerDialog from './MenuPickerDialog'
+import { loadMenuGroupLinks, saveMenuGroups } from '../menuLinks'
+import { errorText, useBranchScope } from '../useBranchScope'
+import '../../../styles/pos.css'
 
-// หน้าจัดการกลุ่มตัวเลือก (หลังร้าน) — 1.16, 1.17
-// กลุ่มตัวเลือกเป็นของแต่ละสาขา เช่น "ระดับความเผ็ด" (เลือกได้ 1) หรือ "ท็อปปิ้ง" (เลือกได้หลายอย่าง)
-// manager: สาขาตัวเอง · owner: เลือกสาขาได้ · ปิดใช้แทนการลบ
-
-// แปลง error จาก API เป็นข้อความอ่านง่าย (รวมรายละเอียดรายช่องถ้ามี)
-function errorText(err) {
-  if (!err) return ''
-  const fields = (err.details || [])
-    .map((d) => d.message && (d.field ? `${d.field}: ${d.message}` : d.message))
-    .filter(Boolean)
-  return fields.length ? `${err.message} — ${fields.join(', ')}` : err.message || 'เกิดข้อผิดพลาด'
-}
-
-const price = (n) => (Number(n) > 0 ? `+${Number(n).toLocaleString('th-TH')} บาท` : 'ไม่บวกเพิ่ม')
+// หน้ากลุ่มตัวเลือกเสริม (หลังร้าน) — 1.16–1.18
+// ซ้าย: กลุ่มทั้งหมด · กลาง: แก้ชื่อ รูปแบบการเลือก ตัวเลือกและราคาบวกเพิ่ม · ขวา: ผูกกับเมนู
+// กลุ่ม/ตัวเลือกปิดใช้แทนการลบ (บิลเก่ายังอ้างถึงได้)
 
 export default function OptionGroupsPage() {
-  const [me, setMe] = useState(null)
-  const [branches, setBranches] = useState([])
-  const [branchId, setBranchId] = useState('')
+  const scope = useBranchScope()
+  const { branchId, branches, isOwner, canManage, branchName } = scope
   const [groups, setGroups] = useState([])
+  const [menus, setMenus] = useState([])
+  const [links, setLinks] = useState(null) // Map(menuId → [{id,name}]) · null = กำลังโหลด
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [toast, setToast] = useState(null)
-  const [groupDialog, setGroupDialog] = useState(null) // null = ปิด, {} = เพิ่ม, group = แก้ไข
-  const [optionDialog, setOptionDialog] = useState(null) // { group, option? }
-  const [busyId, setBusyId] = useState(null)
+  const [selected, setSelected] = useState(null) // group id | 'new'
+  const [reloadKey, setReloadKey] = useState(0)
+  const [resetKey, setResetKey] = useState(0) // เปลี่ยน = ล้างฟอร์มแก้ไข (ยกเลิก)
+  const [toast, notify] = useToast()
 
-  const isOwner = me?.role === 'owner'
-  const canManage = me?.role === 'owner' || me?.role === 'manager'
-
-  const notify = useCallback((message, type = 'success') => {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
-  }, [])
-
-  // ข้อมูลผู้ใช้และสาขา (โหลดครั้งเดียว)
   useEffect(() => {
+    if (!branchId) return
     let cancelled = false
-    Promise.all([api.get('/identity/me'), api.get('/identity/branches')])
-      .then(([meRes, branchRes]) => {
+    Promise.all([listOptionGroups({ branch_id: branchId, include_inactive: true }), listMenus({ branch_id: branchId })])
+      .then(([groupRows, menuRows]) => {
         if (cancelled) return
-        const user = meRes.data
-        setMe(user)
-        setBranches(branchRes.data || [])
-        setBranchId(user.role === 'owner' ? branchRes.data?.[0]?.id || '' : user.branch_id)
+        setGroups(groupRows || [])
+        setMenus(menuRows || [])
+        setError('')
+        setLoading(false)
+        return loadMenuGroupLinks(menuRows || []).then((map) => !cancelled && setLinks(map))
       })
       .catch((err) => {
         if (cancelled) return
@@ -64,405 +44,367 @@ export default function OptionGroupsPage() {
     return () => {
       cancelled = true
     }
-  }, [])
-
-  // โหลดกลุ่มตัวเลือกของสาขา (รวมที่ปิดใช้)
-  const [reloadKey, setReloadKey] = useState(0)
-  useEffect(() => {
-    if (!branchId) return
-    let cancelled = false
-    listOptionGroups({ branch_id: branchId, include_inactive: true })
-      .then((rows) => {
-        if (cancelled) return
-        setGroups(rows)
-        setError('')
-      })
-      .catch((err) => !cancelled && setError(errorText(err)))
-      .finally(() => !cancelled && setLoading(false))
-    return () => {
-      cancelled = true
-    }
   }, [branchId, reloadKey])
 
-  const reload = useCallback(() => {
-    setLoading(true)
-    setReloadKey((k) => k + 1)
-  }, [])
+  const reload = useCallback(() => setReloadKey((k) => k + 1), [])
 
-  function changeBranch(id) {
-    setLoading(true)
-    setBranchId(id)
-  }
+  /** จำนวนเมนูที่ผูกกับแต่ละกลุ่ม */
+  const menuCount = useMemo(() => {
+    const count = new Map()
+    for (const list of links?.values() || []) for (const g of list) count.set(g.id, (count.get(g.id) || 0) + 1)
+    return count
+  }, [links])
 
-  const branchName = (id) => branches.find((b) => b.id === id)?.name || ''
+  // กลุ่มที่กำลังแก้: ที่เลือกไว้ หรือกลุ่มแรกถ้ายังไม่ได้เลือก
+  const editing = selected === 'new' ? null : groups.find((g) => g.id === selected) || groups[0] || null
 
-  async function toggleGroup(group) {
-    setBusyId(group.id)
-    try {
-      await updateOptionGroup(group.id, { is_active: !group.is_active })
-      notify(group.is_active ? `ปิดใช้ ${group.name} แล้ว (เมนูที่ผูกไว้จะไม่แสดงกลุ่มนี้)` : `เปิดใช้ ${group.name} แล้ว`)
-      reload()
-    } catch (err) {
-      notify(errorText(err), 'error')
-    } finally {
-      setBusyId(null)
-    }
-  }
-
-  async function toggleOption(option) {
-    setBusyId(option.id)
-    try {
-      await updateOption(option.id, { is_active: !option.is_active })
-      setGroups((list) =>
-        list.map((g) => ({
-          ...g,
-          options: g.options.map((o) => (o.id === option.id ? { ...o, is_active: !o.is_active } : o)),
-        })),
-      )
-    } catch (err) {
-      notify(errorText(err), 'error')
-    } finally {
-      setBusyId(null)
-    }
-  }
-
-  function onSaved(message) {
-    setGroupDialog(null)
-    setOptionDialog(null)
-    notify(message)
-    reload()
-  }
-
-  if (me && !canManage) {
+  if (scope.me && !canManage) {
     return (
-      <div className="mm-page">
-        <div className="mm-empty">หน้านี้สำหรับผู้จัดการและเจ้าของร้านเท่านั้น</div>
+      <div className="pos-page">
+        <div className="pos-empty">หน้านี้สำหรับผู้จัดการและเจ้าของร้านเท่านั้น</div>
       </div>
     )
   }
 
   return (
-    <div className="mm-page">
-      <header className="mm-header">
+    <div className="pos-page">
+      <header className="pos-header">
         <div>
-          <h1 className="mm-title">กลุ่มตัวเลือก</h1>
-          <p className="mm-subtitle">
-            เช่น ระดับความเผ็ด ความหวาน ท็อปปิ้ง · {isOwner ? 'แต่ละสาขาแยกกัน' : `สาขา ${branchName(branchId)}`}
+          <h1 className="pos-title">กลุ่มตัวเลือกเสริม</h1>
+          <p className="pos-subtitle">
+            สร้างกลุ่มเอง กำหนดเลือก 1 หรือหลายอย่าง และราคาบวกเพิ่ม{!isOwner && branchName(branchId) ? ` · สาขา${branchName(branchId)}` : ''}
           </p>
         </div>
-        <div className="mm-header-actions">
-          {isOwner && (
-            <select className="mm-select" value={branchId} onChange={(e) => changeBranch(e.target.value)}>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          )}
-          <button className="mm-btn mm-btn-primary" onClick={() => setGroupDialog({})} disabled={!branchId}>
-            + เพิ่มกลุ่ม
-          </button>
-        </div>
+        {isOwner && (
+          <select
+            className="pos-input pos-select-sm"
+            value={branchId}
+            onChange={(e) => {
+              setLoading(true)
+              setSelected(null)
+              setLinks(null)
+              scope.setBranchId(e.target.value)
+            }}
+            aria-label="สาขา"
+          >
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        )}
       </header>
 
-      {error && (
-        <div className="mm-alert">
-          {error}
-          <button className="mm-link" onClick={reload}>
+      {(error || scope.error) && (
+        <div className="pos-alert">
+          {error || scope.error}
+          <button className="pos-link" onClick={reload}>
             ลองใหม่
           </button>
         </div>
       )}
 
-      {loading ? (
-        <div className="og-list">
-          {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="mm-card mm-skeleton og-skeleton" />
-          ))}
-        </div>
-      ) : groups.length === 0 ? (
-        <div className="mm-empty">ยังไม่มีกลุ่มตัวเลือกในสาขานี้ กด “+ เพิ่มกลุ่ม” เพื่อเริ่ม</div>
-      ) : (
-        <div className="og-list">
-          {groups.map((g) => (
-            <section key={g.id} className={`og-card ${g.is_active ? '' : 'is-off'}`}>
-              <header className="og-card-head">
-                <div>
-                  <h3 className="og-name">
-                    {g.name}
-                    {!g.is_active && <span className="og-tag">ปิดใช้</span>}
-                  </h3>
-                  <p className="og-rule">
-                    <span className={`og-pill ${g.is_required ? 'is-required' : ''}`}>
-                      {g.is_required ? 'ต้องเลือก' : 'ไม่บังคับ'}
+      <div className="pos-og-layout">
+        {/* ---------- กลุ่มทั้งหมด ---------- */}
+        <section className="pos-panel pos-col-panel" aria-label="กลุ่มทั้งหมด">
+          <h2 className="pos-panel-title">กลุ่มทั้งหมด</h2>
+          {loading ? (
+            <div className="pos-skeleton" style={{ height: 200 }} />
+          ) : groups.length === 0 ? (
+            <div className="pos-cart-empty">ยังไม่มีกลุ่มตัวเลือก</div>
+          ) : (
+            <div className="pos-bill-list">
+              {groups.map((g) => {
+                const active = g.options.filter((o) => o.is_active).length
+                const count = menuCount.get(g.id)
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className={`pos-bill-card is-col ${editing?.id === g.id && selected !== 'new' ? 'is-active' : ''} ${g.is_active ? '' : 'is-off'}`}
+                    onClick={() => setSelected(g.id)}
+                  >
+                    <span className="pos-bill-card-row">
+                      <strong>{g.name}</strong>
+                      <span className={`pos-pill ${g.is_active ? (g.max_select === 1 ? 'is-muted' : 'is-available') : 'is-waiting'}`}>
+                        {!g.is_active ? 'ปิดใช้' : g.max_select === 1 ? 'เลือก 1 อย่าง' : 'หลายอย่าง'}
+                      </span>
                     </span>
-                    <span className="og-pill">{g.max_select === 1 ? 'เลือกได้ 1 อย่าง' : `เลือกได้ไม่เกิน ${g.max_select}`}</span>
-                  </p>
-                </div>
-                <div className="mm-action-btns">
-                  <button className="mm-btn" onClick={() => setGroupDialog(g)} disabled={busyId === g.id}>
-                    แก้ไข
+                    <span className="pos-line-sub">
+                      {active} ตัวเลือก · {links ? `${count || 0} เมนู` : '… เมนู'}
+                      {g.is_required ? ' · บังคับเลือก' : ''}
+                    </span>
                   </button>
-                  <button className="mm-btn" onClick={() => toggleGroup(g)} disabled={busyId === g.id}>
-                    {g.is_active ? 'ปิดใช้' : 'เปิดใช้'}
-                  </button>
-                </div>
-              </header>
+                )
+              })}
+            </div>
+          )}
+          <button type="button" className="pos-btn pos-btn-block" style={{ marginTop: 'auto' }} onClick={() => setSelected('new')} disabled={!branchId}>
+            + สร้างกลุ่มใหม่
+          </button>
+        </section>
 
-              <ul className="og-options">
-                {g.options.length === 0 && <li className="og-option og-option-empty">ยังไม่มีตัวเลือก</li>}
-                {g.options.map((o) => (
-                  <li key={o.id} className={`og-option ${o.is_active ? '' : 'is-off'}`}>
-                    <label className="mm-switch" title={o.is_active ? 'ปิดตัวเลือกนี้' : 'เปิดตัวเลือกนี้'}>
-                      <input
-                        type="checkbox"
-                        checked={o.is_active}
-                        disabled={busyId === o.id}
-                        onChange={() => toggleOption(o)}
-                      />
-                      <span />
-                    </label>
-                    <span className="og-option-name">{o.name}</span>
-                    <span className="og-option-price">{price(o.extra_price)}</span>
-                    <button className="mm-link" onClick={() => setOptionDialog({ group: g, option: o })}>
-                      แก้ไข
-                    </button>
-                  </li>
-                ))}
-              </ul>
+        {/* ---------- แก้ไข + ผูกเมนู ---------- */}
+        {loading ? (
+          <section className="pos-panel" style={{ gridColumn: 'span 2' }}>
+            <div className="pos-skeleton" />
+          </section>
+        ) : selected === 'new' || editing ? (
+          <GroupEditor
+            key={`${selected === 'new' ? 'new' : editing.id}:${resetKey}`}
+            group={selected === 'new' ? null : editing}
+            branchId={branchId}
+            isOwner={isOwner}
+            menus={menus}
+            links={links}
+            onCancel={() => {
+              if (selected === 'new') setSelected(null)
+              setResetKey((k) => k + 1)
+            }}
+            onSaved={(message, id) => {
+              notify(message)
+              setSelected(id)
+              setLinks(null)
+              setLoading(true) // ซ่อนฟอร์มจนโหลดกลุ่มใหม่เสร็จ ฟอร์มใหม่จะได้ id ตัวเลือกล่าสุด
+              setResetKey((k) => k + 1)
+              reload()
+            }}
+            onError={(message) => notify(message, 'error')}
+          />
+        ) : (
+          <section className="pos-panel" style={{ gridColumn: 'span 2' }}>
+            <div className="pos-cart-empty">กด “+ สร้างกลุ่มใหม่” เพื่อเริ่ม เช่น ระดับความเผ็ด ท็อปปิ้ง</div>
+          </section>
+        )}
+      </div>
 
-              <button className="og-add" onClick={() => setOptionDialog({ group: g })}>
-                + เพิ่มตัวเลือก
-              </button>
-            </section>
-          ))}
-        </div>
-      )}
-
-      {groupDialog && (
-        <GroupDialog
-          group={groupDialog.id ? groupDialog : null}
-          branchId={branchId}
-          branchName={branchName(branchId)}
-          isOwner={isOwner}
-          onClose={() => setGroupDialog(null)}
-          onSaved={onSaved}
-        />
-      )}
-
-      {optionDialog && (
-        <OptionDialog
-          group={optionDialog.group}
-          option={optionDialog.option}
-          onClose={() => setOptionDialog(null)}
-          onSaved={onSaved}
-        />
-      )}
-
-      {toast && <div className={`mm-toast ${toast.type === 'error' ? 'is-error' : ''}`}>{toast.message}</div>}
+      <Toast toast={toast} />
     </div>
   )
 }
 
-/** เพิ่ม/แก้ไขกลุ่มตัวเลือก (ตอนเพิ่มใส่ตัวเลือกพร้อมกันได้) */
-function GroupDialog({ group, branchId, branchName, isOwner, onClose, onSaved }) {
+/** แก้ไขกลุ่ม (คอลัมน์กลาง) + ผูกกับเมนู (คอลัมน์ขวา) — state ร่วมกัน บันทึกครั้งเดียว */
+function GroupEditor({ group, branchId, isOwner, menus, links, onCancel, onSaved, onError }) {
   const isNew = !group
+  const initialRows = (group?.options || []).filter((o) => o.is_active).map((o) => ({ ...o, key: o.id, extra_price: String(o.extra_price) }))
   const [name, setName] = useState(group?.name ?? '')
-  const [isRequired, setIsRequired] = useState(group?.is_required ?? false)
-  const [maxSelect, setMaxSelect] = useState(group?.max_select ?? 1)
-  const [options, setOptions] = useState([{ name: '', extra_price: '' }])
-  const [error, setError] = useState('')
+  const [multi, setMulti] = useState((group?.max_select ?? 1) > 1)
+  const [maxSelect, setMaxSelect] = useState(group?.max_select > 1 ? group.max_select : Math.max(2, initialRows.length))
+  const [required, setRequired] = useState(group?.is_required ?? false)
+  const [rows, setRows] = useState(initialRows.length ? initialRows : [{ key: 'n0', name: '', extra_price: '' }])
+  const [removed, setRemoved] = useState([]) // id ตัวเลือกเดิมที่กดลบ (จะปิดใช้)
+  const [picking, setPicking] = useState(false)
+  const [picked, setPicked] = useState(null) // Set ของ menu id · null = ยังไม่แตะ
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
-  const setOptionField = (i, key) => (e) =>
-    setOptions((list) => list.map((o, idx) => (idx === i ? { ...o, [key]: e.target.value } : o)))
+  const linkedNow = useMemo(() => {
+    const s = new Set()
+    if (!links || !group) return s
+    for (const [menuId, list] of links) if (list.some((g) => g.id === group.id)) s.add(menuId)
+    return s
+  }, [links, group])
+  const chosen = picked ?? linkedNow
 
-  async function submit(e) {
-    e.preventDefault()
-    const max = Number(maxSelect)
+  const setRow = (key, field) => (e) => setRows((list) => list.map((r) => (r.key === key ? { ...r, [field]: e.target.value } : r)))
+  function removeRow(r) {
+    setRows((list) => list.filter((x) => x.key !== r.key))
+    if (r.id) setRemoved((ids) => [...ids, r.id])
+  }
+  async function save() {
+    const filled = rows.filter((r) => r.name.trim())
     if (!name.trim()) return setError('กรุณากรอกชื่อกลุ่ม')
-    if (!Number.isInteger(max) || max < 1 || max > 20) return setError('จำนวนที่เลือกได้ต้องเป็น 1–20')
-
-    const body = { name: name.trim(), is_required: isRequired, max_select: max }
-    if (isNew) {
-      const filled = options.filter((o) => o.name.trim())
-      if (filled.some((o) => o.extra_price !== '' && (Number.isNaN(Number(o.extra_price)) || Number(o.extra_price) < 0))) {
-        return setError('ราคาบวกเพิ่มต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป')
-      }
-      body.options = filled.map((o) => ({ name: o.name.trim(), extra_price: Number(o.extra_price || 0) }))
-      if (isOwner) body.branch_id = branchId
-    }
+    if (filled.length === 0) return setError('ต้องมีตัวเลือกอย่างน้อย 1 อย่าง')
+    if (filled.some((r) => r.extra_price !== '' && !(Number(r.extra_price) >= 0))) return setError('ราคาบวกเพิ่มต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป')
+    const max = multi ? Number(maxSelect) : 1
+    if (multi && (!Number.isInteger(max) || max < 2 || max > 20)) return setError('เลือกได้หลายอย่าง: จำนวนสูงสุดต้องเป็น 2–20')
 
     setSaving(true)
     setError('')
     try {
-      if (isNew) await createOptionGroup(body)
-      else await updateOptionGroup(group.id, body)
-      onSaved(isNew ? `เพิ่มกลุ่ม ${body.name} แล้ว` : `บันทึก ${body.name} แล้ว`)
+      const base = { name: name.trim(), is_required: required, max_select: max }
+      let groupId = group?.id
+      if (isNew) {
+        const created = await createOptionGroup({
+          ...base,
+          ...(isOwner ? { branch_id: branchId } : {}),
+          options: filled.map((r) => ({ name: r.name.trim(), extra_price: Number(r.extra_price || 0) })),
+        })
+        groupId = created.id
+      } else {
+        if (base.name !== group.name || base.is_required !== group.is_required || base.max_select !== group.max_select) {
+          await updateOptionGroup(group.id, base)
+        }
+        for (const r of filled) {
+          const body = { name: r.name.trim(), extra_price: Number(r.extra_price || 0) }
+          if (!r.id) await createOption(group.id, body)
+          else {
+            const before = group.options.find((o) => o.id === r.id)
+            if (before.name !== body.name || Number(before.extra_price) !== body.extra_price) await updateOption(r.id, body)
+          }
+        }
+        // ลบ = ปิดใช้ (แถวที่ลบ + แถวเดิมที่ล้างชื่อทิ้ง)
+        const blanked = rows.filter((r) => r.id && !r.name.trim()).map((r) => r.id)
+        for (const id of [...removed, ...blanked]) await updateOption(id, { is_active: false })
+      }
+
+      // ผูกเมนู: แก้เฉพาะเมนูที่เปลี่ยน (PUT ทั้งชุดของเมนูนั้น)
+      if (picked && links) {
+        for (const m of menus) {
+          const was = linkedNow.has(m.id)
+          const now = picked.has(m.id)
+          if (was === now) continue
+          const ids = (links.get(m.id) || []).map((g) => g.id).filter((id) => id !== groupId)
+          await saveMenuGroups(m.id, now ? [...ids, groupId] : ids)
+        }
+      }
+      onSaved(isNew ? `สร้างกลุ่ม ${base.name} แล้ว` : `บันทึก ${base.name} แล้ว`, groupId)
     } catch (err) {
       setError(errorText(err))
       setSaving(false)
     }
   }
 
-  return (
-    <div className="mm-overlay" onMouseDown={(e) => e.target === e.currentTarget && !saving && onClose()}>
-      <form className="mm-dialog mm-dialog-md" onSubmit={submit}>
-        <h2 className="mm-dialog-title">{isNew ? 'เพิ่มกลุ่มตัวเลือก' : `แก้ไข ${group.name}`}</h2>
-        <p className="mm-hint">สาขา {branchName}</p>
+  async function toggleActive() {
+    setSaving(true)
+    try {
+      await updateOptionGroup(group.id, { is_active: !group.is_active })
+      onSaved(group.is_active ? `ปิดใช้ ${group.name} แล้ว (เมนูที่ผูกไว้จะไม่แสดงกลุ่มนี้)` : `เปิดใช้ ${group.name} แล้ว`, group.id)
+    } catch (err) {
+      onError(errorText(err))
+      setSaving(false)
+    }
+  }
 
-        <div className="mm-fields">
-          <label className="mm-field">
-            <span>ชื่อกลุ่ม *</span>
-            <input
-              className="mm-input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="เช่น ระดับความเผ็ด"
-              maxLength={100}
-              autoFocus
-            />
-          </label>
-          <div className="mm-two">
-            <label className="mm-field">
-              <span>เลือกได้สูงสุด (อย่าง)</span>
-              <input
-                className="mm-input"
-                type="number"
-                min="1"
-                max="20"
-                value={maxSelect}
-                onChange={(e) => setMaxSelect(e.target.value)}
-              />
-            </label>
-            <label className="og-check">
-              <input type="checkbox" checked={isRequired} onChange={(e) => setIsRequired(e.target.checked)} />
-              <span>
-                ลูกค้าต้องเลือก
-                <small>ไม่เลือกจะสั่งเมนูนี้ไม่ได้</small>
-              </span>
-            </label>
+  return (
+    <>
+      <section className="pos-panel pos-col-panel" aria-label="แก้ไขกลุ่ม">
+        <h2 className="pos-panel-title">{isNew ? 'สร้างกลุ่มใหม่' : `แก้ไขกลุ่ม: ${group.name}`}</h2>
+        {!isNew && !group.is_active && <p className="pos-note is-warn">กลุ่มนี้ปิดใช้อยู่ ลูกค้าจะไม่เห็นตอนสั่ง</p>}
+
+        <label className="pos-field">
+          <span>ชื่อกลุ่ม</span>
+          <input className="pos-input" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} placeholder="เช่น ระดับความเผ็ด" autoFocus={isNew} />
+        </label>
+
+        <div className="pos-field-row">
+          <span className="pos-muted">รูปแบบการเลือก</span>
+          <div className="pos-tabs" role="radiogroup" style={{ margin: 0 }}>
+            <button type="button" role="radio" aria-checked={!multi} className={!multi ? 'is-active' : ''} onClick={() => setMulti(false)}>
+              เลือกได้ 1 อย่าง
+            </button>
+            <button type="button" role="radio" aria-checked={multi} className={multi ? 'is-active' : ''} onClick={() => setMulti(true)}>
+              เลือกได้หลายอย่าง
+            </button>
           </div>
         </div>
+        <div className="pos-field-row" style={{ marginTop: 0 }}>
+          <label className="pos-check-label">
+            <input type="checkbox" className="pos-check" checked={required} onChange={(e) => setRequired(e.target.checked)} />
+            ลูกค้าต้องเลือก (ไม่เลือกจะสั่งเมนูไม่ได้)
+          </label>
+          {multi && (
+            <label className="pos-check-label">
+              สูงสุด
+              <input className="pos-input pos-input-xs" type="number" min="2" max="20" value={maxSelect} onChange={(e) => setMaxSelect(e.target.value)} aria-label="เลือกได้สูงสุด" />
+              อย่าง
+            </label>
+          )}
+        </div>
 
-        {isNew && (
-          <fieldset className="mm-groups">
-            <legend>ตัวเลือก</legend>
-            {options.map((o, i) => (
-              <div key={i} className="og-row">
-                <input
-                  className="mm-input"
-                  placeholder={`ตัวเลือกที่ ${i + 1} เช่น เผ็ดน้อย`}
-                  value={o.name}
-                  onChange={setOptionField(i, 'name')}
-                  maxLength={100}
-                />
-                <input
-                  className="mm-input og-row-price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="+ บาท"
-                  value={o.extra_price}
-                  onChange={setOptionField(i, 'extra_price')}
-                />
-                <button
-                  type="button"
-                  className="mm-btn"
-                  onClick={() => setOptions((list) => list.filter((_, idx) => idx !== i))}
-                  disabled={options.length === 1}
-                  aria-label="ลบแถวนี้"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              className="og-add og-add-inline"
-              onClick={() => setOptions((list) => [...list, { name: '', extra_price: '' }])}
-            >
-              + เพิ่มแถว
+        <div className="pos-rtable-wrap">
+          <table className="pos-rtable">
+            <thead>
+              <tr>
+                <th>ตัวเลือก</th>
+                <th style={{ width: 160 }}>ราคาบวกเพิ่ม</th>
+                <th style={{ width: 48 }} aria-label="ลบ" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={r.key}>
+                  <td>
+                    <input className="pos-input pos-input-plain" value={r.name} onChange={setRow(r.key, 'name')} maxLength={100} placeholder={`ตัวเลือกที่ ${i + 1}`} aria-label={`ชื่อตัวเลือกที่ ${i + 1}`} />
+                  </td>
+                  <td>
+                    <div className="pos-price-input">
+                      <span>+฿</span>
+                      <input type="number" min="0" step="0.01" inputMode="decimal" value={r.extra_price} onChange={setRow(r.key, 'extra_price')} placeholder="0" aria-label={`ราคาบวกเพิ่มของตัวเลือกที่ ${i + 1}`} />
+                    </div>
+                  </td>
+                  <td className="is-center">
+                    <button type="button" className="pos-link-btn is-danger" onClick={() => removeRow(r)} disabled={rows.length === 1}>
+                      ลบ
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <button type="button" className="pos-link-btn" style={{ alignSelf: 'flex-start', marginTop: 10 }} onClick={() => setRows((list) => [...list, { key: `n${Date.now()}`, name: '', extra_price: '' }])}>
+          + เพิ่มตัวเลือก
+        </button>
+        {removed.length > 0 && <p className="pos-muted pos-small">ตัวเลือกที่ลบจะถูกปิดใช้ บิลเก่ายังแสดงชื่อเดิมได้</p>}
+
+        {error && <p className="pos-error">{error}</p>}
+
+        <div className="pos-side-actions">
+          {!isNew && (
+            <button type="button" className="pos-btn" style={{ marginRight: 'auto' }} onClick={toggleActive} disabled={saving}>
+              {group.is_active ? 'ปิดใช้กลุ่ม' : 'เปิดใช้กลุ่ม'}
             </button>
-          </fieldset>
+          )}
+          <button type="button" className="pos-btn" onClick={onCancel} disabled={saving}>
+            ยกเลิก
+          </button>
+          <button type="button" className="pos-btn pos-btn-primary" onClick={save} disabled={saving || (!links && !isNew)}>
+            {saving ? 'กำลังบันทึก…' : 'บันทึกกลุ่ม'}
+          </button>
+        </div>
+      </section>
+
+      <section className="pos-panel pos-col-panel" aria-label="ผูกกับเมนู">
+        <h2 className="pos-panel-title">ผูกกับเมนู</h2>
+        {!links ? (
+          <p className="pos-muted pos-small">กำลังโหลดว่าเมนูไหนผูกกลุ่มนี้…</p>
+        ) : (
+          <>
+            <button type="button" className="pos-btn pos-btn-block" onClick={() => setPicking(true)} disabled={saving || menus.length === 0}>
+              เลือกเมนู ({chosen.size}/{menus.length})
+            </button>
+            {chosen.size > 0 ? (
+              <ul className="pos-chip-list" aria-label="เมนูที่ผูกแล้ว">
+                {menus
+                  .filter((m) => chosen.has(m.id))
+                  .map((m) => (
+                    <li key={m.id} className="pos-chip">
+                      {m.name}
+                    </li>
+                  ))}
+              </ul>
+            ) : (
+              <p className="pos-muted pos-small">ยังไม่ได้ผูกกับเมนูไหน</p>
+            )}
+            <p className="pos-muted pos-small">กด “บันทึกกลุ่ม” เพื่อบันทึกการผูกเมนู</p>
+          </>
         )}
+      </section>
 
-        {error && <div className="mm-alert og-dialog-alert">{error}</div>}
-
-        <div className="mm-dialog-actions">
-          <button type="button" className="mm-btn" onClick={onClose} disabled={saving}>
-            ยกเลิก
-          </button>
-          <button className="mm-btn mm-btn-primary" disabled={saving}>
-            {saving ? 'กำลังบันทึก…' : 'บันทึก'}
-          </button>
-        </div>
-      </form>
-    </div>
-  )
-}
-
-/** เพิ่ม/แก้ไขตัวเลือก 1 ตัว */
-function OptionDialog({ group, option, onClose, onSaved }) {
-  const isNew = !option
-  const [name, setName] = useState(option?.name ?? '')
-  const [extra, setExtra] = useState(option?.extra_price ?? '')
-  const [error, setError] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  async function submit(e) {
-    e.preventDefault()
-    const extraPrice = Number(extra || 0)
-    if (!name.trim()) return setError('กรุณากรอกชื่อตัวเลือก')
-    if (Number.isNaN(extraPrice) || extraPrice < 0) return setError('ราคาบวกเพิ่มต้องเป็นตัวเลขตั้งแต่ 0 ขึ้นไป')
-
-    const body = { name: name.trim(), extra_price: extraPrice }
-    setSaving(true)
-    setError('')
-    try {
-      if (isNew) await createOption(group.id, body)
-      else await updateOption(option.id, body)
-      onSaved(isNew ? `เพิ่ม ${body.name} ใน ${group.name} แล้ว` : `บันทึก ${body.name} แล้ว`)
-    } catch (err) {
-      setError(errorText(err))
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="mm-overlay" onMouseDown={(e) => e.target === e.currentTarget && !saving && onClose()}>
-      <form className="mm-dialog mm-dialog-sm" onSubmit={submit}>
-        <h2 className="mm-dialog-title">{isNew ? 'เพิ่มตัวเลือก' : `แก้ไข ${option.name}`}</h2>
-        <p className="mm-hint">กลุ่ม {group.name}</p>
-        <div className="mm-fields">
-          <label className="mm-field">
-            <span>ชื่อตัวเลือก *</span>
-            <input className="mm-input" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} autoFocus />
-          </label>
-          <label className="mm-field">
-            <span>ราคาบวกเพิ่ม (บาท)</span>
-            <input
-              className="mm-input"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0"
-              value={extra}
-              onChange={(e) => setExtra(e.target.value)}
-            />
-          </label>
-        </div>
-        {error && <div className="mm-alert og-dialog-alert">{error}</div>}
-        <div className="mm-dialog-actions">
-          <button type="button" className="mm-btn" onClick={onClose} disabled={saving}>
-            ยกเลิก
-          </button>
-          <button className="mm-btn mm-btn-primary" disabled={saving}>
-            {saving ? 'กำลังบันทึก…' : 'บันทึก'}
-          </button>
-        </div>
-      </form>
-    </div>
+      {picking && (
+        <MenuPickerDialog
+          menus={menus}
+          selected={chosen}
+          groupName={name.trim() || group?.name}
+          onClose={() => setPicking(false)}
+          onApply={(next) => {
+            setPicked(next)
+            setPicking(false)
+          }}
+        />
+      )}
+    </>
   )
 }

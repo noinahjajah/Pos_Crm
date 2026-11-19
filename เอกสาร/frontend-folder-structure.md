@@ -19,20 +19,23 @@ pos-crm/
 web/
 ├── index.html
 ├── vite.config.js
-├── .env                      ← VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (ใช้กับ Realtime)
+├── .env                      ← VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (ใช้กับ Realtime — ยังไม่ได้ใช้)
 └── src/
     ├── main.jsx
     ├── App.jsx
     │
     ├── app/                  ← ตั้งค่าแอปทั้งระบบ
     │   ├── router.jsx        ← เส้นทางทั้งหมด + กำหนด role ต่อหน้า
+    │   ├── routeElements.jsx ← Home, CheckoutRoute, Placeholder
     │   └── providers.jsx     ← QueryClient, AuthProvider
     │
     ├── api/                  ← ที่เดียวที่เรียก backend
     │   ├── client.js         ← base /api/v1, แนบ token, refresh เมื่อเจอ 401, แปลง error
     │   ├── identity.js       ← login, me, users, branches
     │   ├── catalog.js        ← categories, menus, option-groups, stocks
-    │   ├── pos.js            ← tables, orders, tickets, approvals
+    │   ├── pos.js            ← tables, orders, tickets, kitchen, approvals
+    │   ├── posMock.js        ← ข้อมูลจำลองของ pos (VITE_POS_MODE=mock)
+    │   ├── approvalFeed.js   ← รับแจ้งเตือนอนุมัติ realtime (SSE)
     │   └── payment.js        ← payments, refunds, expenses, reports
     │
     ├── features/             ← 1 โฟลเดอร์ = 1 ฟีเจอร์ (หน้า + component + hook ของมัน)
@@ -40,45 +43,53 @@ web/
     │   │   ├── LoginPage.jsx
     │   │   ├── AuthContext.jsx
     │   │   └── RequireRole.jsx
-    │   ├── tables/           ← ผังโต๊ะ เปิดบิล ย้าย/รวมโต๊ะ
+    │   ├── tables/           ← ผังโต๊ะ เปิดบิล เพิ่มโต๊ะ ย้าย/รวมโต๊ะ
     │   │   ├── TablesPage.jsx
-    │   │   ├── TableCard.jsx
+    │   │   ├── OpenTableDialog.jsx
+    │   │   ├── AddTableDialog.jsx
     │   │   └── MoveMergeDialog.jsx
-    │   ├── orders/           ← เลือกเมนู ตัวเลือก ส่งเข้าครัว
+    │   ├── orders/           ← เลือกเมนู ตัวเลือก ส่งเข้าครัว ปิดโต๊ะที่ไม่ได้สั่ง
     │   │   ├── OrderPage.jsx
-    │   │   ├── MenuGrid.jsx
-    │   │   ├── OptionDialog.jsx
-    │   │   └── CartPanel.jsx
-    │   ├── kitchen/          ← จอครัว
-    │   │   ├── KitchenPage.jsx
-    │   │   ├── TicketCard.jsx
-    │   │   └── useKitchenRealtime.js
+    │   │   ├── MenuOptionDialog.jsx
+    │   │   └── TicketSentDialog.jsx
+    │   ├── kitchen/          ← จอครัว (ยังไม่เปิดใช้: คอมเมนต์ route + เมนูไว้)
+    │   │   └── KitchenPage.jsx
     │   ├── checkout/         ← รับเงิน เงินสด / PromptPay จำลอง
+    │   │   ├── CashierPage.jsx
     │   │   ├── CheckoutPage.jsx
+    │   │   ├── BillSummary.jsx
     │   │   ├── CashForm.jsx
     │   │   ├── PromptPayQR.jsx
-    │   │   └── Receipt.jsx
+    │   │   ├── Receipt.jsx
+    │   │   ├── BillPrint.jsx
+    │   │   └── checkoutUtils.js
     │   ├── approvals/        ← ขอ/อนุมัติ ส่วนลดและคืนเงิน
-    │   │   ├── RequestDialog.jsx
-    │   │   └── ApprovalsPage.jsx
+    │   │   ├── ApprovalsPage.jsx
+    │   │   ├── ApprovalBell.jsx
+    │   │   ├── DiscountRequestDialog.jsx
+    │   │   └── RefundRequestPage.jsx
     │   └── backoffice/       ← หลังร้าน
-    │       ├── menus/
+    │       ├── menus/        ← เมนู กลุ่มตัวเลือก หมวดหมู่ เปิด/ปิดขาย
     │       ├── stocks/
-    │       ├── users/
+    │       ├── users/        ← ผู้ใช้ และสาขา
     │       ├── expenses/
-    │       └── reports/
+    │       ├── payments/
+    │       ├── reports/      ← แดชบอร์ด และกำไร-ขาดทุน
+    │       └── (ของใช้ร่วมในหลังร้าน: useBranchScope.js, menuLinks.js, GroupedBarChart.jsx, seriesColors.js)
     │
     ├── components/           ← ของที่ใช้ร่วมกันหลายฟีเจอร์
-    │   ├── ui/               ← Button, Modal, Badge, DataTable, Spinner
-    │   └── layout/           ← AppLayout, Sidebar, Topbar
+    │   ├── ui/
+    │   │   └── posUi.jsx     ← Dialog, ConfirmDialog, Stepper, Toast, MockBanner
+    │   ├── layout/           ← AppLayout, Sidebar, Topbar, navItems.js (เมนูตาม role)
+    │   └── print/            ← KitchenTicketPrint, ReceiptPrint, PrintSlip, PrintPreviewPage
     │
-    ├── hooks/                ← hook กลาง เช่น useDebounce
     ├── lib/
-    │   ├── supabase.js       ← ใช้เฉพาะ Realtime (จอครัว, แจ้งเตือนอนุมัติ)
+    │   ├── constants.js      ← ROLES, HOME_BY_ROLE
     │   ├── format.js         ← จัดรูปแบบเงินบาท วันที่แบบไทย
-    │   └── constants.js      ← ROLES, ORDER_STATUS, TABLE_STATUS
+    │   └── posUtils.js       ← ตัวช่วยหน้าร้าน: thb, hhmm, useNow, useToast, สถานะโต๊ะ
     └── styles/
-        └── index.css
+        ├── index.css
+        └── pos.css           ← สไตล์ร่วมของหน้าร้านและหลังร้าน (ปุ่ม การ์ด ฟอร์ม dialog)
 ```
 
 ## เส้นทางและ role
@@ -88,16 +99,24 @@ S = staff, M = manager, O = owner
 | Path | หน้า | Role |
 |---|---|---|
 | `/login` | LoginPage | ทุกคน |
-| `/tables` | ผังโต๊ะ | S M |
+| `/tables` | ผังโต๊ะ (manager/owner เพิ่มโต๊ะได้ · owner ดูอย่างเดียว) | S M O |
 | `/orders/:id` | สั่งอาหาร | S M |
-| `/kitchen` | จอครัว | S M |
+| `/kitchen` | จอครัว (ยังไม่เปิดใช้) | S M |
+| `/cashier` | รายการบิลรอชำระ | S M |
 | `/checkout/:orderId` | รับเงิน | S M |
+| `/menus/availability` | เปิด/ปิดขายเมนู | S M |
+| `/refunds/request` | ขอคืนเงิน | S |
 | `/approvals` | รายการรออนุมัติ | M O |
-| `/admin/menus` | จัดการเมนูและตัวเลือก | M O |
+| `/admin/menus` | จัดการเมนู | M O |
+| `/admin/menus/option-groups` | กลุ่มตัวเลือกเสริม | M O |
 | `/admin/stocks` | สต็อก | M O |
-| `/admin/users` | พนักงานและสาขา | M O |
+| `/admin/users` | ผู้ใช้ | M O |
 | `/admin/expenses` | รายจ่าย | M O |
-| `/admin/reports` | รายงาน / แดชบอร์ด | M O |
+| `/admin/payments` | รายการรับเงิน | M O |
+| `/admin/reports` | แดชบอร์ด | M O |
+| `/admin/menus/categories` | หมวดหมู่ | O |
+| `/admin/profit` | กำไร-ขาดทุน | O |
+| `/admin/branches` | สาขา | O |
 
 ถ้าเข้าหน้าที่ role ไม่มีสิทธิ์ `RequireRole` จะพากลับไปหน้าแรกของ role นั้น
 สิทธิ์ละเอียดระดับปุ่ม (เช่น หมวดหมู่แก้ได้เฉพาะ O) ให้ยึดตารางสิทธิ์ใน `api-gateway-phase1.md`

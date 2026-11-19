@@ -1,39 +1,24 @@
 /* หน้าจัดการเมนู — ทุก class ขึ้นต้นด้วย mm- กันชนกับไฟล์อื่น */
 
+/* สีทั้งหมดมาจากตัวแปรกลางใน styles/index.css (--app-*) แก้สีที่นั่นที่เดียว */
 .mm-page {
-  --mm-ink: #1c1917;
-  --mm-muted: #78716c;
-  --mm-line: #e7e5e4;
-  --mm-soft: #fafaf9;
-  --mm-card: #ffffff;
-  --mm-brand: #c2410c;
-  --mm-brand-soft: #fff7ed;
-  --mm-ok: #15803d;
-  --mm-ok-soft: #dcfce7;
-  --mm-danger: #b91c1c;
-  --mm-danger-soft: #fef2f2;
+  --mm-ink: var(--app-ink);
+  --mm-muted: var(--app-muted);
+  --mm-line: var(--app-line);
+  --mm-soft: var(--app-soft);
+  --mm-card: var(--app-card);
+  --mm-brand: var(--app-brand);
+  --mm-brand-soft: var(--app-brand-soft);
+  --mm-ok: var(--app-ok);
+  --mm-ok-soft: var(--app-ok-soft);
+  --mm-danger: var(--app-danger);
+  --mm-danger-soft: var(--app-danger-soft);
 
   text-align: left;
   color: var(--mm-ink);
   padding: 28px 32px 64px;
   font-size: 15px;
   line-height: 1.5;
-}
-
-@media (prefers-color-scheme: dark) {
-  .mm-page {
-    --mm-ink: #f5f5f4;
-    --mm-muted: #a8a29e;
-    --mm-line: #3a3633;
-    --mm-soft: #1f1d1b;
-    --mm-card: #26231f;
-    --mm-brand: #fb923c;
-    --mm-brand-soft: #3b2414;
-    --mm-ok: #4ade80;
-    --mm-ok-soft: #14301f;
-    --mm-danger: #f87171;
-    --mm-danger-soft: #3a1717;
-  }
 }
 
 /* ---------- หัวหน้า ---------- */
