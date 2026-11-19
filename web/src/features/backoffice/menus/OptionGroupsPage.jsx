@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createOption, createOptionGroup, listMenus, listOptionGroups, updateOption, updateOptionGroup } from '../../../api/catalog'
 import { useToast } from '../../../lib/posUtils'
 import { Toast } from '../../../components/ui/posUi'
+import MenuPickerDialog from './MenuPickerDialog'
 import { loadMenuGroupLinks, saveMenuGroups } from '../menuLinks'
 import { errorText, useBranchScope } from '../useBranchScope'
 import '../../../styles/pos.css'
@@ -193,7 +194,7 @@ function GroupEditor({ group, branchId, isOwner, menus, links, onCancel, onSaved
   const [required, setRequired] = useState(group?.is_required ?? false)
   const [rows, setRows] = useState(initialRows.length ? initialRows : [{ key: 'n0', name: '', extra_price: '' }])
   const [removed, setRemoved] = useState([]) // id ตัวเลือกเดิมที่กดลบ (จะปิดใช้)
-  const [search, setSearch] = useState('')
+  const [picking, setPicking] = useState(false)
   const [picked, setPicked] = useState(null) // Set ของ menu id · null = ยังไม่แตะ
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -205,20 +206,12 @@ function GroupEditor({ group, branchId, isOwner, menus, links, onCancel, onSaved
     return s
   }, [links, group])
   const chosen = picked ?? linkedNow
-  const shownMenus = menus.filter((m) => !search.trim() || m.name.toLowerCase().includes(search.trim().toLowerCase()))
 
   const setRow = (key, field) => (e) => setRows((list) => list.map((r) => (r.key === key ? { ...r, [field]: e.target.value } : r)))
   function removeRow(r) {
     setRows((list) => list.filter((x) => x.key !== r.key))
     if (r.id) setRemoved((ids) => [...ids, r.id])
   }
-  function toggleMenu(id) {
-    const next = new Set(chosen)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    setPicked(next)
-  }
-
   async function save() {
     const filled = rows.filter((r) => r.name.trim())
     if (!name.trim()) return setError('กรุณากรอกชื่อกลุ่ม')
@@ -375,24 +368,43 @@ function GroupEditor({ group, branchId, isOwner, menus, links, onCancel, onSaved
 
       <section className="pos-panel pos-col-panel" aria-label="ผูกกับเมนู">
         <h2 className="pos-panel-title">ผูกกับเมนู</h2>
-        <input className="pos-search" style={{ width: '100%' }} type="search" placeholder="ค้นหาเมนู" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="ค้นหาเมนู" />
         {!links ? (
           <p className="pos-muted pos-small">กำลังโหลดว่าเมนูไหนผูกกลุ่มนี้…</p>
         ) : (
           <>
-            <div className="pos-check-list">
-              {shownMenus.map((m) => (
-                <label key={m.id} className="pos-check-label">
-                  <input type="checkbox" className="pos-check" checked={chosen.has(m.id)} onChange={() => toggleMenu(m.id)} disabled={saving} />
-                  {m.name}
-                </label>
-              ))}
-              {shownMenus.length === 0 && <span className="pos-muted pos-small">ไม่พบเมนู</span>}
-            </div>
-            <p className="pos-muted pos-small">ผูกแล้ว {chosen.size} เมนู · กด “บันทึกกลุ่ม” เพื่อบันทึก</p>
+            <button type="button" className="pos-btn pos-btn-block" onClick={() => setPicking(true)} disabled={saving || menus.length === 0}>
+              เลือกเมนู ({chosen.size}/{menus.length})
+            </button>
+            {chosen.size > 0 ? (
+              <ul className="pos-chip-list" aria-label="เมนูที่ผูกแล้ว">
+                {menus
+                  .filter((m) => chosen.has(m.id))
+                  .map((m) => (
+                    <li key={m.id} className="pos-chip">
+                      {m.name}
+                    </li>
+                  ))}
+              </ul>
+            ) : (
+              <p className="pos-muted pos-small">ยังไม่ได้ผูกกับเมนูไหน</p>
+            )}
+            <p className="pos-muted pos-small">กด “บันทึกกลุ่ม” เพื่อบันทึกการผูกเมนู</p>
           </>
         )}
       </section>
+
+      {picking && (
+        <MenuPickerDialog
+          menus={menus}
+          selected={chosen}
+          groupName={name.trim() || group?.name}
+          onClose={() => setPicking(false)}
+          onApply={(next) => {
+            setPicked(next)
+            setPicking(false)
+          }}
+        />
+      )}
     </>
   )
 }

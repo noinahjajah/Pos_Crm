@@ -31,7 +31,7 @@ export function Dialog({ title, subtitle, onClose, busy = false, size, children 
 
   return (
     <div className="pos-overlay" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
-      <div className={`pos-dialog ${size === 'md' ? 'pos-dialog-md' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div className={`pos-dialog ${size === 'md' ? 'pos-dialog-md' : ''} ${size === 'xl' ? 'pos-dialog-xl' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="pos-dialog-head">
           <div>
             <h2 className="pos-dialog-title" id={titleId}>
