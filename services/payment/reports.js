@@ -1,5 +1,5 @@
 // /reports — แดชบอร์ด (1.34–1.37) · ตัวเลขคำนวณในฐานข้อมูลด้วยฟังก์ชันจากขั้น S5
-// ยอดขาย = เงินที่รับ (รวม VAT) · รายรับ = ยอดขาย − เงินที่คืน · กำไร = รายรับ − รายจ่าย
+// ยอดขาย = เงินที่รับ (รวม VAT) · หน้ากำไร: เงินที่คืนนับเป็นรายจ่ายหมวด refund · กำไร = ยอดขาย − รายจ่าย (รวมเงินคืน)
 import { Router } from 'express'
 import { db, run } from './db.js'
 import { pos } from './pos.js'
@@ -85,8 +85,11 @@ router.get('/profit', allow('owner'), async (req, res) => {
     const months = Array.from({ length: 12 }, (_, i) => {
       const s = salesRows.find((r) => r.branch_id === b && r.month === i + 1)
       const e = expenseFigures(expenseRows.filter((r) => r.branch_id === b && r.month === i + 1))
-      const revenue = round2(Number(s?.sales ?? 0) - Number(s?.refunds ?? 0))
-      return { month: monthKey(i + 1), revenue, expenses: e.total, expenses_by_category: e.by_category, profit: round2(revenue - e.total) }
+      // เงินที่คืนลูกค้านับเป็นรายจ่าย (หมวด refund) · รายรับ = ยอดขายก่อนหักคืน
+      const revenue = round2(Number(s?.sales ?? 0))
+      const refund = round2(Number(s?.refunds ?? 0))
+      const total = round2(e.total + refund)
+      return { month: monthKey(i + 1), revenue, expenses: total, expenses_by_category: { ...e.by_category, refund }, profit: round2(revenue - total) }
     })
     return { branch_id: b, months, total: months.reduce(add, zero) }
   })

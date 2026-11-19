@@ -7,14 +7,16 @@ import { errorText, todayTh, useBranchScope } from '../useBranchScope'
 import '../../../styles/pos.css'
 
 // รายรับ รายจ่าย และกำไร (owner) — 1.37
-// แยกตามสาขาและเดือน · รายรับ = ยอดขาย − เงินที่คืน · กำไร = รายรับ − รายจ่ายรวม
+// แยกตามสาขาและเดือน · รายรับ = ยอดขาย · เงินที่คืนนับเป็นรายจ่ายหมวด "คืนเงิน" · กำไร = รายรับ − รายจ่ายรวม
 // ข้อมูลจาก GET /payment/reports/profit?year= (ช่วงข้ามปีเรียก 2 ปี)
 
 const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 const monthShort = (key) => MONTHS[Number(key.slice(5, 7)) - 1]
 const monthLong = (key) => `${monthShort(key)} ${key.slice(0, 4)}`
-const CAT_SHORT = { labor: 'ค่าแรง', rent_utilities: 'เช่า/ไฟ/น้ำ', ingredients: 'วัตถุดิบ', other: 'อื่นๆ' }
-const ZERO_CATS = Object.fromEntries(EXPENSE_CATEGORIES.map((c) => [c.value, 0]))
+const CAT_SHORT = { labor: 'ค่าแรง', rent_utilities: 'เช่า/ไฟ/น้ำ', ingredients: 'วัตถุดิบ', other: 'อื่นๆ', refund: 'คืนเงิน' }
+// เงินคืนลูกค้านับเป็นรายจ่ายอีกหมวด (ไม่อยู่ในฟอร์มบันทึกรายจ่าย)
+const PROFIT_CATEGORIES = [...EXPENSE_CATEGORIES, { value: 'refund', label: 'คืนเงิน' }]
+const ZERO_CATS = Object.fromEntries(PROFIT_CATEGORIES.map((c) => [c.value, 0]))
 
 /** เดือนย้อนหลัง n เดือน (รวมเดือนนี้) → ['2026-06', …, '2026-11'] */
 function lastMonths(n, today) {
@@ -122,8 +124,8 @@ export default function ProfitPage() {
     : []
 
   function exportCsv() {
-    const head = ['เดือน', 'รายรับ', ...EXPENSE_CATEGORIES.map((c) => c.label), 'รายจ่ายรวม', 'กำไร']
-    const body = monthly.map((m) => [monthLong(m.key), m.revenue, ...EXPENSE_CATEGORIES.map((c) => m.cats[c.value] || 0), m.expenses, m.profit])
+    const head = ['เดือน', 'รายรับ', ...PROFIT_CATEGORIES.map((c) => c.label), 'รายจ่ายรวม', 'กำไร']
+    const body = monthly.map((m) => [monthLong(m.key), m.revenue, ...PROFIT_CATEGORIES.map((c) => m.cats[c.value] || 0), m.expenses, m.profit])
     const scopeName = branchId ? branchName(branchId) : 'ทุกสาขา'
     downloadCsv(`กำไร-${scopeName}-${range.months[0]}-ถึง-${range.months[range.months.length - 1]}.csv`, [head, ...body])
   }
@@ -212,7 +214,7 @@ export default function ProfitPage() {
                   <tr>
                     <th>เดือน</th>
                     <th className="is-num">รายรับ</th>
-                    {EXPENSE_CATEGORIES.map((c) => (
+                    {PROFIT_CATEGORIES.map((c) => (
                       <th key={c.value} className="is-num">
                         {CAT_SHORT[c.value]}
                       </th>
@@ -228,7 +230,7 @@ export default function ProfitPage() {
                         <strong>{monthShort(m.key)}</strong> <span className="pos-muted pos-small">{m.key.slice(0, 4)}</span>
                       </td>
                       <td className="is-num">{thb(m.revenue)}</td>
-                      {EXPENSE_CATEGORIES.map((c) => (
+                      {PROFIT_CATEGORIES.map((c) => (
                         <td key={c.value} className="is-num">
                           {thb(m.cats[c.value] || 0)}
                         </td>

@@ -47,14 +47,15 @@ async function mapLimit(list, limit, fn) {
 async function hourlySales(date, branchId) {
   const payments = []
   for (let page = 1; page <= MAX_PAGES; page += 1) {
-    const res = await listPayments({ date, type: 'charge', page, limit: PAGE, branch_id: branchId })
+    const res = await listPayments({ date, page, limit: PAGE, branch_id: branchId })
     payments.push(...(res.data || []))
     if (payments.length >= (res.meta?.total ?? 0) || !(res.data || []).length) break
   }
   const byHour = new Map()
   for (const p of payments) {
     const h = new Date(p.paid_at).getHours()
-    byHour.set(h, (byHour.get(h) || 0) + Number(p.amount))
+    const signed = p.type === 'refund' ? -Number(p.amount) : Number(p.amount) // คืนเงินหักออกจากยอด
+    byHour.set(h, (byHour.get(h) || 0) + signed)
   }
   // ช่วงเปิดร้านปกติ 10–21 น. + ชั่วโมงที่มียอดนอกช่วง
   const hours = [...new Set([...Array.from({ length: 12 }, (_, i) => i + 10), ...byHour.keys()])].sort((a, b) => a - b)
@@ -65,7 +66,7 @@ async function dailySales(days, branchId) {
   const today = todayTh()
   const dates = Array.from({ length: days }, (_, i) => shiftDate(today, days - 1 - i))
   const rows = await mapLimit(dates, DAY_CONCURRENCY, (date) => getDailyReport({ date, branch_id: branchId }).catch(() => null))
-  return dates.map((d, i) => ({ key: d, label: dayLabel(d), value: Number(rows[i]?.sales ?? 0) }))
+  return dates.map((d, i) => ({ key: d, label: dayLabel(d), value: Number(rows[i]?.net_sales ?? 0) }))
 }
 
 function Delta({ now, before, unit = '%', suffix = 'จากเมื่อวาน' }) {
