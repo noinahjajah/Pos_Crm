@@ -1,0 +1,18 @@
+{
+  "name": "pos-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "pos service :3003 — โต๊ะ ออร์เดอร์ ตั๋วครัว คำขออนุมัติ (Dev 3)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "zod": "^3.24.1"
+  }
+}

@@ -15,6 +15,7 @@ services:
     depends_on:
       - identity
       - catalog
+      - pos
       - payment
     restart: unless-stopped
 
@@ -47,9 +48,27 @@ services:
     environment:
       PORT: 3004
       POS_URL: http://pos:3003
+      # http = ใช้บิลจริงจาก pos · mock = บิลจำลองในหน่วยความจำ (ใช้ตอน pos ยังไม่พร้อม)
+      POS_MODE: http
       IDENTITY_URL: http://identity:3001
     ports:
       - "127.0.0.1:3004:3004"
+    depends_on:
+      - identity
+      - catalog
+      - pos
+    restart: unless-stopped
+
+  # โต๊ะ ออร์เดอร์ ตั๋วครัว คำขออนุมัติ (Dev 3) — schema pos
+  pos:
+    build: ./services/pos
+    env_file: ./services/pos/.env
+    environment:
+      PORT: 3003
+      IDENTITY_URL: http://identity:3001
+      CATALOG_URL: http://catalog:3002
+    ports:
+      - "127.0.0.1:3003:3003"
     depends_on:
       - identity
       - catalog
@@ -61,4 +80,3 @@ services:
       - "8000:80"
     restart: unless-stopped
 
-  # TODO: เพิ่ม pos (:3003) เมื่อโค้ดพร้อม (ระหว่างนี้ gateway ตอบ 502 ให้ route ของ pos)

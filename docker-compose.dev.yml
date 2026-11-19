@@ -58,6 +58,19 @@ services:
         - action: rebuild
           path: ./services/payment/package.json
 
+  pos:
+    command: ["node", "--watch", "server.js"]
+    develop:
+      watch:
+        - action: sync
+          path: ./services/pos
+          target: /app
+          ignore:
+            - node_modules/
+            - .env
+        - action: rebuild
+          path: ./services/pos/package.json
+
   web:
     build:
       context: ./web

@@ -181,6 +181,7 @@ export const SERVICES = [
       ['POST', '/orders/:id/tables/merge', SM],
       ['POST', '/orders/:id/tickets', SM],
       ['POST', '/orders/:id/request-payment', SM],
+      ['POST', '/orders/:id/cancel', SM],
       ['GET', '/kitchen/tickets', SM],
       ['PATCH', '/kitchen/tickets/:id', SM],
       ['POST', '/orders/:id/approvals', [S]],
