@@ -66,6 +66,15 @@ export function sendTicket(orderId, items) {
   return data(api.post(`/pos/orders/${orderId}/tickets`, { body }))
 }
 
+// ---------- จอครัว ----------
+/** ตั๋วของสาขาตัวเอง เก่าสุดก่อน · status: 'pending,preparing' (ค่าเริ่มต้น) หรือ 'served' */
+export const listKitchenTickets = (status = 'pending,preparing') =>
+  POS_MOCK ? mock.listKitchenTickets(status) : data(api.get('/pos/kitchen/tickets', { query: { status } }))
+
+/** เปลี่ยนสถานะตั๋ว: pending → preparing → served (ย้อนกลับไม่ได้) */
+export const updateKitchenTicket = (id, status) =>
+  POS_MOCK ? mock.updateKitchenTicket(id, status) : data(api.patch(`/pos/kitchen/tickets/${id}`, { body: { status } }))
+
 /** ปิดโต๊ะที่เปิดแล้วลูกค้าไม่ได้สั่ง → บิล cancelled โต๊ะกลับเป็นว่าง (ใช้ได้เฉพาะบิลที่ยังไม่มีรายการอาหาร) */
 export const cancelOrder = (orderId) =>
   POS_MOCK ? mock.cancelOrder(orderId) : data(api.post(`/pos/orders/${orderId}/cancel`))

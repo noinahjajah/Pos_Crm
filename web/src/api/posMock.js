@@ -397,6 +397,40 @@ export async function decideApproval(id, status, { note } = {}) {
   return clone(withOrderInfo(a))
 }
 
+const tableRefs = (order) => order.table_ids.map((id) => ({ id, table_no: store.tables.find((x) => x.id === id)?.table_no }))
+
+export async function listKitchenTickets(status = 'pending,preparing') {
+  await wait()
+  const wanted = String(status).split(',')
+  const rows = []
+  for (const order of store.orders) {
+    if (!['open', 'waiting_payment'].includes(order.status)) continue
+    for (const t of order.tickets) {
+      if (wanted.includes(t.status)) {
+        rows.push({ ...t, order_id: order.id, order_no: order.order_no, guest_count: order.guest_count, tables: tableRefs(order) })
+      }
+    }
+  }
+  rows.sort((a, b) => a.created_at.localeCompare(b.created_at))
+  return clone(rows)
+}
+
+const KITCHEN_NEXT = { pending: ['preparing', 'served'], preparing: ['served'], served: [] }
+export async function updateKitchenTicket(id, status) {
+  await wait()
+  for (const order of store.orders) {
+    const t = order.tickets.find((x) => x.id === id)
+    if (!t) continue
+    if (t.status !== status && !KITCHEN_NEXT[t.status]?.includes(status)) {
+      throw new ApiError({ status: 400, code: 'VALIDATION_ERROR', message: `เปลี่ยนจาก ${t.status} เป็น ${status} ไม่ได้` })
+    }
+    t.status = status
+    save()
+    return clone({ ...t, order_id: order.id, order_no: order.order_no, guest_count: order.guest_count, tables: tableRefs(order) })
+  }
+  throw notFound('ไม่พบตั๋ว')
+}
+
 export async function cancelOrder(orderId) {
   await wait()
   const order = findOrder(orderId)

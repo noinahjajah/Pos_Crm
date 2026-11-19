@@ -77,6 +77,105 @@
   cursor: pointer;
 }
 
+/* ---------- จอครัว ---------- */
+.pos-k-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.pos-k-filter {
+  padding: 6px 14px;
+  font-size: 14px;
+}
+.pos-k-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--app-line);
+  border-left: 5px solid var(--app-danger);
+  border-radius: 12px;
+  background: var(--app-card);
+}
+.pos-k-card.is-preparing {
+  border-left-color: var(--app-warn);
+}
+.pos-k-card.is-served {
+  border-left-color: var(--app-ok);
+  opacity: 0.8;
+}
+.pos-k-card.is-late:not(.is-served) {
+  box-shadow: 0 0 0 2px var(--app-danger);
+}
+.pos-k-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.pos-k-table {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.pos-k-meta,
+.pos-k-time {
+  font-size: 13px;
+  color: var(--app-muted);
+}
+.pos-k-time strong.is-late {
+  color: var(--app-danger);
+}
+.pos-k-items {
+  list-style: none;
+  margin: 0;
+  padding: 10px 0;
+  border-top: 1px dashed var(--app-line);
+  border-bottom: 1px dashed var(--app-line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pos-k-items li {
+  display: flex;
+  gap: 10px;
+}
+.pos-k-qty {
+  min-width: 34px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--app-brand);
+}
+.pos-k-name {
+  font-size: 17px;
+  font-weight: 700;
+}
+.pos-k-opt {
+  font-size: 14px;
+  color: var(--app-muted);
+}
+.pos-k-note {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-warn);
+}
+.pos-k-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.pos-k-total {
+  font-size: 13px;
+  color: var(--app-muted);
+}
+.pos-k-foot .pos-btn {
+  padding: 10px 20px;
+  font-size: 16px;
+}
+
 /* ---------- ป้ายสถานะ ---------- */
 .pos-pills {
   display: flex;

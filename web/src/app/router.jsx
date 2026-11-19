@@ -17,9 +17,10 @@ import UsersPage from '../features/backoffice/users/UsersPage'
 import CashierPage from '../features/checkout/CashierPage'
 import ApprovalsPage from '../features/approvals/ApprovalsPage'
 import RefundRequestPage from '../features/approvals/RefundRequestPage'
+// import KitchenPage from '../features/kitchen/KitchenPage' // จอครัว: ยังไม่เปิดใช้
 import OrderPage from '../features/orders/OrderPage'
 import TablesPage from '../features/tables/TablesPage'
-import { CheckoutRoute, Home, Placeholder } from './routeElements'
+import { CheckoutRoute, Home } from './routeElements'
 
 // เส้นทางทั้งหมด + role ต่อหน้า (ตามตารางใน เอกสาร/frontend-folder-structure.md)
 // S = staff, M = manager, O = owner · เมนูข้างอยู่ที่ components/layout/navItems.js ต้องแก้ให้ตรงกัน
@@ -50,7 +51,7 @@ export const router = createBrowserRouter([
             element: <RequireRole roles={SM} />,
             children: [
               { path: '/orders/:id', element: <OrderPage /> },
-              { path: '/kitchen', element: <Placeholder title="จอครัว" owner="Dev 3" /> },
+              // { path: '/kitchen', element: <KitchenPage /> }, // จอครัว: ยังไม่เปิดใช้ (เปิดคอมเมนต์ที่นี่ + import ด้านบน + เมนูใน navItems.js)
               { path: '/cashier', element: <CashierPage /> },
               { path: '/checkout/:orderId', element: <CheckoutRoute /> },
               { path: '/menus/availability', element: <MenuAvailabilityPage /> },
