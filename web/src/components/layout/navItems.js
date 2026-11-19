@@ -4,12 +4,13 @@
 const O = 'owner'
 const SM = ['staff', 'manager']
 const MO = ['manager', 'owner']
+const SMO = ['staff', 'manager', 'owner']
 
 export const NAV_SECTIONS = [
   {
     title: 'หน้าร้าน',
     items: [
-      { to: '/tables', label: 'ผังโต๊ะ', icon: '▦', roles: SM },
+      { to: '/tables', label: 'ผังโต๊ะ', icon: '▦', roles: SMO },
       { to: '/kitchen', label: 'จอครัว', icon: '♨', roles: SM },
       { to: '/cashier', label: 'คิดเงิน', icon: '฿', roles: SM },
       { to: '/refunds/request', label: 'ขอคืนเงิน', icon: '↺', roles: ['staff'] },

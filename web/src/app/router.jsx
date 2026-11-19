@@ -26,6 +26,7 @@ import { CheckoutRoute, Home, Placeholder } from './routeElements'
 
 const SM = ['staff', 'manager']
 const MO = ['manager', 'owner']
+const SMO = ['staff', 'manager', 'owner']
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -38,11 +39,16 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Home /> },
 
+          // ผังโต๊ะ S M O — manager/owner เพิ่มโต๊ะได้ · owner ดูอย่างเดียว (เปิดโต๊ะ/ย้าย/รวมเป็นของ S M)
+          {
+            element: <RequireRole roles={SMO} />,
+            children: [{ path: '/tables', element: <TablesPage /> }],
+          },
+
           // หน้าร้าน S M
           {
             element: <RequireRole roles={SM} />,
             children: [
-              { path: '/tables', element: <TablesPage /> },
               { path: '/orders/:id', element: <OrderPage /> },
               { path: '/kitchen', element: <Placeholder title="จอครัว" owner="Dev 3" /> },
               { path: '/cashier', element: <CashierPage /> },

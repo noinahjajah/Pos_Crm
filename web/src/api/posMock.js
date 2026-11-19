@@ -168,6 +168,17 @@ function toOrder(order) {
 }
 
 // ---------- API จำลอง ----------
+export async function createTable({ table_no, seats = 4, zone = null }) {
+  await wait()
+  const no = String(table_no || '').trim()
+  if (!no) throw new ApiError({ status: 400, code: 'VALIDATION_ERROR', message: 'กรุณากรอกชื่อโต๊ะ' })
+  if (store.tables.some((t) => t.table_no === no)) throw conflict(`โต๊ะ ${no} มีอยู่แล้วในสาขานี้`)
+  const table = { id: uid(), table_no: no, seats, zone: zone || null }
+  store.tables.push(table)
+  save()
+  return clone({ ...table, status: 'available', order: null })
+}
+
 export async function listTables() {
   await wait()
   return clone(

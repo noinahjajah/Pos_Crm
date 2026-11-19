@@ -23,7 +23,11 @@ export const POS_MOCK = import.meta.env.VITE_POS_MODE === 'mock'
 const data = (promise) => promise.then((res) => res.data)
 
 // ---------- โต๊ะ (1.7, 1.8) ----------
-export const listTables = () => (POS_MOCK ? mock.listTables() : data(api.get('/pos/tables')))
+/** query: { branch_id? } — owner ส่ง branch_id เพื่อดูทีละสาขา (staff/manager ใช้สาขาตัวเองเสมอ) */
+export const listTables = (query) => (POS_MOCK ? mock.listTables() : data(api.get('/pos/tables', { query })))
+
+/** เพิ่มโต๊ะ (manager/owner) — body: { table_no, seats?, zone?, branch_id? } owner ต้องส่ง branch_id */
+export const createTable = (body) => (POS_MOCK ? mock.createTable(body) : data(api.post('/pos/tables', { body })))
 
 // ---------- ออร์เดอร์ ----------
 /** เปิดโต๊ะ/เปิดบิล → order */

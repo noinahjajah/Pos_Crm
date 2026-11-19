@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { listBranches } from '../../api/identity'
 import { POS_MOCK, listTables } from '../../api/pos'
 import { errorText } from '../../lib/format'
+import { useAuth } from '../auth/AuthContext'
 import { TABLE_STATUS, hhmm, thb, todayLabel, useNow, useToast } from '../../lib/posUtils'
 import { MockBanner, Toast } from '../../components/ui/posUi'
+import AddTableDialog from './AddTableDialog'
 import MoveMergeDialog from './MoveMergeDialog'
 import OpenTableDialog from './OpenTableDialog'
 import '../../styles/pos.css'
@@ -11,12 +14,18 @@ import '../../styles/pos.css'
 // ผังโต๊ะ (1.7, 1.8, 1.11, 1.12)
 // - โต๊ะว่าง → เปิดโต๊ะ · มีลูกค้า → ไปหน้ารับออร์เดอร์ · รอชำระ → ไปหน้าคิดเงินของ Dev 2
 // - รีเฟรชเองทุก 20 วินาที ให้เห็นโต๊ะที่เครื่องอื่นเปิด/ปิด
+// - manager (สาขาตัวเอง) / owner (เลือกสาขา) เพิ่มโต๊ะได้ · owner ดูผังได้แต่เปิดโต๊ะ/ย้าย/รวมไม่ได้ (เป็นงานของ staff, manager)
 
 const REFRESH_MS = 20_000
 
 export default function TablesPage() {
   const navigate = useNavigate()
   const now = useNow()
+  const { isOwner, isManager } = useAuth()
+  const canAddTable = isOwner || isManager
+  const [branches, setBranches] = useState([])
+  const [branchId, setBranchId] = useState('') // เฉพาะ owner
+  const [adding, setAdding] = useState(false)
   const [tables, setTables] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -25,10 +34,32 @@ export default function TablesPage() {
   const [moveMode, setMoveMode] = useState(null) // 'move' | 'merge'
   const [toast, notify] = useToast()
 
+  // owner ไม่มีสาขาประจำ: โหลดรายการสาขาแล้วเลือกสาขาแรก
   useEffect(() => {
+    if (!isOwner) return undefined
+    let cancelled = false
+    listBranches()
+      .then((rows) => {
+        if (cancelled) return
+        setBranches(rows || [])
+        setBranchId((cur) => cur || rows?.[0]?.id || '')
+        if (!rows?.length) setLoading(false)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setError(errorText(err))
+        setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isOwner])
+
+  useEffect(() => {
+    if (isOwner && !branchId) return undefined
     let cancelled = false
     const load = () =>
-      listTables()
+      listTables(isOwner ? { branch_id: branchId } : undefined)
         .then((rows) => {
           if (cancelled) return
           setTables(rows || [])
@@ -42,7 +73,7 @@ export default function TablesPage() {
       cancelled = true
       clearInterval(id)
     }
-  }, [reloadKey])
+  }, [reloadKey, isOwner, branchId])
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), [])
 
@@ -64,12 +95,15 @@ export default function TablesPage() {
   }, [tables])
 
   function tap(t) {
+    if (isOwner) return // owner ดูผัง/จัดการโต๊ะเท่านั้น ไม่ได้รับออร์เดอร์
     if (t.status === 'available') setOpening(t)
     else if (t.status === 'occupied' && t.order) navigate(`/orders/${t.order.id}`)
     else if (t.status === 'waiting_payment' && t.order) navigate(`/checkout/${t.order.id}`)
   }
 
   const hasOccupied = counts.occupied > 0
+  const branchName = branches.find((b) => b.id === branchId)?.name || ''
+  const zoneNames = zones.map(([z]) => z)
 
   return (
     <div className="pos-page">
@@ -77,9 +111,28 @@ export default function TablesPage() {
         <div>
           <h1 className="pos-title">ผังโต๊ะ</h1>
           <p className="pos-subtitle">
-            {todayLabel(now)} · แตะโต๊ะว่างเพื่อเปิดโต๊ะ · แตะโต๊ะที่มีลูกค้าเพื่อสั่งเพิ่ม
+            {todayLabel(now)}
+            {isOwner ? ' · ดูผังโต๊ะและเพิ่มโต๊ะของแต่ละสาขา' : ' · แตะโต๊ะว่างเพื่อเปิดโต๊ะ · แตะโต๊ะที่มีลูกค้าเพื่อสั่งเพิ่ม'}
           </p>
         </div>
+        {isOwner && branches.length > 0 && (
+          <select
+            className="pos-input pos-select-sm"
+            value={branchId}
+            onChange={(e) => {
+              setLoading(true)
+              setTables([])
+              setBranchId(e.target.value)
+            }}
+            aria-label="สาขา"
+          >
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        )}
       </header>
 
       <MockBanner show={POS_MOCK} />
@@ -100,19 +153,32 @@ export default function TablesPage() {
           <span className="pos-pill is-waiting">รอชำระ {counts.waiting_payment}</span>
         </div>
         <div className="pos-header-actions">
-          <button className="pos-btn" onClick={() => setMoveMode('move')} disabled={!hasOccupied}>
-            ย้ายโต๊ะ
-          </button>
-          <button className="pos-btn" onClick={() => setMoveMode('merge')} disabled={!hasOccupied}>
-            รวมโต๊ะ
-          </button>
+          {canAddTable && (
+            <button className="pos-btn pos-btn-primary" onClick={() => setAdding(true)} disabled={isOwner && !branchId}>
+              + เพิ่มโต๊ะ
+            </button>
+          )}
+          {!isOwner && (
+            <>
+              <button className="pos-btn" onClick={() => setMoveMode('move')} disabled={!hasOccupied}>
+                ย้ายโต๊ะ
+              </button>
+              <button className="pos-btn" onClick={() => setMoveMode('merge')} disabled={!hasOccupied}>
+                รวมโต๊ะ
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {loading ? (
         <div className="pos-skeleton" />
       ) : tables.length === 0 ? (
-        !error && <div className="pos-empty">สาขานี้ยังไม่มีโต๊ะ ให้ผู้จัดการเพิ่มโต๊ะก่อน</div>
+        !error && (
+          <div className="pos-empty">
+            {canAddTable ? 'สาขานี้ยังไม่มีโต๊ะ กด “+ เพิ่มโต๊ะ” เพื่อเริ่มสร้างผังโต๊ะ' : 'สาขานี้ยังไม่มีโต๊ะ ให้ผู้จัดการเพิ่มโต๊ะก่อน'}
+          </div>
+        )
       ) : (
         zones.map(([zone, list]) => (
           <section key={zone} className="pos-zone">
@@ -133,6 +199,20 @@ export default function TablesPage() {
           table={opening}
           onClose={() => setOpening(null)}
           onOpened={(order) => navigate(`/orders/${order.id}`)}
+        />
+      )}
+
+      {adding && (
+        <AddTableDialog
+          branchId={isOwner ? branchId : undefined}
+          branchName={isOwner ? branchName : undefined}
+          zones={zoneNames}
+          onClose={() => setAdding(false)}
+          onCreated={(t) => {
+            setAdding(false)
+            notify(`เพิ่มโต๊ะ ${t.table_no} แล้ว`)
+            reload()
+          }}
         />
       )}
 
