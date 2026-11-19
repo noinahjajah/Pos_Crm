@@ -211,7 +211,7 @@ export default function OrderPage() {
       <div className="pos-page">
         <div className="pos-alert">
           {error || 'ไม่พบบิล'}
-          <Link className="pos-link" to="/tables">
+          <Link className="pos-btn" to="/tables">
             กลับผังโต๊ะ
           </Link>
         </div>
@@ -245,11 +245,11 @@ export default function OrderPage() {
         <div className="pos-alert">
           บิลนี้{order.status === 'waiting_payment' ? 'เรียกเก็บเงินแล้ว' : 'ปิดแล้ว'} สั่งอาหารเพิ่มไม่ได้
           {order.status === 'waiting_payment' ? (
-            <Link className="pos-link" to={`/checkout/${order.id}`}>
+            <Link className="pos-btn" to={`/checkout/${order.id}`}>
               ไปหน้าคิดเงิน
             </Link>
           ) : (
-            <Link className="pos-link" to="/tables">
+            <Link className="pos-btn" to="/tables">
               กลับผังโต๊ะ
             </Link>
           )}
@@ -405,13 +405,13 @@ export default function OrderPage() {
               {sending ? 'กำลังส่ง…' : 'ส่งเข้าครัว & พิมพ์ใบออร์เดอร์'}
             </button>
             <div className="pos-cart-links">
-              <Link className="pos-link" to="/tables">
+              <Link className="pos-btn" to="/tables">
                 ← ผังโต๊ะ
               </Link>
               {isStaff && ['open', 'waiting_payment'].includes(order.status) && (
                 <button
                   type="button"
-                  className="pos-link"
+                  className="pos-btn"
                   onClick={() => setAskDiscount(true)}
                   disabled={!tickets.length || discounts.some((a) => a.status === 'pending')}
                   title={discounts.some((a) => a.status === 'pending') ? 'มีคำขอส่วนลดรออนุมัติอยู่' : undefined}
@@ -420,7 +420,7 @@ export default function OrderPage() {
                 </button>
               )}
               {isOpen && (
-                <button type="button" className="pos-link" onClick={bill} disabled={!tickets.length || cart.length > 0} title={cart.length ? 'ส่งรายการที่ค้างเข้าครัวก่อน' : undefined}>
+                <button type="button" className="pos-btn" onClick={bill} disabled={!tickets.length || cart.length > 0} title={cart.length ? 'ส่งรายการที่ค้างเข้าครัวก่อน' : undefined}>
                   เรียกเก็บเงิน
                 </button>
               )}
