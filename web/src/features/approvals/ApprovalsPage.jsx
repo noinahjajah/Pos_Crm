@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { useApprovalFeed } from '../../../api/approvalFeed'
-import { APPROVAL_STATUS, APPROVAL_TYPE, POS_MOCK, approveApproval, getOrder, listApprovals, rejectApproval } from '../../../api/pos'
-import { VAT_RATE } from '../../../lib/constants'
-import { errorText } from '../../../lib/format'
-import { hhmm, tablesText, useToast } from '../posUtils'
-import { MockBanner, Toast } from '../posUi'
-import '../pos.css'
+import { useApprovalFeed } from '../../api/approvalFeed'
+import { APPROVAL_STATUS, APPROVAL_TYPE, POS_MOCK, approveApproval, getOrder, listApprovals, rejectApproval } from '../../api/pos'
+import { VAT_RATE } from '../../lib/constants'
+import { errorText } from '../../lib/format'
+import { hhmm, tablesText, useToast } from '../../lib/posUtils'
+import { MockBanner, Toast } from '../../components/ui/posUi'
+import '../../styles/pos.css'
 
 // คำขออนุมัติส่วนลด/คืนเงิน (manager/owner) — 1.29–1.31
 // - realtime ผ่าน approvalFeed (SSE) · ถ้าหลุด poll ทุก 10 วินาที (ต่ออยู่ poll ทุก 30 วินาทีกันพลาด)

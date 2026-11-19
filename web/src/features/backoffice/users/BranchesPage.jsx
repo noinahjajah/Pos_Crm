@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { createBranch, deleteBranch, listBranches, listUsers, updateBranch } from '../../../api/identity'
 import { getBranchReport } from '../../../api/payment'
 import { BRANCH_TYPES } from '../../../lib/constants'
-import { thb, useToast } from '../../pos/posUtils'
-import { Toast } from '../../pos/posUi'
+import { thb, useToast } from '../../../lib/posUtils'
+import { Toast } from '../../../components/ui/posUi'
 import { errorText, todayTh } from '../useBranchScope'
-import '../../pos/pos.css'
+import '../../../styles/pos.css'
 
 // หน้าจัดการสาขา (owner) — 1.6 (Dev 1)
 // ลบ = ปิดสาขา (soft delete) id ยังอยู่ให้ service อื่นอ้างถึง · บิล รายจ่าย รายงานย้อนหลังยังอยู่ · เปิดใช้อีกครั้งได้

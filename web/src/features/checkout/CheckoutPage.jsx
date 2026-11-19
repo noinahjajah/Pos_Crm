@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react'
 import { createPayment, getOrder } from '../../api/payment'
 import { thaiTime } from '../../lib/format'
 import { useAuth } from '../auth/AuthContext'
-import { useBranchName } from '../pos/posUtils'
+import { useBranchName } from '../../lib/posUtils'
 import BillSummary from './BillSummary'
 import CashForm from './CashForm'
 import PromptPayQR from './PromptPayQR'
 import Receipt from './Receipt'
 import { billItems, billNumbers, errorText, lineTotal, tableLabel, thb, thb2 } from './checkoutUtils'
-import '../pos/pos.css'
+import '../../styles/pos.css'
 
 // หน้าชำระเงิน — 1.23, 1.25 (ฝั่งเงินของ Dev 2)
 // ใช้: <CheckoutPage orderId="..." onDone={() => ...} onBack={() => ...} />

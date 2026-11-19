@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { thb } from '../posUtils'
-import { Dialog, Stepper } from '../posUi'
+import { thb } from '../../lib/posUtils'
+import { Dialog, Stepper } from '../../components/ui/posUi'
 
 // เลือกตัวเลือกเสริม + หมายเหตุ + จำนวน ก่อนเพิ่มลงออร์เดอร์ (1.9, 1.16–1.18)
 // กลุ่มที่ max_select = 1 → เลือกได้อย่างเดียว (radio) · มากกว่านั้น → เลือกได้ไม่เกิน max_select

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { mergeTables, moveTable } from '../../../api/pos'
-import { errorText } from '../../../lib/format'
-import { TABLE_STATUS, hhmm, thb } from '../posUtils'
-import { Dialog } from '../posUi'
+import { mergeTables, moveTable } from '../../api/pos'
+import { errorText } from '../../lib/format'
+import { TABLE_STATUS, hhmm, thb } from '../../lib/posUtils'
+import { Dialog } from '../../components/ui/posUi'
 
 // ย้ายโต๊ะ (1.11) / รวมโต๊ะเป็นบิลเดียว (1.12) — ไม่มีแยกบิล (1.13)
 // ขั้นตอน: แตะโต๊ะที่มีลูกค้าเป็น "ต้นทาง" → แตะโต๊ะปลายทาง → ยืนยัน

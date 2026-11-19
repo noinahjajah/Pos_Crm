@@ -3,10 +3,10 @@ import { Navigate, useSearchParams } from 'react-router'
 import { createUser, deleteUser, listBranches, listUsers, updateUser } from '../../../api/identity'
 import { ROLE_LABELS } from '../../../lib/constants'
 import { useAuth } from '../../auth/AuthContext'
-import { useToast } from '../../pos/posUtils'
-import { Toast } from '../../pos/posUi'
+import { useToast } from '../../../lib/posUtils'
+import { Toast } from '../../../components/ui/posUi'
 import { errorText } from '../useBranchScope'
-import '../../pos/pos.css'
+import '../../../styles/pos.css'
 
 // หน้าจัดการผู้ใช้ — 1.3–1.5 (Dev 1)
 // owner: เพิ่ม/แก้/ลบผู้ใช้ทุกสาขา (แผงขวา) · manager: ดูรายชื่อพนักงานสาขาตัวเองอย่างเดียว (gateway กรองสาขาให้)

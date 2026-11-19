@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { listMenus, setMenuAvailability } from '../../../api/catalog'
-import { thb, useToast } from '../../pos/posUtils'
-import { Toast } from '../../pos/posUi'
+import { thb, useToast } from '../../../lib/posUtils'
+import { Toast } from '../../../components/ui/posUi'
 import { errorText } from '../useBranchScope'
-import '../../pos/pos.css'
+import '../../../styles/pos.css'
 
 // หน้าเปิด/ปิดขายเมนูของพนักงานหน้าร้าน — 1.15 · มีผลทันทีกับหน้ารับออร์เดอร์ของสาขานี้
 // สต็อกเป็น 0 ระบบปิดขายให้อัตโนมัติ (1.21) และเปิดขายไม่ได้จนกว่าผู้จัดการ/เจ้าของจะเติม (1.22)

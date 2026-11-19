@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getBranchReport, getDailyReport, listPayments } from '../../../api/payment'
 import { listApprovals } from '../../../api/pos'
-import { hhmm, thb } from '../../pos/posUtils'
+import { hhmm, thb } from '../../../lib/posUtils'
 import GroupedBarChart from '../GroupedBarChart'
 import { OTHER_COLOR, SERIES_COLORS } from '../seriesColors'
 import { errorText, todayTh, useBranchScope } from '../useBranchScope'
-import '../../pos/pos.css'
+import '../../../styles/pos.css'
 
 // แดชบอร์ด (หลังร้าน) — 1.34–1.36
 // - manager หรือ owner ที่เลือกสาขา: แดชบอร์ดสาขา (Overview)

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { listBranches } from '../../api/identity'
-import { useAuth } from '../auth/AuthContext'
+import { listBranches } from '../api/identity'
+import { useAuth } from '../features/auth/AuthContext'
 
 // ตัวช่วยของหน้าร้าน Dev 3 (ผังโต๊ะ รับออร์เดอร์)
 

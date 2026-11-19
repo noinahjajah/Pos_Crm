@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { adjustStock, listStocks, setMenuAvailability } from '../../../api/catalog'
-import { hhmm, useToast } from '../../pos/posUtils'
-import { Toast } from '../../pos/posUi'
+import { hhmm, useToast } from '../../../lib/posUtils'
+import { Toast } from '../../../components/ui/posUi'
 import { errorText, useBranchScope } from '../useBranchScope'
-import '../../pos/pos.css'
+import '../../../styles/pos.css'
 
 // หน้าสต็อกพร้อมขาย (หลังร้าน) — 1.19–1.22
 // เก็บเป็นจำนวนที่พร้อมขาย ต่อเมนู ต่อสาขา · เติม (+) หรือตั้งจำนวนใหม่

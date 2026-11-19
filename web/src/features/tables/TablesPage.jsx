@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { POS_MOCK, listTables } from '../../../api/pos'
-import { errorText } from '../../../lib/format'
-import { TABLE_STATUS, hhmm, thb, todayLabel, useNow, useToast } from '../posUtils'
-import { MockBanner, Toast } from '../posUi'
+import { POS_MOCK, listTables } from '../../api/pos'
+import { errorText } from '../../lib/format'
+import { TABLE_STATUS, hhmm, thb, todayLabel, useNow, useToast } from '../../lib/posUtils'
+import { MockBanner, Toast } from '../../components/ui/posUi'
 import MoveMergeDialog from './MoveMergeDialog'
 import OpenTableDialog from './OpenTableDialog'
-import '../pos.css'
+import '../../styles/pos.css'
 
 // ผังโต๊ะ (1.7, 1.8, 1.11, 1.12)
 // - โต๊ะว่าง → เปิดโต๊ะ · มีลูกค้า → ไปหน้ารับออร์เดอร์ · รอชำระ → ไปหน้าคิดเงินของ Dev 2

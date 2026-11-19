@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { copyMenu, deleteMenu, listCategories, listMenus, listOptionGroups, setMenuAvailability } from '../../../api/catalog'
-import { thb, useToast } from '../../pos/posUtils'
-import { Toast } from '../../pos/posUi'
+import { thb, useToast } from '../../../lib/posUtils'
+import { Toast } from '../../../components/ui/posUi'
 import { loadMenuGroupLinks } from '../menuLinks'
 import { errorText, useBranchScope } from '../useBranchScope'
 import MenuEditor from './MenuEditor'
-import '../../pos/pos.css'
+import '../../../styles/pos.css'
 
 // หน้าจัดการเมนู (หลังร้าน) — 1.14, 1.15, 1.18
 // ซ้าย: ตารางเมนู · ขวา: แผงแก้ไข/เพิ่มเมนู

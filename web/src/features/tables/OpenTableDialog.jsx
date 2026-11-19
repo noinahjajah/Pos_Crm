@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { openOrder } from '../../../api/pos'
-import { errorText } from '../../../lib/format'
-import { useAuth } from '../../auth/AuthContext'
-import { hhmm, useNow } from '../posUtils'
-import { Dialog, Stepper } from '../posUi'
+import { openOrder } from '../../api/pos'
+import { errorText } from '../../lib/format'
+import { useAuth } from '../auth/AuthContext'
+import { hhmm, useNow } from '../../lib/posUtils'
+import { Dialog, Stepper } from '../../components/ui/posUi'
 
 // เปิดโต๊ะ: ระบุจำนวนลูกค้า ระบบบันทึกเวลาเปิดเอง (1.7)
 

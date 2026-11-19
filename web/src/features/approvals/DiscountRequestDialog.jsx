@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { requestApproval } from '../../../api/pos'
-import { VAT_RATE } from '../../../lib/constants'
-import { errorText } from '../../../lib/format'
-import { tablesText, thb } from '../posUtils'
-import { Dialog } from '../posUi'
+import { requestApproval } from '../../api/pos'
+import { VAT_RATE } from '../../lib/constants'
+import { errorText } from '../../lib/format'
+import { tablesText, thb } from '../../lib/posUtils'
+import { Dialog } from '../../components/ui/posUi'
 
 // staff ขอส่วนลด (บาท/เปอร์เซ็นต์) พร้อมเหตุผล → แจ้ง manager/owner (1.27, 1.29)
 // ส่วนลดมีผลกับบิลเมื่ออนุมัติแล้วเท่านั้น (1.30)

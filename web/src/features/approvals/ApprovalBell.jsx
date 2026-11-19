@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { useApprovalFeed } from '../../../api/approvalFeed'
-import { listApprovals } from '../../../api/pos'
-import '../pos.css' // อยู่บนแถบบนทุกหน้า ต้องโหลดสไตล์เอง
+import { useApprovalFeed } from '../../api/approvalFeed'
+import { listApprovals } from '../../api/pos'
+import '../../styles/pos.css' // อยู่บนแถบบนทุกหน้า ต้องโหลดสไตล์เอง
 
 // กระดิ่งบนแถบบนของผู้จัดการ/เจ้าของ (1.29)
 // - ตัวเลข = คำขอที่รออนุมัติ · กด → หน้าคำขออนุมัติ

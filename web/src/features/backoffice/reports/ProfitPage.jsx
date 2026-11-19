@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EXPENSE_CATEGORIES, getProfitReport } from '../../../api/payment'
-import { thb } from '../../pos/posUtils'
+import { thb } from '../../../lib/posUtils'
 import GroupedBarChart from '../GroupedBarChart'
 import { OTHER_COLOR, SERIES_COLORS, branchColors } from '../seriesColors'
 import { errorText, todayTh, useBranchScope } from '../useBranchScope'
-import '../../pos/pos.css'
+import '../../../styles/pos.css'
 
 // รายรับ รายจ่าย และกำไร (owner) — 1.37
 // แยกตามสาขาและเดือน · รายรับ = ยอดขาย − เงินที่คืน · กำไร = รายรับ − รายจ่ายรวม

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { listUsers } from '../../../api/identity'
 import { createExpense, deleteExpense, EXPENSE_CATEGORIES, listExpenses, updateExpense } from '../../../api/payment'
-import { thb, useToast } from '../../pos/posUtils'
-import { Toast } from '../../pos/posUi'
+import { thb, useToast } from '../../../lib/posUtils'
+import { Toast } from '../../../components/ui/posUi'
 import { errorText, todayTh, useBranchScope } from '../useBranchScope'
-import '../../pos/pos.css'
+import '../../../styles/pos.css'
 
 // หน้ารายจ่ายสาขา (หลังร้าน) — 1.32, 1.33
 // ซ้าย: ฟอร์มบันทึก/แก้ไข · ขวา: ยอดแต่ละหมวดของเดือน + รายการ

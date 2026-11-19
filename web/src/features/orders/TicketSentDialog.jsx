@@ -1,5 +1,5 @@
-import { tablesText } from '../posUtils'
-import { Dialog } from '../posUi'
+import { tablesText } from '../../lib/posUtils'
+import { Dialog } from '../../components/ui/posUi'
 
 // หลังส่งเข้าครัว: แสดงตัวอย่างใบออร์เดอร์ที่พิมพ์ (1.10) · พิมพ์ซ้ำได้
 

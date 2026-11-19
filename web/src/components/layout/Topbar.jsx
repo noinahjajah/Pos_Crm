@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { listBranches } from '../../api/identity'
 import { useAuth } from '../../features/auth/AuthContext'
-import ApprovalBell from '../../features/pos/approvals/ApprovalBell'
+import ApprovalBell from '../../features/approvals/ApprovalBell'
 import { ROLE_LABELS } from '../../lib/constants'
 
 // แถบบน: ชื่อผู้ใช้ role สาขา และปุ่มออกจากระบบ

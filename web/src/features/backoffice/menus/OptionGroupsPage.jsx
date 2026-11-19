@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createOption, createOptionGroup, listMenus, listOptionGroups, updateOption, updateOptionGroup } from '../../../api/catalog'
-import { useToast } from '../../pos/posUtils'
-import { Toast } from '../../pos/posUi'
+import { useToast } from '../../../lib/posUtils'
+import { Toast } from '../../../components/ui/posUi'
 import { loadMenuGroupLinks, saveMenuGroups } from '../menuLinks'
 import { errorText, useBranchScope } from '../useBranchScope'
-import '../../pos/pos.css'
+import '../../../styles/pos.css'
 
 // หน้ากลุ่มตัวเลือกเสริม (หลังร้าน) — 1.16–1.18
 // ซ้าย: กลุ่มทั้งหมด · กลาง: แก้ชื่อ รูปแบบการเลือก ตัวเลือกและราคาบวกเพิ่ม · ขวา: ผูกกับเมนู

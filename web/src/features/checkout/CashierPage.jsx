@@ -4,13 +4,13 @@ import { createRefund, getOrder as getPaymentOrder, listApprovedRefunds, listWai
 import { APPROVAL_STATUS, getOrder as getPosOrder, listApprovals, listTables, requestPayment } from '../../api/pos'
 import { errorText } from '../../lib/format'
 import { useAuth } from '../auth/AuthContext'
-import DiscountRequestDialog from '../pos/approvals/DiscountRequestDialog'
-import { hhmm, tablesText, thb, useBranchName, useToast } from '../pos/posUtils'
-import { Toast } from '../pos/posUi'
+import DiscountRequestDialog from '../approvals/DiscountRequestDialog'
+import { hhmm, tablesText, thb, useBranchName, useToast } from '../../lib/posUtils'
+import { Toast } from '../../components/ui/posUi'
 import BillPrint from './BillPrint'
 import BillSummary from './BillSummary'
 import { billItems, lineTotal, thb2 } from './checkoutUtils'
-import '../pos/pos.css'
+import '../../styles/pos.css'
 
 // หน้าคิดเงิน (Dev 2) — 1.23, 1.25, 1.27, 1.30
 // ซ้าย: โต๊ะที่มีลูกค้า (รอชำระ จาก payment + มีลูกค้า จากผังโต๊ะของ pos) และคำขอคืนเงินที่อนุมัติแล้ว

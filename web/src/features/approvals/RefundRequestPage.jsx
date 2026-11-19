@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { APPROVAL_STATUS, POS_MOCK, getOrder, lineAmount, listApprovals, listOrders, orderItems, requestApproval } from '../../../api/pos'
-import { errorText } from '../../../lib/format'
-import { hhmm, tablesText, thb, useToast } from '../posUtils'
-import { MockBanner, Stepper, Toast } from '../posUi'
-import '../pos.css'
+import { APPROVAL_STATUS, POS_MOCK, getOrder, lineAmount, listApprovals, listOrders, orderItems, requestApproval } from '../../api/pos'
+import { errorText } from '../../lib/format'
+import { hhmm, tablesText, thb, useToast } from '../../lib/posUtils'
+import { MockBanner, Stepper, Toast } from '../../components/ui/posUi'
+import '../../styles/pos.css'
 
 // staff ขอคืนเงิน: อ้างอิงบิลที่จ่ายแล้ว · คืนทั้งบิลหรือบางรายการ (1.28)
 // ส่งคำขอ → manager/owner อนุมัติ (1.29) → คืนเงินที่หน้าคิดเงินของ Dev 2 (1.30) · คืนเงินไม่คืนสต็อก
