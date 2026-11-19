@@ -3,7 +3,8 @@
 import { AppError } from '../shared/index.js';
 
 export function createSupabaseRepo(adminClient) {
-  const db = adminClient.schema('identity');
+  // ชื่อ schema ตั้งได้ใน .env (ค่าเริ่มต้น identity)
+  const db = adminClient.schema(process.env.IDENTITY_SCHEMA || 'identity');
 
   const fail = (error) => {
     if (error?.code === '23505') {
