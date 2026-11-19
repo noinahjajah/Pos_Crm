@@ -6,11 +6,11 @@ import { HOME_BY_ROLE } from '../lib/constants'
 // component เล็ก ๆ ที่ router.jsx ใช้ (แยกไฟล์ให้ fast refresh ทำงาน)
 
 /** หน้าที่ยังไม่ได้ทำ */
-export function Placeholder({ title, owner }) {
+export function Placeholder({ title }) {
   return (
     <div className="app-placeholder">
       <h1>{title}</h1>
-      <p>หน้านี้กำลังพัฒนา ({owner})</p>
+      <p>หน้านี้กำลังพัฒนา</p>
     </div>
   )
 }

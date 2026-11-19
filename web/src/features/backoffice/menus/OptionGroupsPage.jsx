@@ -71,7 +71,7 @@ export default function OptionGroupsPage() {
         <div>
           <h1 className="pos-title">กลุ่มตัวเลือกเสริม</h1>
           <p className="pos-subtitle">
-            สร้างกลุ่มเอง กำหนดเลือก 1 หรือหลายอย่าง และราคาบวกเพิ่ม (1.16–1.18){!isOwner && branchName(branchId) ? ` · สาขา${branchName(branchId)}` : ''}
+            สร้างกลุ่มเอง กำหนดเลือก 1 หรือหลายอย่าง และราคาบวกเพิ่ม{!isOwner && branchName(branchId) ? ` · สาขา${branchName(branchId)}` : ''}
           </p>
         </div>
         {isOwner && (
@@ -325,7 +325,7 @@ function GroupEditor({ group, branchId, isOwner, menus, links, onCancel, onSaved
             <thead>
               <tr>
                 <th>ตัวเลือก</th>
-                <th style={{ width: 130 }}>ราคาบวกเพิ่ม (1.17)</th>
+                <th style={{ width: 130 }}>ราคาบวกเพิ่ม</th>
                 <th style={{ width: 48 }} aria-label="ลบ" />
               </tr>
             </thead>
@@ -374,7 +374,7 @@ function GroupEditor({ group, branchId, isOwner, menus, links, onCancel, onSaved
       </section>
 
       <section className="pos-panel pos-col-panel" aria-label="ผูกกับเมนู">
-        <h2 className="pos-panel-title">ผูกกับเมนู (1.18)</h2>
+        <h2 className="pos-panel-title">ผูกกับเมนู</h2>
         <input className="pos-search" style={{ width: '100%' }} type="search" placeholder="ค้นหาเมนู" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="ค้นหาเมนู" />
         {!links ? (
           <p className="pos-muted pos-small">กำลังโหลดว่าเมนูไหนผูกกลุ่มนี้…</p>

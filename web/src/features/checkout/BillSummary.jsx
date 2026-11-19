@@ -31,7 +31,7 @@ export default function BillSummary({ order, title = 'สรุปยอด' }) 
         <strong>{thb2(n.total)}</strong>
       </div>
       <p className="pos-muted pos-small" style={{ margin: 0 }}>
-        ราคาเมนูยังไม่รวม VAT · คิด VAT 7% จากยอดหลังหักส่วนลด (1.24)
+        ราคาเมนูยังไม่รวม VAT · คิด VAT 7% จากยอดหลังหักส่วนลด
       </p>
     </div>
   )

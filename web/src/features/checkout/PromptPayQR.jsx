@@ -64,7 +64,7 @@ export default function PromptPayQR({ total, reference, branchName, paying, onCo
       </div>
 
       <p className="pos-note is-muted" style={{ marginTop: 14 }}>
-        QR นี้เป็นแบบจำลอง ยังไม่เชื่อมธนาคาร (1.25) · ยอดเงินฝังอยู่ใน QR อัตโนมัติ
+        QR นี้เป็นแบบจำลอง ยังไม่เชื่อมธนาคาร · ยอดเงินฝังอยู่ใน QR อัตโนมัติ
       </p>
 
       <div className="pos-side-actions pos-pay-submit">

@@ -79,7 +79,7 @@ export default function MenuAvailabilityPage() {
       <header className="pos-header">
         <div>
           <h1 className="pos-title">เปิด/ปิดการขายเมนู</h1>
-          <p className="pos-subtitle">มีผลทันทีกับหน้ารับออร์เดอร์ของสาขานี้ (1.15)</p>
+          <p className="pos-subtitle">มีผลทันทีกับหน้ารับออร์เดอร์ของสาขานี้</p>
         </div>
       </header>
 
@@ -166,7 +166,7 @@ export default function MenuAvailabilityPage() {
       )}
 
       <p className="pos-note is-muted" style={{ marginTop: 14 }}>
-        เมนูที่สต็อกเหลือ 0 ระบบปิดขายให้อัตโนมัติ (1.21) · การเติมสต็อกทำได้โดยผู้จัดการและเจ้าของ (1.22)
+        เมนูที่สต็อกเหลือ 0 ระบบปิดขายให้อัตโนมัติ · การเติมสต็อกทำได้โดยผู้จัดการและเจ้าของ
       </p>
 
       <Toast toast={toast} />

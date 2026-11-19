@@ -12,7 +12,7 @@ export default function TicketSentDialog({ ticket, order, branchName, staffName,
   const tables = ticket.tables?.length ? tablesText(ticket) : tablesText(order)
 
   return (
-    <Dialog title="ส่งเข้าครัวแล้ว" subtitle="พิมพ์ใบออร์เดอร์ที่เครื่องพิมพ์ครัวทุกครั้งที่สั่ง (1.10)" onClose={onClose}>
+    <Dialog title="ส่งเข้าครัวแล้ว" subtitle="พิมพ์ใบออร์เดอร์ที่เครื่องพิมพ์ครัวทุกครั้งที่สั่ง" onClose={onClose}>
       <div className="pos-ticket">
         <h3>ใบออร์เดอร์ครัว</h3>
         {branchName && <div className="pos-dialog-sub">{branchName}</div>}

@@ -129,7 +129,7 @@ export default function MenusPage() {
         <div>
           <h1 className="pos-title">จัดการเมนู</h1>
           <p className="pos-subtitle">
-            เพิ่ม แก้ไข ลบ เมนู พร้อมหมวดหมู่ ราคา และรูป (1.14){!isOwner && branchName(branchId) ? ` · สาขา${branchName(branchId)}` : ''}
+            เพิ่ม แก้ไข ลบ เมนู พร้อมหมวดหมู่ ราคา และรูป{!isOwner && branchName(branchId) ? ` · สาขา${branchName(branchId)}` : ''}
           </p>
         </div>
         {isOwner && (

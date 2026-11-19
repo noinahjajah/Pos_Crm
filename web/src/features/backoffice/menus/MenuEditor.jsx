@@ -150,7 +150,7 @@ export default function MenuEditor({
       </label>
 
       <div className="pos-field">
-        <span>กลุ่มตัวเลือกเสริมที่ผูกไว้ (1.18)</span>
+        <span>กลุ่มตัวเลือกเสริมที่ผูกไว้</span>
         {!linksReady ? (
           <span className="pos-muted pos-small">กำลังโหลด…</span>
         ) : (

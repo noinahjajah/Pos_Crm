@@ -143,7 +143,7 @@ export default function ProfitPage() {
       <header className="pos-header">
         <div>
           <h1 className="pos-title">รายรับ รายจ่าย และกำไร</h1>
-          <p className="pos-subtitle">แยกตามสาขาและเดือน · กำไร = รายรับ − รายจ่ายรวม (1.37)</p>
+          <p className="pos-subtitle">แยกตามสาขาและเดือน · กำไร = รายรับ − รายจ่ายรวม</p>
         </div>
       </header>
 

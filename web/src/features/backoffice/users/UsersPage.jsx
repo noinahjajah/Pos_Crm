@@ -103,7 +103,7 @@ export default function UsersPage() {
       <header className="pos-header">
         <div>
           <h1 className="pos-title">{isOwner ? 'จัดการผู้ใช้' : 'พนักงานในสาขา'}</h1>
-          <p className="pos-subtitle">{isOwner ? 'เพิ่ม ลบ แก้ไขผู้ใช้ และกำหนด role (1.5)' : 'รายชื่อพนักงานสาขาของคุณ ดูได้อย่างเดียว (1.5)'}</p>
+          <p className="pos-subtitle">{isOwner ? 'เพิ่ม ลบ แก้ไขผู้ใช้ และกำหนด role' : 'รายชื่อพนักงานสาขาของคุณ ดูได้อย่างเดียว'}</p>
         </div>
         {isOwner && (
           <select className="pos-input pos-select-sm" value={branchId} onChange={(e) => setBranchId(e.target.value)} aria-label="กรองตามสาขา">
@@ -335,7 +335,7 @@ function UserEditor({ user, isSelf, branches, defaultBranchId, onCancel, onSaved
         )}
       </label>
 
-      <p className="pos-note is-muted">ผู้จัดการเห็นเฉพาะสาขาตัวเอง (1.3) · เจ้าของเห็นทุกสาขา (1.4)</p>
+      <p className="pos-note is-muted">ผู้จัดการเห็นเฉพาะสาขาตัวเอง · เจ้าของเห็นทุกสาขา</p>
       {error && <p className="pos-error">{error}</p>}
 
       <div className="pos-side-actions">

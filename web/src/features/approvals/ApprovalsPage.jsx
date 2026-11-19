@@ -131,7 +131,7 @@ export default function ApprovalsPage() {
       <header className="pos-header">
         <div>
           <h1 className="pos-title">คำขออนุมัติส่วนลด / คืนเงิน</h1>
-          <p className="pos-subtitle">แจ้งเตือนแบบ realtime ที่เครื่องผู้จัดการและเจ้าของ (1.29)</p>
+          <p className="pos-subtitle">แจ้งเตือนแบบ realtime ที่เครื่องผู้จัดการและเจ้าของ</p>
         </div>
         <span className={`pos-pill ${live ? 'is-available' : 'is-muted'}`} title={live ? 'เชื่อมต่อแจ้งเตือนอยู่' : 'กำลังเชื่อมต่อใหม่ ระหว่างนี้อัปเดตทุก 10 วินาที'}>
           {live ? '● เรียลไทม์' : '○ กำลังเชื่อมต่อ…'}
@@ -163,7 +163,7 @@ export default function ApprovalsPage() {
           {loading ? (
             <div className="pos-skeleton" style={{ height: 180 }} />
           ) : list.length === 0 ? (
-            <div className="pos-cart-empty">{tab === 'pending' ? 'ไม่มีคำขอรออนุมัติ 🎉' : 'ยังไม่มีคำขอ'}</div>
+            <div className="pos-cart-empty">{tab === 'pending' ? 'ไม่มีคำขอรออนุมัติ' : 'ยังไม่มีคำขอ'}</div>
           ) : (
             <div className="pos-bill-list">
               {list.map((a) => {
@@ -353,7 +353,7 @@ function Detail({ a, order, note, setNote, busy, onDecide }) {
             placeholder="พิมพ์หมายเหตุ…"
             disabled={busy}
           />
-          {!isDiscount && <p className="pos-note is-muted" style={{ marginTop: 10 }}>อนุมัติแล้วพนักงานคืนเงินต่อที่หน้า “คิดเงิน” · คืนเงินไม่คืนสต็อก (1.28)</p>}
+          {!isDiscount && <p className="pos-note is-muted" style={{ marginTop: 10 }}>อนุมัติแล้วพนักงานคืนเงินต่อที่หน้า “คิดเงิน” · คืนเงินไม่คืนสต็อก</p>}
           <div className="pos-dialog-actions">
             <button type="button" className="pos-btn pos-btn-danger-solid" onClick={() => onDecide('rejected')} disabled={busy}>
               ปฏิเสธ

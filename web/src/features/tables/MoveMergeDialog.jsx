@@ -150,9 +150,9 @@ export default function MoveMergeDialog({ tables, initialMode = 'move', onClose,
       )}
 
       {mode === 'merge' ? (
-        <p className="pos-note is-warn">ระบบไม่รองรับการแยกบิล เมื่อรวมแล้วจะคิดเงินเป็นบิลเดียว (1.12–1.13)</p>
+        <p className="pos-note is-warn">ระบบไม่รองรับการแยกบิล เมื่อรวมแล้วจะคิดเงินเป็นบิลเดียว</p>
       ) : (
-        <p className="pos-note is-muted">ย้ายโต๊ะเลือกได้เฉพาะโต๊ะว่าง และออร์เดอร์ทั้งหมดย้ายตามไป (1.11)</p>
+        <p className="pos-note is-muted">ย้ายโต๊ะเลือกได้เฉพาะโต๊ะว่าง และออร์เดอร์ทั้งหมดย้ายตามไป</p>
       )}
 
       {error && <p className="pos-error">{error}</p>}

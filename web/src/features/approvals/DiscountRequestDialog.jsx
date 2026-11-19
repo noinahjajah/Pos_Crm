@@ -118,7 +118,7 @@ export default function DiscountRequestDialog({ order, onClose, onSent }) {
           ))}
         </div>
 
-        <p className="pos-note is-muted">คำขอจะแจ้งเตือนที่เครื่องผู้จัดการและเจ้าของ · ส่วนลดจะใช้กับบิลได้หลังอนุมัติแล้วเท่านั้น (1.29–1.30)</p>
+        <p className="pos-note is-muted">คำขอจะแจ้งเตือนที่เครื่องผู้จัดการและเจ้าของ · ส่วนลดจะใช้กับบิลได้หลังอนุมัติแล้วเท่านั้น</p>
 
         {error && <p className="pos-error">{error}</p>}
 

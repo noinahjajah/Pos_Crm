@@ -145,7 +145,7 @@ export default function ExpensesPage() {
         <div>
           <h1 className="pos-title">รายจ่ายสาขา</h1>
           <p className="pos-subtitle">
-            {branchId ? `สาขา${branchName(branchId)}` : 'ทุกสาขา'} · เดือน {month.label} (1.32–1.33)
+            {branchId ? `สาขา${branchName(branchId)}` : 'ทุกสาขา'} · เดือน {month.label}
           </p>
         </div>
         {isOwner && (

@@ -73,7 +73,7 @@ export default function BranchesPage() {
       <header className="pos-header">
         <div>
           <h1 className="pos-title">จัดการสาขา</h1>
-          <p className="pos-subtitle">เพิ่ม แก้ไข และลบสาขา (1.6)</p>
+          <p className="pos-subtitle">เพิ่ม แก้ไข และลบสาขา</p>
         </div>
         <button type="button" className="pos-btn pos-btn-primary" onClick={() => setEditing('new')}>
           + เพิ่มสาขา

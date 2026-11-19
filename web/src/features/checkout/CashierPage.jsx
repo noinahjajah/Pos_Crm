@@ -315,9 +315,9 @@ export default function CashierPage() {
         <section className="pos-refund-side" aria-label="สรุปยอด">
           {order && <BillSummary order={order} />}
           {order && !waiting && (
-            <p className="pos-note is-warn">โต๊ะนี้ยังสั่งอาหารอยู่ กด “เรียกเก็บเงิน” เพื่อปิดการสั่งแล้วรับเงิน (1.8)</p>
+            <p className="pos-note is-warn">โต๊ะนี้ยังสั่งอาหารอยู่ กด “เรียกเก็บเงิน” เพื่อปิดการสั่งแล้วรับเงิน</p>
           )}
-          {hasPendingDiscount && <p className="pos-note is-muted">มีคำขอส่วนลดรอผู้จัดการอนุมัติ · ส่วนลดจะเข้าบิลเมื่ออนุมัติแล้ว (1.30)</p>}
+          {hasPendingDiscount && <p className="pos-note is-muted">มีคำขอส่วนลดรอผู้จัดการอนุมัติ · ส่วนลดจะเข้าบิลเมื่ออนุมัติแล้ว</p>}
 
           <div className="pos-side-actions">
             {canDiscount && (

@@ -129,7 +129,7 @@ export default function RefundRequestPage() {
       <header className="pos-header">
         <div>
           <h1 className="pos-title">ขอคืนเงิน</h1>
-          <p className="pos-subtitle">อ้างอิงบิลเดิม · คืนทั้งบิลหรือบางรายการ (1.28)</p>
+          <p className="pos-subtitle">อ้างอิงบิลเดิม · คืนทั้งบิลหรือบางรายการ</p>
         </div>
       </header>
 
@@ -317,7 +317,7 @@ export default function RefundRequestPage() {
           {sent && (
             <p className="pos-note is-brand">
               <strong>ส่งคำขอคืนเงิน {thb(sent.amount)} แล้ว</strong>
-              รอผู้จัดการอนุมัติ จากนั้นคืนเงินที่หน้า "คิดเงิน" (1.29–1.30)
+              รอผู้จัดการอนุมัติ จากนั้นคืนเงินที่หน้า "คิดเงิน"
             </p>
           )}
 

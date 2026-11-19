@@ -108,7 +108,7 @@ export default function ReportsPage() {
         <div>
           <h1 className="pos-title">{allBranches ? 'แดชบอร์ดรวมทุกสาขา' : 'แดชบอร์ดสาขา'}</h1>
           <p className="pos-subtitle">
-            {branchId ? `สาขา${branchName(branchId)}` : 'ทุกสาขา'} · วันนี้ {longDate(todayTh())} {allBranches ? '(1.36)' : '(1.34–1.35)'}
+            {branchId ? `สาขา${branchName(branchId)}` : 'ทุกสาขา'} · วันนี้ {longDate(todayTh())}
           </p>
         </div>
         {isOwner && (

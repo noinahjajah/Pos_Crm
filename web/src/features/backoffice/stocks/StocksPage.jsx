@@ -69,7 +69,7 @@ export default function StocksPage() {
       <header className="pos-header">
         <div>
           <h1 className="pos-title">สต็อกพร้อมขาย</h1>
-          <p className="pos-subtitle">เก็บเป็นจำนวนที่พร้อมขาย ต่อเมนู ต่อสาขา (1.19)</p>
+          <p className="pos-subtitle">เก็บเป็นจำนวนที่พร้อมขาย ต่อเมนู ต่อสาขา</p>
         </div>
         {isOwner && (
           <select
@@ -165,7 +165,7 @@ export default function StocksPage() {
             </div>
           )}
           <p className="pos-note is-warn" style={{ marginTop: 14 }}>
-            ตัดสต็อกอัตโนมัติตอนส่งออร์เดอร์เข้าครัว (1.20) · เหลือ 0 ระบบปิดขายให้ (1.21) · เติมจาก 0 ระบบไม่เปิดขายให้ ต้องกดเปิดเอง (1.22) · คืนเงินไม่คืนสต็อก (1.28)
+            ตัดสต็อกอัตโนมัติตอนส่งออร์เดอร์เข้าครัว · เหลือ 0 ระบบปิดขายให้ · เติมจาก 0 ระบบไม่เปิดขายให้ ต้องกดเปิดเอง · คืนเงินไม่คืนสต็อก
           </p>
         </section>
 
@@ -248,7 +248,7 @@ function StockEditor({ row, onChanged, notify }) {
 
   return (
     <div className="pos-editor">
-      <h2 className="pos-panel-title">เติม / แก้ไขสต็อก (1.22)</h2>
+      <h2 className="pos-panel-title">เติม / แก้ไขสต็อก</h2>
       <strong>{row.menu_name}</strong>
       <span className="pos-dialog-sub" style={{ marginBottom: 12 }}>
         คงเหลือ {row.quantity} · {row.is_available ? 'เปิดขายอยู่' : 'ปิดขายอยู่'}

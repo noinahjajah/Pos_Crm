@@ -19,7 +19,7 @@ export default function Receipt({ order, payment, changeAmount, branchName, staf
         </div>
         <h2 className="pos-success-title">ชำระเงินสำเร็จ</h2>
         <p className="pos-muted" style={{ margin: '0 0 16px' }}>
-          โต๊ะ {tableLabel(order)} ปิดแล้ว และกลับเป็นสถานะ “ว่าง” ในผังโต๊ะ (1.26)
+          โต๊ะ {tableLabel(order)} ปิดแล้ว และกลับเป็นสถานะ “ว่าง” ในผังโต๊ะ
         </p>
         {payment.order_status_synced === false && (
           <p className="pos-note is-warn">บันทึกเงินแล้ว ระบบกำลังอัปเดตสถานะโต๊ะ (ลองใหม่อัตโนมัติ)</p>
