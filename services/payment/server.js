@@ -3,7 +3,6 @@
 import express from 'express'
 import { db } from './db.js'
 import { checkInternalKey, errorHandler, notFound } from './helpers.js'
-import { mockOrderList, posMode } from './pos.js'
 import { paymentRouter, refundRouter, syncPending } from './payments.js'
 import expenses from './expenses.js'
 import reports from './reports.js'
@@ -19,7 +18,7 @@ app.set('query parser', 'simple')
 // เช็กว่า service ยังทำงานและต่อฐานข้อมูลได้ (ไม่ต้องใช้ key)
 app.get('/health', async (req, res) => {
   const { error } = await db.from('payments').select('id', { head: true, count: 'exact' })
-  res.status(error ? 503 : 200).json({ status: error ? 'db_error' : 'ok', service: 'payment', pos: posMode, db: error?.message ?? 'connected' })
+  res.status(error ? 503 : 200).json({ status: error ? 'db_error' : 'ok', service: 'payment', db: error?.message ?? 'connected' })
 })
 
 app.use(checkInternalKey(INTERNAL_KEY))
@@ -37,10 +36,6 @@ app.listen(PORT, async () => {
   console.log(`[payment] เปิดที่ http://localhost:${PORT}`)
   const { error } = await db.from('payments').select('id', { head: true, count: 'exact' })
   console.log(error ? `[payment] ❌ ต่อ Supabase ไม่ได้: ${error.message}` : '[payment] ✅ ต่อ Supabase แล้ว')
-  if (posMode !== 'http') {
-    console.log('[payment] ⚠️ ใช้บิลจำลอง (POS_MODE=mock) ระหว่างรอ pos ของ Dev 3 · บิลที่ทดสอบได้:')
-    for (const o of mockOrderList) console.log(`           ${o.order_no}  order_id=${o.id}  ยอด ${o.total}`)
-  }
 })
 
 // แจ้ง pos ซ้ำทุก 30 วินาที สำหรับการรับ/คืนเงินที่บันทึกแล้วแต่อัปเดตบิลไม่สำเร็จ

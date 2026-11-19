@@ -17,7 +17,11 @@ export function dbError(error) {
   if (error?.code === '23505') return conflict('DUPLICATE', 'ข้อมูลซ้ำกับที่มีอยู่แล้ว')
   if (error?.code === '23514') return badRequest('ข้อมูลไม่ถูกต้อง')
   if (error?.code === 'PGRST106' || text.includes('Invalid schema')) {
-    return new AppError(503, 'MEMBERSHIP_NOT_READY', 'ยังไม่ได้สร้าง schema membership ใน Supabase (รัน supabase/migrations/*_membership.sql)')
+    return new AppError(
+      503,
+      'MEMBERSHIP_NOT_READY',
+      'ระบบสมาชิกยังไม่เปิดใช้: เจ้าของโปรเจค Supabase ต้องเพิ่ม membership ใน Integrations → Data API → Settings → Exposed schemas',
+    )
   }
   console.error('[membership] database error:', error)
   return new AppError(500, 'DB_ERROR', 'ติดต่อฐานข้อมูลไม่สำเร็จ', [{ message: error?.message }])

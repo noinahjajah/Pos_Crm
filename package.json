@@ -4,7 +4,7 @@
   "description": "POS CRM · npm workspaces: ติดตั้งครั้งเดียวที่นี่ (npm install) แล้วรันทีละ service หรือทั้งหมดด้วย npm run dev",
   "scripts": {
     "setup": "npm install",
-    "dev": "concurrently -n identity,gateway,catalog,payment,membership,web -c blue,green,yellow,cyan,red,magenta \"npm run dev -w services/identity\" \"npm run dev -w services/gateway\" \"npm run dev -w services/catalog\" \"npm run dev -w services/payment\" \"npm run dev -w services/membership\" \"npm run dev -w web\"",
+    "dev": "concurrently -n identity,gateway,catalog,pos,payment,membership,web -c blue,green,yellow,white,cyan,red,magenta \"npm run dev -w services/identity\" \"npm run dev -w services/gateway\" \"npm run dev -w services/catalog\" \"npm run dev -w services/pos\" \"npm run dev -w services/payment\" \"npm run dev -w services/membership\" \"npm run dev -w web\"",
     "test": "npm test -w services/identity -w services/gateway",
     "e2e": "npm run e2e -w services/gateway"
   },
@@ -16,6 +16,7 @@
     "services/identity",
     "services/gateway",
     "services/catalog",
+    "services/pos",
     "services/payment",
     "services/membership",
     "web"

@@ -39,6 +39,14 @@ services:
         - { action: sync, path: ./services/catalog, target: /app/services/catalog, ignore: [node_modules/, .env] }
         - { action: rebuild, path: ./services/catalog/package.json }
 
+  pos:
+    command: ["node", "--watch", "server.js"]
+    develop:
+      watch:
+        - *watch-shared
+        - { action: sync, path: ./services/pos, target: /app/services/pos, ignore: [node_modules/, .env] }
+        - { action: rebuild, path: ./services/pos/package.json }
+
   payment:
     command: ["node", "--watch", "server.js"]
     develop:

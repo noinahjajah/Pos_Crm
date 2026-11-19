@@ -1,0 +1,16 @@
+{
+  "name": "@pos/pos",
+  "private": true,
+  "description": "pos :3003 (Dev 3) — โต๊ะ บิล สั่งอาหาร จอครัว ส่วนลด/คืนเงิน",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

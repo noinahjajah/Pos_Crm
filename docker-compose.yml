@@ -92,10 +92,9 @@ services:
       timeout: 3s
       retries: 3
 
-  # Dev 3 (เปิดด้วย --profile all เมื่อมี services/pos แล้ว)
+  # Dev 3: โต๊ะ บิล จอครัว คำขออนุมัติ
   pos:
     <<: *node-service
-    profiles: [all]
     build:
       context: .
       dockerfile: services/Dockerfile
