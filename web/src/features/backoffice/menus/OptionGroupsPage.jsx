@@ -325,7 +325,7 @@ function GroupEditor({ group, branchId, isOwner, menus, links, onCancel, onSaved
             <thead>
               <tr>
                 <th>ตัวเลือก</th>
-                <th style={{ width: 130 }}>ราคาบวกเพิ่ม</th>
+                <th style={{ width: 160 }}>ราคาบวกเพิ่ม</th>
                 <th style={{ width: 48 }} aria-label="ลบ" />
               </tr>
             </thead>
