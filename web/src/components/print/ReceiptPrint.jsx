@@ -7,10 +7,10 @@ import PrintSlip from './PrintSlip'
 //
 // order:   { order_no, tables, guest_count?, items: [{ menu_name, quantity, unit_price, options?, line_total? }],
 //            subtotal, discount_amount, vat_amount, total }
-// payment: { method: 'cash'|'promptpay', amount, cash_received?, change_amount?, paid_at, cashier_name? }
+// payment: { method: 'cash'|'promptpay'|'credit_card', amount, card_last4?, card_approval_code?, cash_received?, change_amount?, paid_at, cashier_name? }
 // branch:  { name, address?, phone? } (ไม่บังคับ)
 
-const METHOD = { cash: 'เงินสด', promptpay: 'PromptPay' }
+const METHOD = { cash: 'เงินสด', promptpay: 'PromptPay', credit_card: 'บัตรเครดิต/เดบิต' }
 
 function lineTotal(item) {
   if (item.line_total != null) return Number(item.line_total)
@@ -135,6 +135,20 @@ export default function ReceiptPrint({ order, payment, branch, ...slipProps }) {
                   <span>เงินทอน</span>
                   <span className="ps-amount">{baht(change)}</span>
                 </div>
+              </>
+            )}
+            {payment.method === 'credit_card' && payment.card_last4 && (
+              <>
+                <div className="ps-row">
+                  <span>บัตร</span>
+                  <span>**** {payment.card_last4}</span>
+                </div>
+                {payment.card_approval_code && (
+                  <div className="ps-row">
+                    <span>รหัสอนุมัติ</span>
+                    <span>{payment.card_approval_code}</span>
+                  </div>
+                )}
               </>
             )}
           </div>

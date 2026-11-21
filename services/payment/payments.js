@@ -20,13 +20,33 @@ import {
   z,
 } from './helpers.js'
 
-const method = z.enum(['cash', 'promptpay'], { message: 'method ต้องเป็น cash หรือ promptpay' })
+const method = z.enum(['cash', 'promptpay', 'credit_card'], { message: 'method ต้องเป็น cash, promptpay หรือ credit_card' })
 
+// บัตรเครดิต/เดบิต: รูดที่เครื่อง EDC แล้วกรอกเลขท้ายบัตร 4 หลัก + รหัสอนุมัติจากสลิป EDC (ไม่รับเลขบัตรเต็ม)
 const paySchema = z
-  .object({ order_id: uuid, method, cash_received: z.number().min(0).max(10_000_000).optional() })
+  .object({
+    order_id: uuid,
+    method,
+    cash_received: z.number().min(0).max(10_000_000).optional(),
+    card_last4: z.string().regex(/^\d{4}$/, 'เลขท้ายบัตรต้องเป็นตัวเลข 4 หลัก').optional(),
+    card_approval_code: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z0-9]{4,12}$/, 'รหัสอนุมัติต้องเป็นตัวอักษร/ตัวเลข 4–12 ตัว')
+      .optional(),
+  })
   .refine((v) => v.method !== 'cash' || v.cash_received !== undefined, {
     path: ['cash_received'],
     message: 'เงินสดต้องระบุจำนวนเงินที่รับ',
+  })
+  .refine((v) => v.method !== 'credit_card' || v.card_last4 !== undefined, {
+    path: ['card_last4'],
+    message: 'บัตรต้องระบุเลขท้ายบัตร 4 หลัก',
+  })
+  .refine((v) => v.method !== 'credit_card' || v.card_approval_code !== undefined, {
+    path: ['card_approval_code'],
+    message: 'บัตรต้องระบุรหัสอนุมัติจากสลิป EDC',
   })
 const refundSchema = z.object({ approval_id: uuid, method })
 
@@ -88,7 +108,8 @@ paymentRouter.post('/', allow('staff', 'manager'), async (req, res) => {
   if (!key || !/^[A-Za-z0-9_.:-]{8,100}$/.test(key)) {
     throw new AppError(400, 'IDEMPOTENCY_KEY_REQUIRED', 'ต้องส่ง header Idempotency-Key (8–100 ตัว เช่น uuid)')
   }
-  const { order_id, method: payMethod, cash_received } = parse(paySchema, req.body)
+  const { order_id, method: payMethod, cash_received, card_last4, card_approval_code } = parse(paySchema, req.body)
+  const isCard = payMethod === 'credit_card'
 
   // เคยรับเงินด้วย key นี้แล้ว → ส่งผลเดิมกลับ
   const replay = async () => {
@@ -137,6 +158,8 @@ paymentRouter.post('/', allow('staff', 'manager'), async (req, res) => {
           amount: total,
           cash_received: cash,
           change_amount: change,
+          card_last4: isCard ? card_last4 : null,
+          card_approval_code: isCard ? card_approval_code : null,
           received_by: req.user.id,
           idempotency_key: key,
         })

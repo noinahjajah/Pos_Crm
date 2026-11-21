@@ -154,6 +154,29 @@ describe('POST /payments — เงินสด (1.23, 1.25)', () => {
     assert.equal(r.body.data.payment.method, 'promptpay')
     assert.equal(r.body.data.payment.amount, 380.39)
   })
+  test('บัตร (EDC): บันทึกเลขท้าย 4 หลัก + รหัสอนุมัติ (ตัวพิมพ์ใหญ่) ไม่มีเงินทอน · แจ้ง pos ด้วย method card', async () => {
+    const r = await post('/payments', { order_id: ORDER, method: 'credit_card', card_last4: '4242', card_approval_code: ' ab12c3 ' })
+    assert.equal(r.status, 201)
+    assert.equal(r.body.data.change_amount, null)
+    assert.equal(r.body.data.payment.method, 'credit_card')
+    assert.equal(r.body.data.payment.card_last4, '4242')
+    assert.equal(r.body.data.payment.card_approval_code, 'AB12C3')
+    assert.equal(r.body.data.payment.cash_received, null)
+    assert.equal(posCalls[0][2].method, 'credit_card')
+  })
+  test('บัตรแต่ไม่ส่งเลขท้าย/รหัสอนุมัติ หรือรูปแบบผิด → 400 ไม่บันทึก', async () => {
+    for (const extra of [{}, { card_last4: '4242' }, { card_approval_code: 'AB12' }, { card_last4: '424', card_approval_code: 'AB12' }, { card_last4: '4242424242424242', card_approval_code: 'AB12' }, { card_last4: '4242', card_approval_code: 'AB-12' }]) {
+      const r = await post('/payments', { order_id: ORDER, method: 'credit_card', ...extra })
+      assert.equal(r.status, 400, JSON.stringify(extra))
+    }
+    assert.equal(tables.payments.length, 0)
+  })
+  test('ส่งข้อมูลบัตรมากับเงินสด → ไม่บันทึกข้อมูลบัตร', async () => {
+    const r = await pay({ cash_received: 500, card_last4: '4242', card_approval_code: 'AB12' })
+    assert.equal(r.status, 201)
+    assert.equal(r.body.data.payment.card_last4, null)
+    assert.equal(r.body.data.payment.card_approval_code, null)
+  })
   test('ยอดที่บันทึกมาจากบิลใน pos ไม่ใช่จากที่ client ส่งมา', async () => {
     const r = await pay({ amount: 1, total: 1, cash_received: 1000 })
     assert.equal(r.body.data.payment.amount, 380.39)

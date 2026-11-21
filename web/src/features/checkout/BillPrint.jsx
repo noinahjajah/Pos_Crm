@@ -2,7 +2,7 @@ import PrintSlip from '../../components/print/PrintSlip'
 import { baht, thaiDateTime } from '../../lib/format'
 import { billNumbers, lineTotal, tableLabel } from './checkoutUtils'
 
-// ใบแจ้งยอด (ก่อนชำระเงิน) ให้ลูกค้าตรวจรายการ — ใช้กรอบพิมพ์ 80 มม. ของ Dev 1
+// ใบแจ้งยอด (ก่อนชำระเงิน) ให้ลูกค้าตรวจรายการ — ใช้กรอบพิมพ์ 58 มม. ของ Dev 1
 // ไม่ใช่ใบเสร็จ ใบเสร็จพิมพ์หลังรับเงินด้วย ReceiptPrint
 
 export default function BillPrint({ order, branchName, ...slipProps }) {

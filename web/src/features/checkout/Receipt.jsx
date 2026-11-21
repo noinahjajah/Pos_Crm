@@ -4,7 +4,7 @@ import { tableLabel, thb2 } from './checkoutUtils'
 
 // หลังรับเงินสำเร็จ (1.23, 1.26): สรุปการชำระ + ตัวอย่างใบเสร็จ (ใบพิมพ์ของ Dev 1) · พิมพ์ใบเสร็จได้
 
-const METHOD = { cash: 'เงินสด', promptpay: 'PromptPay' }
+const METHOD = { cash: 'เงินสด', promptpay: 'PromptPay', credit_card: 'บัตรเครดิต/เดบิต' }
 
 export default function Receipt({ order, payment, changeAmount, branchName, staffName, onDone }) {
   const [printing, setPrinting] = useState(false)
@@ -43,6 +43,18 @@ export default function Receipt({ order, payment, changeAmount, branchName, staf
               <div>
                 <span>เงินทอน</span>
                 <strong>{thb2(changeAmount)}</strong>
+              </div>
+            </>
+          )}
+          {payment.method === 'credit_card' && payment.card_last4 && (
+            <>
+              <div>
+                <span>บัตร</span>
+                <strong>**** {payment.card_last4}</strong>
+              </div>
+              <div>
+                <span>รหัสอนุมัติ</span>
+                <strong>{payment.card_approval_code}</strong>
               </div>
             </>
           )}

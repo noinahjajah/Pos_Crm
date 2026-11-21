@@ -4,13 +4,14 @@ import { thaiTime } from '../../lib/format'
 import { useAuth } from '../auth/AuthContext'
 import { useBranchName } from '../../lib/posUtils'
 import BillSummary from './BillSummary'
+import CardForm from './CardForm'
 import CashForm from './CashForm'
 import PromptPayQR from './PromptPayQR'
 import Receipt from './Receipt'
 import { billItems, billNumbers, errorText, lineTotal, tableLabel, thb, thb2 } from './checkoutUtils'
 import '../../styles/pos.css'
 
-// หน้าชำระเงิน — 1.23, 1.25 (ฝั่งเงินของ Dev 2)
+// หน้าชำระเงิน — 1.23, 1.25 (ฝั่งเงินของ Dev 2) · เงินสด / PromptPay / บัตรเครดิต-เดบิต (EDC)
 // ใช้: <CheckoutPage orderId="..." onDone={() => ...} onBack={() => ...} />
 // ถ้าไม่ส่ง orderId จะอ่านจาก URL ?order_id=...
 // ยอดเงินมาจากบิลผ่าน payment service · บิลต้องอยู่สถานะ "รอชำระ" (waiting_payment) ก่อน
@@ -147,6 +148,7 @@ export default function CheckoutPage({ orderId: orderIdProp, onDone, onBack }) {
                 {[
                   ['cash', 'เงินสด'],
                   ['promptpay', 'QR พร้อมเพย์ (จำลอง)'],
+                  ['credit_card', 'บัตรเครดิต/เดบิต'],
                 ].map(([m, label]) => (
                   <button
                     key={m}
@@ -171,6 +173,8 @@ export default function CheckoutPage({ orderId: orderIdProp, onDone, onBack }) {
 
               {method === 'cash' ? (
                 <CashForm total={total} paying={paying} onPay={(cash) => pay({ cash_received: cash })} />
+              ) : method === 'credit_card' ? (
+                <CardForm total={total} paying={paying} onPay={(card) => pay(card)} />
               ) : (
                 <PromptPayQR total={total} reference={order.order_no || order.id} branchName={branchName} paying={paying} onConfirm={() => pay({})} />
               )}

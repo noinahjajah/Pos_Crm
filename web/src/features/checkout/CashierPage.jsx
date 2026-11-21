@@ -124,7 +124,7 @@ export default function CashierPage() {
 
   async function refund(row) {
     const method = methods[row.id] || 'cash'
-    const label = method === 'cash' ? 'เงินสด' : 'PromptPay'
+    const label = { cash: 'เงินสด', promptpay: 'PromptPay', credit_card: 'บัตรเครดิต/เดบิต (EDC)' }[method] || method
     if (!window.confirm(`คืนเงิน ${thb2(row.amount)} ให้บิล ${row.order_no || row.order_id.slice(0, 8)} ด้วย${label} ?`)) return
     setBusyRefund(row.id)
     try {
@@ -229,6 +229,7 @@ export default function CashierPage() {
                       >
                         <option value="cash">เงินสด</option>
                         <option value="promptpay">PromptPay</option>
+                        <option value="credit_card">บัตร (EDC)</option>
                       </select>
                       <button type="button" className="pos-btn pos-btn-danger" onClick={() => refund(r)} disabled={busyRefund === r.id}>
                         {busyRefund === r.id ? 'กำลังคืน…' : 'คืนเงิน'}

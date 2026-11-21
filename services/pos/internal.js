@@ -15,7 +15,7 @@ import { APPROVAL_FULL, ORDER_FULL, loadApproval, toApprovals, toOrder, toPaymen
 
 const markPaidSchema = z.object({
   payment_id: uuid,
-  method: z.enum(['cash', 'promptpay']),
+  method: z.enum(['cash', 'promptpay', 'credit_card']),
   amount: money,
   paid_by: uuid,
   paid_at: z.string().datetime({ offset: true }).optional(),

@@ -9,7 +9,7 @@ import '../backoffice.css'
 
 const PAGE_SIZE = 20
 const TYPE_LABEL = { charge: 'รับเงิน', refund: 'คืนเงิน' }
-const METHOD_LABEL = { cash: 'เงินสด', promptpay: 'PromptPay' }
+const METHOD_LABEL = { cash: 'เงินสด', promptpay: 'PromptPay', credit_card: 'บัตรเครดิต/เดบิต' }
 
 const dateTime = (value) => new Date(value).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
 
@@ -108,6 +108,7 @@ export default function PaymentsPage() {
             <option value="">ทั้งหมด</option>
             <option value="cash">เงินสด</option>
             <option value="promptpay">PromptPay</option>
+            <option value="credit_card">บัตรเครดิต/เดบิต</option>
           </select>
         </label>
       </div>

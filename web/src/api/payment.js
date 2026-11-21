@@ -10,7 +10,7 @@ export const listWaitingOrders = () => data(api.get('/payment/orders'))
 export const getOrder = (id) => data(api.get(`/payment/orders/${id}`))
 
 // ---------- รับเงิน (1.23, 1.25) ----------
-// body: { order_id, method: 'cash' | 'promptpay', cash_received? }
+// body: { order_id, method: 'cash' | 'promptpay' | 'credit_card', cash_received?, card_last4?, card_approval_code? }
 // idempotencyKey: สุ่มครั้งเดียวต่อการจ่าย 1 ครั้ง กดซ้ำด้วย key เดิม = ไม่รับเงินซ้ำ
 export const createPayment = (body, idempotencyKey) =>
   data(api.post('/payment/payments', { body, headers: { 'Idempotency-Key': idempotencyKey } }))

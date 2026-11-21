@@ -1,11 +1,13 @@
-/* ใบพิมพ์ 80 มม. (ใบออร์เดอร์เข้าครัว / ใบเสร็จ) — class ขึ้นต้นด้วย ps- / print-slip
+/* ใบพิมพ์ 58 มม. แนวยาว (ใบแจ้งยอด / ใบออร์เดอร์เข้าครัว / ใบเสร็จ) — class ขึ้นต้นด้วย ps- / print-slip
    พิมพ์ขาวดำเสมอ ไม่ใช้ตัวแปรสีของธีม */
 
 .print-slip {
   display: none;
-  width: 80mm;
+  box-sizing: border-box;
+  width: 58mm;
   max-width: 100%;
-  padding: 4mm 3mm;
+  padding: 3mm 2mm;
+  overflow-wrap: anywhere;
   background: #fff;
   color: #000;
   font-family: 'Sarabun', 'Noto Sans Thai', system-ui, sans-serif;
@@ -137,8 +139,10 @@
 /* ---------- ตอนพิมพ์: ถ้ามีใบพิมพ์อยู่ในหน้า แสดงเฉพาะใบพิมพ์ ----------
    ซ่อนส่วนอื่นของหน้าด้วย display:none (ไม่ใช่ visibility) ไม่งั้นหน้าแอปที่ซ่อนยังกินที่
    จนพิมพ์ออกมาเป็นหน้าเปล่าหลายหน้า · ใบพิมพ์ถูก portal มาไว้ที่ body โดยตรง จึงไม่ถูกซ่อนไปด้วย */
+/* ความยาวหน้ากระดาษจริงถูกตั้งตอนสั่งพิมพ์ใน PrintSlip.jsx (วัดความสูงใบพิมพ์)
+   ค่านี้เป็นค่าสำรอง: กว้าง 58 มม. แนวตั้ง */
 @page {
-  size: 80mm auto;
+  size: 58mm 297mm;
   margin: 0;
 }
 @media print {
@@ -155,7 +159,7 @@
   .print-slip {
     display: block !important;
     position: static;
-    width: 80mm;
+    width: 58mm;
     margin: 0;
     border: none !important;
     box-shadow: none !important;
