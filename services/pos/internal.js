@@ -7,10 +7,11 @@
 //   GET  /internal/approvals/:id              ข้อมูลคำขอคืนเงิน
 //   GET  /internal/approvals?type=&status=&branch_id=  คำขอคืนเงินที่อนุมัติแล้วและยังไม่ได้คืน
 //   GET  /internal/reports/top-menus?from=&to=&branch_id=&limit=  เมนูขายดี (1.35)
+//   GET  /internal/reports/approved-refunds?from=&to=&branch_id=  คืนเงินที่อนุมัติในช่วงวันนั้นแต่ยังไม่ได้คืน (หักรายได้ตั้งแต่อนุมัติ)
 import { Router } from 'express'
 import { db, rpc, run } from './db.js'
 import { publishApproval } from './events.js'
-import { dateString, idParam, money, notFound, parse, send, todayTh, uuid, z } from './helpers.js'
+import { dateString, dayRangeIso, idParam, money, notFound, parse, send, todayTh, uuid, z } from './helpers.js'
 import { APPROVAL_FULL, ORDER_FULL, loadApproval, toApprovals, toOrder, toPaymentSummary } from './views.js'
 
 const markPaidSchema = z.object({
@@ -40,6 +41,11 @@ const topSchema = z.object({
   to: dateString.optional(),
   branch_id: uuid.optional(),
   limit: z.coerce.number().int().min(1).max(50).default(5),
+})
+const approvedRefundsSchema = z.object({
+  from: dateString.default(() => todayTh()),
+  to: dateString.optional(),
+  branch_id: uuid.optional(),
 })
 
 /** บิลเต็มในรูปที่ payment ใช้ · ไม่มี → 404 (payment แปลงเป็น null) */
@@ -103,6 +109,24 @@ router.get('/approvals', async (req, res) => {
   // คืนเงินที่อนุมัติแล้ว: เอาเฉพาะที่ยังไม่ได้คืน
   if (q.type === 'refund' && q.status === 'approved') query = query.is('refunded_at', null)
   send(res, await toApprovals(await run(query)))
+})
+
+// วันที่ = วันที่อนุมัติ (เวลาไทย) · ไม่รวมที่คืนเงินแล้ว (refunded_at) เพราะ payment นับจากรายการคืนเงินเอง
+router.get('/reports/approved-refunds', async (req, res) => {
+  const q = parse(approvedRefundsSchema, req.query)
+  const [start, end] = dayRangeIso(q.from, q.to ?? q.from)
+  let query = db
+    .from('approvals')
+    .select('id, order_id, branch_id, amount, decided_at')
+    .eq('type', 'refund')
+    .eq('status', 'approved')
+    .is('refunded_at', null)
+    .gte('decided_at', start)
+    .lt('decided_at', end)
+    .order('decided_at')
+  if (q.branch_id) query = query.eq('branch_id', q.branch_id)
+  const rows = await run(query)
+  send(res, rows.map((a) => ({ id: a.id, order_id: a.order_id, branch_id: a.branch_id, amount: Number(a.amount), decided_at: a.decided_at })))
 })
 
 router.get('/reports/top-menus', async (req, res) => {

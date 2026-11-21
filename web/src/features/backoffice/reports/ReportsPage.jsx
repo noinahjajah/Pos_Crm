@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { getBranchReport, getDailyReport, listPayments } from '../../../api/payment'
+import { useApprovalFeed } from '../../../api/approvalFeed'
 import { listApprovals } from '../../../api/pos'
+import { useReportFeed } from '../../../api/reportFeed'
 import { hhmm, thb } from '../../../lib/posUtils'
 import GroupedBarChart from '../GroupedBarChart'
 import { OTHER_COLOR, SERIES_COLORS } from '../seriesColors'
@@ -12,8 +15,13 @@ import '../../../styles/pos.css'
 // - owner เลือก "ทุกสาขา": แดชบอร์ดรวม + เปรียบเทียบสาขา (OwnerOverview) · กำไรรายเดือนอยู่หน้า /admin/profit
 // ยอดขาย = เงินที่รับ (รวม VAT) จาก payment · เมนูขายดีจาก pos ผ่านรายงานรายวัน
 // กราฟ: วันนี้ = รวมรายการรับเงินรายชั่วโมง · 7/30 วัน = ยอดขายรายวันจากรายงานรายวัน
+// realtime: SSE 2 เส้น — payment (รับเงิน/คืนเงิน/รายจ่าย) + pos (คำขออนุมัติ) → โหลดตัวเลขใหม่ทันที
+//           หลุด → poll ทุก 15 วินาทีแทน (ต่ออยู่ poll ทุก 60 วินาทีกันพลาด)
 
 const REFRESH_MS = 60_000
+const REFRESH_OFFLINE_MS = 15_000 // SSE ยอดขายหลุด → poll ถี่ขึ้น
+const APPROVAL_POLL_OFFLINE = 10_000 // SSE หลุด → poll คำขอถี่ขึ้น
+const LIVE_DEBOUNCE_MS = 400 // เหตุการณ์มาติดกัน (เช่น อนุมัติ + คืนเงิน) → โหลดครั้งเดียว
 const PAGE = 100
 const MAX_PAGES = 20 // วันนี้ไม่เกิน 2,000 บิล
 const DAY_CONCURRENCY = 5
@@ -43,7 +51,7 @@ async function mapLimit(list, limit, fn) {
   return out
 }
 
-/** ยอดรับเงินวันนี้แยกรายชั่วโมง (เวลาตามเครื่อง = เวลาไทย) */
+/** ยอดรับเงินวันนี้แยกรายชั่วโมง (เวลาตามเครื่อง = เวลาไทย) · คืนเงินหักตั้งแต่ชั่วโมงที่อนุมัติ */
 async function hourlySales(date, branchId) {
   const payments = []
   for (let page = 1; page <= MAX_PAGES; page += 1) {
@@ -51,11 +59,17 @@ async function hourlySales(date, branchId) {
     payments.push(...(res.data || []))
     if (payments.length >= (res.meta?.total ?? 0) || !(res.data || []).length) break
   }
+  // คืนเงินที่อนุมัติแล้วแต่ยังไม่ได้จ่ายคืน (ไม่มีในรายการรับเงิน)
+  const pending = (await getDailyReport({ date, branch_id: branchId }).catch(() => null))?.pending_refunds || []
   const byHour = new Map()
   for (const p of payments) {
     const h = new Date(p.paid_at).getHours()
     const signed = p.type === 'refund' ? -Number(p.amount) : Number(p.amount) // คืนเงินหักออกจากยอด
     byHour.set(h, (byHour.get(h) || 0) + signed)
+  }
+  for (const a of pending) {
+    const h = new Date(a.decided_at).getHours()
+    byHour.set(h, (byHour.get(h) || 0) - Number(a.amount))
   }
   // ช่วงเปิดร้านปกติ 10–21 น. + ชั่วโมงที่มียอดนอกช่วง
   const hours = [...new Set([...Array.from({ length: 12 }, (_, i) => i + 10), ...byHour.keys()])].sort((a, b) => a - b)
@@ -67,6 +81,19 @@ async function dailySales(days, branchId) {
   const dates = Array.from({ length: days }, (_, i) => shiftDate(today, days - 1 - i))
   const rows = await mapLimit(dates, DAY_CONCURRENCY, (date) => getDailyReport({ date, branch_id: branchId }).catch(() => null))
   return dates.map((d, i) => ({ key: d, label: dayLabel(d), value: Number(rows[i]?.net_sales ?? 0) }))
+}
+
+/** กำไร/ขาดทุนรายวัน = ยอดขายสุทธิ (หักคืนเงินแล้ว) − รายจ่ายของวัน · branchId ว่าง = ทุกสาขา (owner) */
+async function dailyProfit(days, branchId) {
+  const today = todayTh()
+  const dates = Array.from({ length: days }, (_, i) => shiftDate(today, days - 1 - i))
+  const rows = await mapLimit(dates, DAY_CONCURRENCY, (date) => getDailyReport({ date, ...(branchId ? { branch_id: branchId } : {}) }).catch(() => null))
+  return dates.map((d, i) => {
+    const r = rows[i]
+    const sales = Number(r?.net_sales ?? 0)
+    const expenses = Number(r?.expenses?.total ?? 0)
+    return { key: d, label: dayLabel(d), sales, expenses, value: Math.round((sales - expenses) * 100) / 100, missing: !r }
+  })
 }
 
 function Delta({ now, before, unit = '%', suffix = 'จากเมื่อวาน' }) {
@@ -133,11 +160,113 @@ export default function ReportsPage() {
 
 const pctDelta = (now, before) => (before ? Math.round(((now - before) / before) * 100) : null)
 
+/**
+ * คำขอรออนุมัติ (ส่วนลด/คืนเงิน) ของสาขาที่เห็น — อัปเดตทันทีเมื่อมีคำขอใหม่หรือถูกตัดสิน (SSE จาก pos)
+ * SSE หลุด → poll ทุก 10 วินาที · null = ดึงจากระบบบิลไม่ได้
+ * คืน [approvals, version] · version เพิ่มทุกครั้งที่มีเหตุการณ์ (เช่น อนุมัติคืนเงิน → ยอดขายต้องโหลดใหม่ทันที)
+ */
+function usePendingApprovals() {
+  const [approvals, setApprovals] = useState(null)
+  const [reloadKey, setReloadKey] = useState(0)
+  const reload = useCallback(() => setReloadKey((k) => k + 1), [])
+  const live = useApprovalFeed(reload)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = () =>
+      listApprovals({ status: 'pending' })
+        .then((rows) => !cancelled && setApprovals(rows || []))
+        .catch(() => !cancelled && setApprovals((prev) => prev ?? null))
+    load()
+    const id = setInterval(load, live ? REFRESH_MS : APPROVAL_POLL_OFFLINE)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [reloadKey, live])
+
+  return [approvals, reloadKey]
+}
+
+/**
+ * ตัวนับที่เพิ่มทุกครั้งที่ตัวเลขแดชบอร์ดควรโหลดใหม่ทันที (realtime)
+ * - payment: รับเงิน/คืนเงิน/รายจ่าย ของสาขาที่ดูอยู่ (branchId ว่าง = ทุกสาขา)
+ * - pos: คำขออนุมัติเปลี่ยน (approvalVersion จาก usePendingApprovals) เช่น อนุมัติคืนเงิน → ยอดลด
+ * คืน { version, live, at } · live = SSE ยอดขายต่ออยู่ · at = เวลาที่มีเหตุการณ์ล่าสุด
+ */
+function useLiveVersion(branchId, approvalVersion) {
+  const [salesVersion, setSalesVersion] = useState(0)
+  const [at, setAt] = useState(null)
+  const timer = useRef(null)
+  const live = useReportFeed((e) => {
+    if (branchId && e.branch_id !== branchId) return
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => {
+      setSalesVersion((v) => v + 1)
+      setAt(new Date())
+    }, LIVE_DEBOUNCE_MS)
+  })
+  useEffect(() => () => clearTimeout(timer.current), [])
+  return { version: salesVersion + approvalVersion, live, at }
+}
+
+/** จุดบอกสถานะ realtime */
+function LiveBadge({ live }) {
+  return (
+    <span className={`pos-live ${live ? 'is-on' : ''}`} title={live ? 'อัปเดตทันทีเมื่อมีรับเงิน คืนเงิน หรือรายจ่ายใหม่' : 'กำลังต่อ realtime ใหม่ · ระหว่างนี้รีเฟรชทุก 15 วินาที'}>
+      <i aria-hidden="true" />
+      {live ? 'สด' : 'ออฟไลน์'}
+    </span>
+  )
+}
+
+/** รายการคำขอคืนเงินที่รออนุมัติ · กดแล้วไปหน้าคำขออนุมัติของคำขอนั้น */
+function PendingRefunds({ approvals }) {
+  if (!approvals) return null
+  const refunds = approvals.filter((a) => a.type === 'refund').sort((a, b) => (b.requested_at || '').localeCompare(a.requested_at || ''))
+  return (
+    <section className="pos-panel" style={{ marginBottom: 16 }} aria-label="คำขอคืนเงินรออนุมัติ">
+      <div className="pos-panel-head">
+        <h2 className="pos-panel-title" style={{ margin: 0 }}>
+          คำขอคืนเงินรออนุมัติ ({refunds.length})
+        </h2>
+        <Link className="pos-btn" to="/approvals">
+          ไปหน้าคำขออนุมัติ
+        </Link>
+      </div>
+      {refunds.length === 0 ? (
+        <p className="pos-dialog-sub">ไม่มีคำขอคืนเงินค้าง</p>
+      ) : (
+        refunds.map((a) => {
+          const tables = (a.tables || []).map((t) => t.table_no).filter(Boolean).join(', ')
+          const items = (a.refund_items || []).map((r) => `${r.menu_name || 'รายการ'} ×${r.quantity}`).join(', ')
+          return (
+            <Link key={a.id} to={`/approvals?id=${a.id}`} className="pos-approval" style={{ color: 'inherit', textDecoration: 'none' }}>
+              <span>
+                <strong>
+                  คืนเงิน {thb(a.amount)} · บิล {a.order_no || '-'}
+                  {tables && ` · โต๊ะ ${tables}`}
+                </strong>
+                {items ? `คืนบางรายการ: ${items}` : 'คืนทั้งบิล'}
+                {a.reason && ` · ${a.reason}`}
+                {` · ขอโดย ${a.requested_by_name || '—'} · ${hhmm(a.requested_at)}`}
+              </span>
+              <span className="pos-pill is-occupied">รออนุมัติ</span>
+            </Link>
+          )
+        })
+      )}
+    </section>
+  )
+}
+
 /** owner · ทุกสาขา: ตัวเลขรวม กราฟ 7 วันแยกสาขา และตารางเปรียบเทียบสาขาวันนี้ (1.36) */
 function OwnerOverview({ branches }) {
   const today = todayTh()
-  const [state, setState] = useState({ today: null, yesterday: null, approvals: null, tops: new Map(), error: '', at: null })
+  const [state, setState] = useState({ today: null, yesterday: null, tops: new Map(), error: '', at: null })
   const [week, setWeek] = useState(null) // [{ date, rows }]
+  const [pending, approvalVersion] = usePendingApprovals()
+  const { version, live } = useLiveVersion(null, approvalVersion)
 
   useEffect(() => {
     let cancelled = false
@@ -145,23 +274,23 @@ function OwnerOverview({ branches }) {
       Promise.all([
         getBranchReport({ from: today, to: today }),
         getBranchReport({ from: shiftDate(today, 1), to: shiftDate(today, 1) }).catch(() => null),
-        listApprovals({ status: 'pending' }).catch(() => null),
         // เมนูขายดีอันดับ 1 ของแต่ละสาขา
         mapLimit(branches, DAY_CONCURRENCY, (b) => getDailyReport({ date: today, branch_id: b.id }).catch(() => null)),
       ])
-        .then(([t, y, a, daily]) => {
+        .then(([t, y, daily]) => {
           if (cancelled) return
           const tops = new Map(branches.map((b, i) => [b.id, daily[i]?.top_menus?.[0]?.menu_name || null]))
-          setState({ today: t, yesterday: y, approvals: a, tops, error: '', at: new Date() })
+          setState({ today: t, yesterday: y, tops, error: '', at: new Date() })
         })
         .catch((err) => !cancelled && setState((s) => ({ ...s, error: errorText(err) })))
     load()
-    const id = setInterval(load, REFRESH_MS)
+    const id = setInterval(load, live ? REFRESH_MS : REFRESH_OFFLINE_MS)
     return () => {
       cancelled = true
       clearInterval(id)
     }
-  }, [today, branches])
+    // version: มีรับเงิน/คืนเงิน/รายจ่าย/อนุมัติ → โหลดใหม่ทันที
+  }, [today, branches, version, live])
 
   useEffect(() => {
     let cancelled = false
@@ -172,7 +301,7 @@ function OwnerOverview({ branches }) {
     return () => {
       cancelled = true
     }
-  }, [today])
+  }, [today, version])
 
   const t = state.today
   const y = state.yesterday
@@ -200,7 +329,6 @@ function OwnerOverview({ branches }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [week, branches])
 
-  const pending = state.approvals
   const totalNow = t?.total
   const totalBefore = y?.total
 
@@ -227,9 +355,13 @@ function OwnerOverview({ branches }) {
         <div className="pos-kpi">
           <span className="pos-kpi-label">คำขอรออนุมัติ</span>
           <strong className="pos-kpi-value">{pending ? pending.length : '–'}</strong>
-          <span className="pos-kpi-sub is-ok">{pending ? 'รวมทุกสาขา' : 'ดึงจากระบบบิลไม่ได้'}</span>
+          <span className="pos-kpi-sub is-ok">
+            {pending ? `ส่วนลด ${pending.filter((a) => a.type === 'discount').length} · คืนเงิน ${pending.filter((a) => a.type === 'refund').length} · รวมทุกสาขา` : 'ดึงจากระบบบิลไม่ได้'}
+          </span>
         </div>
       </div>
+
+      <PendingRefunds approvals={pending} />
 
       <section className="pos-panel" style={{ marginBottom: 16 }} aria-label="ยอดขาย 7 วันแยกสาขา">
         <h2 className="pos-panel-title">ยอดขาย 7 วัน แยกสาขา</h2>
@@ -246,8 +378,12 @@ function OwnerOverview({ branches }) {
         )}
       </section>
 
+      <ProfitLossPanel title="กำไร / ขาดทุน รวมทุกสาขา" refreshKey={version} />
+
       <section className="pos-panel" aria-label="เปรียบเทียบสาขาวันนี้">
-        <h2 className="pos-panel-title">เปรียบเทียบสาขา · วันนี้{state.at ? ` · อัปเดต ${hhmm(state.at)}` : ''}</h2>
+        <h2 className="pos-panel-title">
+          เปรียบเทียบสาขา · วันนี้{state.at ? ` · อัปเดต ${hhmm(state.at)}` : ''} <LiveBadge live={live} />
+        </h2>
         {!t ? (
           <div className="pos-skeleton" style={{ height: 160 }} />
         ) : (
@@ -304,35 +440,42 @@ function OwnerOverview({ branches }) {
 
 function Overview({ branchId }) {
   const today = todayTh()
-  const [state, setState] = useState({ today: null, yesterday: null, approvals: null, error: '', at: null })
+  const [state, setState] = useState({ today: null, yesterday: null, error: '', at: null })
+  const [allPending, approvalVersion] = usePendingApprovals()
+  // owner ที่เลือกสาขา → เฉพาะคำขอของสาขานั้น (manager ได้เฉพาะสาขาตัวเองจาก backend อยู่แล้ว)
+  const pending = allPending && branchId ? allPending.filter((a) => !a.branch_id || a.branch_id === branchId) : allPending
   const [range, setRange] = useState('today') // today | 7 | 30
   const [chart, setChart] = useState({ key: null, points: [], error: '' })
   const [tick, setTick] = useState(0)
+  const { version, live } = useLiveVersion(branchId, approvalVersion)
 
-  // ตัวเลขหลัก + รีเฟรชทุกนาที
+  // ตัวเลขหลัก · realtime + รีเฟรชสำรองทุกนาที (ออฟไลน์ทุก 15 วินาที)
   useEffect(() => {
     let cancelled = false
     const load = () =>
       Promise.all([
         getDailyReport({ date: today, branch_id: branchId }),
         getDailyReport({ date: shiftDate(today, 1), branch_id: branchId }).catch(() => null),
-        listApprovals({ status: 'pending' }).catch(() => null),
       ])
-        .then(([t, y, a]) => !cancelled && setState({ today: t, yesterday: y, approvals: a, error: '', at: new Date() }))
+        .then(([t, y]) => !cancelled && setState({ today: t, yesterday: y, error: '', at: new Date() }))
         .catch((err) => !cancelled && setState((s) => ({ ...s, error: errorText(err) })))
     load()
-    const id = setInterval(() => {
-      load()
-      setTick((n) => n + 1)
-    }, REFRESH_MS)
+    const id = setInterval(
+      () => {
+        load()
+        setTick((n) => n + 1)
+      },
+      live ? REFRESH_MS : REFRESH_OFFLINE_MS,
+    )
     return () => {
       cancelled = true
       clearInterval(id)
     }
-  }, [today, branchId])
+    // version: มีรับเงิน/คืนเงิน/รายจ่าย/อนุมัติ → โหลดใหม่ทันที
+  }, [today, branchId, version, live])
 
-  // กราฟ (วันนี้รีเฟรชตามรอบ · 7/30 วันโหลดครั้งเดียว)
-  const chartKey = `${range}|${branchId}|${range === 'today' ? tick : 0}`
+  // กราฟ (วันนี้รีเฟรชตามรอบ · 7/30 วันโหลดครั้งเดียว) · มีเหตุการณ์ realtime → โหลดใหม่
+  const chartKey = `${range}|${branchId}|${range === 'today' ? tick : 0}|${version}`
   useEffect(() => {
     let cancelled = false
     const load = range === 'today' ? hourlySales(today, branchId) : dailySales(Number(range), branchId)
@@ -346,7 +489,6 @@ function Overview({ branchId }) {
 
   const t = state.today
   const y = state.yesterday
-  const pending = state.approvals
   const discountCount = pending?.filter((a) => a.type === 'discount').length ?? 0
   const refundCount = pending?.filter((a) => a.type === 'refund').length ?? 0
   const chartLoading = chart.key?.split('|').slice(0, 2).join('|') !== `${range}|${branchId}`
@@ -383,6 +525,10 @@ function Overview({ branchId }) {
         </div>
       </div>
 
+      <PendingRefunds approvals={pending} />
+
+      <ProfitLossPanel branchId={branchId} refreshKey={version} />
+
       <div className="pos-dash-layout">
         <section className="pos-panel" aria-label="ยอดขาย">
           <div className="pos-panel-head">
@@ -390,7 +536,9 @@ function Overview({ branchId }) {
               <h2 className="pos-panel-title" style={{ margin: 0 }}>
                 {range === 'today' ? 'ยอดขายรายชั่วโมง' : `ยอดขายรายวัน · ${range} วัน`}
               </h2>
-              <p className="pos-dialog-sub">เงินที่รับ รวม VAT{state.at ? ` · อัปเดต ${hhmm(state.at)}` : ''}</p>
+              <p className="pos-dialog-sub">
+                เงินที่รับ รวม VAT{state.at ? ` · อัปเดต ${hhmm(state.at)}` : ''} <LiveBadge live={live} />
+              </p>
             </div>
             <div className="pos-tabs" role="tablist" style={{ margin: 0 }}>
               {[
@@ -451,6 +599,138 @@ function Overview({ branchId }) {
   )
 }
 
+/** กำไร/ขาดทุนรายวัน 7/30 วัน (manager: สาขาตัวเอง · owner: สาขาที่เลือกหรือรวมทุกสาขา) · refreshKey เปลี่ยน → โหลดใหม่ */
+function ProfitLossPanel({ branchId, title, refreshKey = 0 }) {
+  const [days, setDays] = useState(7)
+  const [state, setState] = useState({ key: null, points: [] })
+  const key = `${days}|${branchId || 'all'}`
+
+  useEffect(() => {
+    let cancelled = false
+    const load = () => dailyProfit(days, branchId).then((points) => !cancelled && setState({ key, points }))
+    load()
+    const id = setInterval(load, REFRESH_MS)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [key, days, branchId, refreshKey])
+
+  const loading = state.key !== key
+  const points = state.points
+  const lossDays = points.filter((p) => p.value < 0)
+  const net = points.reduce((s, p) => s + p.value, 0)
+  const lossTotal = lossDays.reduce((s, p) => s + p.value, 0)
+
+  return (
+    <section className="pos-panel" style={{ marginBottom: 16 }} aria-label="กำไร ขาดทุน รายวัน">
+      <div className="pos-panel-head">
+        <div>
+          <h2 className="pos-panel-title" style={{ margin: 0 }}>
+            {title || 'กำไร / ขาดทุน รายวัน'} · {days} วัน
+          </h2>
+          <p className="pos-dialog-sub">ยอดขายสุทธิ (หักคืนเงินที่อนุมัติแล้ว) − รายจ่ายของวัน · แท่งแดง = ขาดทุน</p>
+        </div>
+        <div className="pos-tabs" role="tablist" style={{ margin: 0 }}>
+          {[7, 30].map((n) => (
+            <button key={n} type="button" role="tab" aria-selected={days === n} className={days === n ? 'is-active' : ''} onClick={() => setDays(n)}>
+              {n} วัน
+            </button>
+          ))}
+        </div>
+      </div>
+      {loading ? (
+        <div className="pos-skeleton" style={{ height: 240 }} />
+      ) : (
+        <>
+          <div className="pos-pl-summary">
+            <span>
+              {net >= 0 ? 'กำไรสุทธิ' : 'ขาดทุนสุทธิ'} <strong className={net >= 0 ? 'is-profit' : 'is-loss'}>{thb(Math.abs(net))}</strong>
+            </span>
+            <span>
+              ขาดทุน <strong className={lossDays.length ? 'is-loss' : ''}>{lossDays.length} วัน</strong>
+              {lossDays.length > 0 && ` · รวม ${thb(Math.abs(lossTotal))}`}
+            </span>
+          </div>
+          <ProfitLossChart points={points} dense={days === 30} />
+        </>
+      )}
+    </section>
+  )
+}
+
+/** กราฟแท่งบวก/ลบรอบเส้นศูนย์ · กำไร = แท่งขึ้น · ขาดทุน = แท่งแดงลง */
+function ProfitLossChart({ points, dense }) {
+  const [active, setActive] = useState(null)
+  const maxUp = Math.max(0, ...points.map((p) => p.value))
+  const maxDown = Math.max(0, ...points.map((p) => -p.value))
+  const span = maxUp + maxDown || 1
+  const upPct = (maxUp / span) * 100 || (maxDown ? 0 : 100)
+
+  if (!points.some((p) => p.value !== 0 || p.sales || p.expenses)) return <div className="pos-cart-empty">ยังไม่มียอดขายหรือรายจ่ายในช่วงนี้</div>
+
+  const labelEvery = dense ? 5 : 1
+  const hovered = active != null ? points[active] : null
+
+  return (
+    <div className="pos-chart">
+      <div className="pos-chart-tip" aria-hidden="true">
+        {hovered ? (
+          <>
+            <strong className={hovered.value < 0 ? 'is-loss' : 'is-profit'}>
+              {hovered.value < 0 ? 'ขาดทุน ' : 'กำไร '}
+              {thb(Math.abs(hovered.value))}
+            </strong>
+            <span>
+              {hovered.label} · ขาย {thb(hovered.sales)} · รายจ่าย {thb(hovered.expenses)}
+            </span>
+          </>
+        ) : (
+          <span className="pos-muted">ชี้ที่แท่งเพื่อดูยอดขาย รายจ่าย และกำไร/ขาดทุนของวัน</span>
+        )}
+      </div>
+      <div className="pos-chart-plot pos-pl-plot" role="img" aria-label="กราฟกำไรขาดทุนรายวัน" onMouseLeave={() => setActive(null)}>
+        {points.map((p, i) => (
+          <button
+            key={p.key}
+            type="button"
+            className={`pos-chart-col pos-pl-col ${active === i ? 'is-active' : ''}`}
+            onMouseEnter={() => setActive(i)}
+            onFocus={() => setActive(i)}
+            onBlur={() => setActive(null)}
+            aria-label={`${p.label} ${p.value < 0 ? 'ขาดทุน' : 'กำไร'} ${thb(Math.abs(p.value))}`}
+          >
+            <span className="pos-pl-up" style={{ height: `${upPct}%` }}>
+              {p.value > 0 && <span className="pos-chart-bar is-profit" style={{ height: `${(p.value / (maxUp || 1)) * 100}%` }} />}
+            </span>
+            <span className="pos-pl-down" style={{ height: `${100 - upPct}%` }}>
+              {p.value < 0 && <span className="pos-chart-bar is-loss" style={{ height: `${(-p.value / (maxDown || 1)) * 100}%` }} />}
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="pos-chart-axis" aria-hidden="true">
+        {points.map((p, i) => (
+          <span key={p.key}>{i % labelEvery === 0 || i === points.length - 1 ? p.label : ''}</span>
+        ))}
+      </div>
+      <table className="pos-sr-only">
+        <caption>กำไร/ขาดทุนรายวัน</caption>
+        <tbody>
+          {points.map((p) => (
+            <tr key={p.key}>
+              <th scope="row">{p.label}</th>
+              <td>
+                {p.value < 0 ? 'ขาดทุน' : 'กำไร'} {thb(Math.abs(p.value))} (ขาย {thb(p.sales)} รายจ่าย {thb(p.expenses)})
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 /** กราฟแท่งชุดเดียว · ชี้/โฟกัสแท่งเพื่อดูยอด · มีตารางสำหรับโปรแกรมอ่านหน้าจอ */
 function BarChart({ points, dense }) {
   const [active, setActive] = useState(null)
@@ -484,7 +764,7 @@ function BarChart({ points, dense }) {
             onBlur={() => setActive(null)}
             aria-label={`${p.label} ${thb(p.value)}`}
           >
-            <span className="pos-chart-bar" style={{ height: `${(p.value / max) * 100}%` }} />
+            <span className="pos-chart-bar" style={{ height: `${(Math.max(0, p.value) / max) * 100}%` }} />
           </button>
         ))}
       </div>

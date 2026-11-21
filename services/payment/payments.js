@@ -1,6 +1,7 @@
 // /payments และ /refunds — รับเงินและคืนเงิน (1.23, 1.25, 1.28, 1.30)
 import { Router } from 'express'
 import { db, run } from './db.js'
+import { publishReport } from './events.js'
 import { pos } from './pos.js'
 import {
   AppError,
@@ -176,6 +177,7 @@ paymentRouter.post('/', allow('staff', 'manager'), async (req, res) => {
   }
 
   await tellPos(payment)
+  publishReport('charge', payment.branch_id) // แดชบอร์ดยอดขายขึ้นทันที
   send(
     res,
     {
@@ -241,7 +243,8 @@ refundRouter.get('/approved', allow('staff', 'manager'), async (req, res) => {
 })
 
 // POST /refunds { approval_id, method } — คืนเงินได้เฉพาะคำขอที่อนุมัติแล้ว · ไม่คืนสต็อก
-refundRouter.post('/', allow('staff', 'manager'), async (req, res) => {
+// owner/manager เรียกตอนกดอนุมัติ (บันทึกคืนเงินทันที) · staff/manager คืนต่อที่หน้าคิดเงินได้ด้วย
+refundRouter.post('/', allow('staff', 'manager', 'owner'), async (req, res) => {
   const { approval_id, method: refundMethod } = parse(refundSchema, req.body)
   const key = req.get('idempotency-key') || null
 
@@ -285,5 +288,6 @@ refundRouter.post('/', allow('staff', 'manager'), async (req, res) => {
       .single(),
   )
   await tellPos(payment)
+  publishReport('refund', payment.branch_id)
   send(res, { payment: present(payment), replayed: false }, { status: 201 })
 })

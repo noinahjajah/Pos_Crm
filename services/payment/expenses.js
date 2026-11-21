@@ -2,6 +2,7 @@
 // manager บันทึกของสาขาตัวเอง · owner ดูทุกสาขาได้ และต้องเลือกสาขาตอนบันทึก
 import { Router } from 'express'
 import { db, run } from './db.js'
+import { publishReport } from './events.js'
 import { branchForWrite, mustBeActiveBranch } from './identity.js'
 import {
   allow,
@@ -95,6 +96,7 @@ router.post('/', allow('manager', 'owner'), async (req, res) => {
       .select()
       .single(),
   )
+  publishReport('expense', row.branch_id) // แดชบอร์ด (กำไร/ขาดทุน) อัปเดตทันที
   send(res, toExpense(row), { status: 201 })
 })
 
@@ -107,14 +109,18 @@ router.patch('/:id', allow('manager', 'owner'), async (req, res) => {
     throw forbidden('ย้ายรายจ่ายไปสาขาอื่นได้เฉพาะ owner', 'FORBIDDEN_BRANCH')
   }
   if (body.branch_id && body.branch_id !== row.branch_id) await mustBeActiveBranch(body.branch_id)
-  send(res, toExpense(await run(db.from('expenses').update(body).eq('id', id).select().single())))
+  const updated = await run(db.from('expenses').update(body).eq('id', id).select().single())
+  publishReport('expense', row.branch_id)
+  if (updated.branch_id !== row.branch_id) publishReport('expense', updated.branch_id) // ย้ายสาขา → ทั้งสองสาขาเปลี่ยน
+  send(res, toExpense(updated))
 })
 
 // DELETE /expenses/:id
 router.delete('/:id', allow('manager', 'owner'), async (req, res) => {
   const { id } = parse(idParam, req.params)
-  await loadExpense(req, id)
+  const row = await loadExpense(req, id)
   await run(db.from('expenses').delete().eq('id', id))
+  publishReport('expense', row.branch_id)
   send(res, { id, deleted: true })
 })
 

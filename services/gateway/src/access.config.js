@@ -198,7 +198,7 @@ export const SERVICES = [
     defaultTarget: 'http://payment:3004',
     routes: [
       ['POST', '/payments', SM],
-      ['POST', '/refunds', SM],
+      ['POST', '/refunds', SMO], // owner บันทึกคืนเงินตอนกดอนุมัติ
       ['GET', '/refunds/approved', SM],
       ['GET', '/orders', SM],
       ['GET', '/orders/:id', SM],
@@ -207,6 +207,7 @@ export const SERVICES = [
       ['POST', '/expenses', MO],
       ['PATCH', '/expenses/:id', MO],
       ['DELETE', '/expenses/:id', MO],
+      ['GET', '/reports/stream', MO, { stream: true }], // SSE แดชบอร์ด realtime (รับเงิน/คืนเงิน/รายจ่าย)
       ['GET', '/reports/daily', MO],
       ['GET', '/reports/branches', [O]],
       ['GET', '/reports/profit', [O]],

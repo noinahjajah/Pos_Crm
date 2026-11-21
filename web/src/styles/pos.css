@@ -2003,6 +2003,82 @@ tr.is-selected .pos-row-link,
 .pos-chart-col.is-active {
   background: var(--app-soft);
 }
+/* สถานะ realtime ของแดชบอร์ด */
+.pos-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  color: var(--app-muted);
+  font-size: 12px;
+  font-weight: 400;
+  vertical-align: middle;
+}
+.pos-live i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--app-muted);
+}
+.pos-live.is-on {
+  color: var(--app-ok);
+}
+.pos-live.is-on i {
+  background: var(--app-ok);
+  animation: pos-live-pulse 2s ease-in-out infinite;
+}
+@keyframes pos-live-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pos-live.is-on i {
+    animation: none;
+  }
+}
+/* กราฟกำไร/ขาดทุน: กำไรขึ้นจากเส้นศูนย์ ขาดทุน (แดง) ลง */
+.pos-pl-plot {
+  align-items: stretch;
+}
+.pos-pl-col {
+  flex-direction: column;
+  align-items: stretch;
+}
+.pos-pl-up,
+.pos-pl-down {
+  display: flex;
+  justify-content: center;
+}
+.pos-pl-up {
+  align-items: flex-end;
+  border-bottom: 1px solid var(--app-muted);
+}
+.pos-pl-down {
+  align-items: flex-start;
+}
+.pos-chart-bar.is-profit {
+  background: var(--app-ok);
+}
+.pos-chart-bar.is-loss {
+  border-radius: 0 0 4px 4px;
+  background: var(--app-danger);
+}
+.pos-pl-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.pos-pl-summary .is-profit,
+.pos-chart-tip .is-profit {
+  color: var(--app-ok);
+}
+.pos-pl-summary .is-loss,
+.pos-chart-tip .is-loss {
+  color: var(--app-danger);
+}
 .pos-chart-axis {
   display: flex;
   gap: 2px;

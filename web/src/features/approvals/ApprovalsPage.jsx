@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useApprovalFeed } from '../../api/approvalFeed'
+import { createRefund } from '../../api/payment'
 import { APPROVAL_STATUS, APPROVAL_TYPE, POS_MOCK, approveApproval, getOrder, listApprovals, rejectApproval } from '../../api/pos'
 import { VAT_RATE } from '../../lib/constants'
 import { errorText } from '../../lib/format'
@@ -10,10 +11,17 @@ import '../../styles/pos.css'
 
 // คำขออนุมัติส่วนลด/คืนเงิน (manager/owner) — 1.29–1.31
 // - realtime ผ่าน approvalFeed (SSE) · ถ้าหลุด poll ทุก 10 วินาที (ต่ออยู่ poll ทุก 30 วินาทีกันพลาด)
-// - อนุมัติแล้วส่วนลดเข้าบิลทันที / คืนเงินไปทำต่อที่หน้าคิดเงิน · ประวัติลบไม่ได้ (1.31)
+// - อนุมัติแล้วส่วนลดเข้าบิลทันที · อนุมัติคืนเงิน = บันทึกการคืนเงินลง payment ทันที (ตามวิธีคืนเงินที่เลือก)
+//   ถ้าบันทึกคืนเงินไม่สำเร็จ กด "บันทึกคืนเงิน" ซ้ำได้ (หรือคืนต่อที่หน้าคิดเงิน) · ประวัติลบไม่ได้ (1.31)
 
 const POLL_LIVE = 30_000
 const POLL_OFFLINE = 10_000
+
+const REFUND_METHODS = [
+  ['cash', 'เงินสด'],
+  ['promptpay', 'PromptPay'],
+  ['credit_card', 'บัตรเครดิต/เดบิต'],
+]
 
 const money = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const thb2 = (n) => `฿${money.format(Number(n) || 0)}`
@@ -48,6 +56,7 @@ export default function ApprovalsPage() {
   const [reloadKey, setReloadKey] = useState(0)
   const [order, setOrder] = useState(null) // บิลของคำขอที่เลือก (ใช้เมื่อ backend ไม่ส่งยอดบิลมากับคำขอ)
   const [note, setNote] = useState('')
+  const [refundMethod, setRefundMethod] = useState('cash')
   const [busy, setBusy] = useState(false)
   const [toast, notify] = useToast()
 
@@ -104,15 +113,43 @@ export default function ApprovalsPage() {
   }, [orderKey])
   const billOrder = order && order.id === selected?.order_id ? order : null
 
+  /** บันทึกการคืนเงินลง payment (Supabase) · key ผูกกับคำขอ กดซ้ำ/เน็ตหลุดก็ไม่คืนซ้ำ · คืน true ถ้าสำเร็จ */
+  async function recordRefund(a) {
+    try {
+      await createRefund({ approval_id: a.id, method: refundMethod }, `refund-${a.id}`)
+      return true
+    } catch (err) {
+      notify(`บันทึกคืนเงินไม่สำเร็จ — ${errorText(err)} (กด "บันทึกคืนเงิน" ซ้ำได้)`, 'error')
+      return false
+    }
+  }
+
+  async function recordSelectedRefund() {
+    if (!selected || busy) return
+    setBusy(true)
+    if (await recordRefund(selected)) notify(`บันทึกคืนเงิน ${thb(selected.amount)} แล้ว`)
+    reload()
+    setBusy(false)
+  }
+
   async function decide(kind) {
     if (!selected || busy) return
     if (kind === 'rejected' && !window.confirm(`ปฏิเสธคำขอ${APPROVAL_TYPE[selected.type]?.label || ''} ${thb2(selected.amount)} ?`)) return
+    const isRefund = selected.type === 'refund'
+    const methodLabel = REFUND_METHODS.find(([m]) => m === refundMethod)?.[1]
+    if (kind === 'approved' && isRefund && !window.confirm(`อนุมัติและคืนเงิน ${thb2(selected.amount)} ด้วย${methodLabel} ?`)) return
     setBusy(true)
     try {
       const body = note.trim() ? { note: note.trim() } : {}
       if (kind === 'approved') await approveApproval(selected.id, body)
       else await rejectApproval(selected.id, body)
-      notify(kind === 'approved' ? `อนุมัติ${APPROVAL_TYPE[selected.type]?.label} ${thb(selected.amount)} แล้ว` : 'ปฏิเสธคำขอแล้ว')
+      // คืนเงิน: อนุมัติแล้วบันทึกการคืนเงินทันที
+      const refunded = kind === 'approved' && isRefund ? await recordRefund(selected) : false
+      if (kind === 'approved' && isRefund) {
+        if (refunded) notify(`อนุมัติและคืนเงิน ${thb(selected.amount)} (${methodLabel}) แล้ว`)
+      } else {
+        notify(kind === 'approved' ? `อนุมัติ${APPROVAL_TYPE[selected.type]?.label} ${thb(selected.amount)} แล้ว` : 'ปฏิเสธคำขอแล้ว')
+      }
       setNote('')
       // ไปคำขอถัดไปที่ยังรออยู่
       const next = pending.find((a) => a.id !== selected.id)
@@ -196,7 +233,17 @@ export default function ApprovalsPage() {
             {!selected ? (
               <div className="pos-cart-empty">เลือกคำขอทางซ้ายเพื่อดูรายละเอียด</div>
             ) : (
-              <Detail a={selected} order={billOrder} note={note} setNote={setNote} busy={busy} onDecide={decide} />
+              <Detail
+                a={selected}
+                order={billOrder}
+                note={note}
+                setNote={setNote}
+                busy={busy}
+                onDecide={decide}
+                method={refundMethod}
+                setMethod={setRefundMethod}
+                onRecordRefund={recordSelectedRefund}
+              />
             )}
           </section>
 
@@ -251,8 +298,28 @@ export default function ApprovalsPage() {
   )
 }
 
-function Detail({ a, order, note, setNote, busy, onDecide }) {
+/** เลือกวิธีคืนเงิน (ใช้ตอนอนุมัติ/บันทึกคืนเงิน) */
+function RefundMethodPicker({ method, setMethod, busy }) {
+  return (
+    <>
+      <span className="pos-label" style={{ fontWeight: 400, color: 'var(--app-muted)', marginTop: 14 }}>
+        คืนเงินด้วย
+      </span>
+      <div className="pos-chips" role="radiogroup" aria-label="วิธีคืนเงิน">
+        {REFUND_METHODS.map(([m, label]) => (
+          <button key={m} type="button" role="radio" aria-checked={method === m} className={`pos-chip ${method === m ? 'is-active' : ''}`} onClick={() => setMethod(m)} disabled={busy}>
+            {label}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function Detail({ a, order, note, setNote, busy, onDecide, method, setMethod, onRecordRefund }) {
   const isDiscount = a.type === 'discount'
+  // อนุมัติแล้วแต่ยังไม่ได้บันทึกคืนเงิน (เช่น อนุมัติก่อนมีระบบคืนทันที หรือบันทึกไม่สำเร็จ)
+  const awaitingRefund = !isDiscount && a.status === 'approved' && !a.refunded_at
   const subtotal = Number(a.order_subtotal ?? order?.subtotal ?? NaN)
   const paidTotal = Number(a.order_total ?? order?.total ?? NaN)
   const existingDiscount = Number(a.order_discount ?? order?.discount_amount ?? 0)
@@ -353,21 +420,42 @@ function Detail({ a, order, note, setNote, busy, onDecide }) {
             placeholder="พิมพ์หมายเหตุ…"
             disabled={busy}
           />
-          {!isDiscount && <p className="pos-note is-muted" style={{ marginTop: 10 }}>อนุมัติแล้วพนักงานคืนเงินต่อที่หน้า “คิดเงิน” · คืนเงินไม่คืนสต็อก</p>}
+          {!isDiscount && (
+            <>
+              <RefundMethodPicker method={method} setMethod={setMethod} busy={busy} />
+              <p className="pos-note is-muted" style={{ marginTop: 10 }}>
+                กดอนุมัติ = บันทึกการคืนเงินทันที (ยอดขายลดลง) · ส่งเงินคืนลูกค้าตามวิธีที่เลือก · คืนเงินไม่คืนสต็อก
+              </p>
+            </>
+          )}
           <div className="pos-dialog-actions">
             <button type="button" className="pos-btn pos-btn-danger-solid" onClick={() => onDecide('rejected')} disabled={busy}>
               ปฏิเสธ
             </button>
             <button type="button" className="pos-btn pos-btn-primary" onClick={() => onDecide('approved')} disabled={busy}>
-              {busy ? 'กำลังบันทึก…' : 'อนุมัติ'}
+              {busy ? 'กำลังบันทึก…' : isDiscount ? 'อนุมัติ' : 'อนุมัติและคืนเงิน'}
             </button>
           </div>
         </>
       ) : (
-        <p className="pos-note is-muted" style={{ marginTop: 14 }}>
-          {a.status === 'approved' ? 'อนุมัติ' : 'ปฏิเสธ'}โดย {a.approved_by_name || '—'} · {fullTime(a.decided_at)}
-          {a.note && ` · หมายเหตุ: ${a.note}`}
-        </p>
+        <>
+          <p className="pos-note is-muted" style={{ marginTop: 14 }}>
+            {a.status === 'approved' ? 'อนุมัติ' : 'ปฏิเสธ'}โดย {a.approved_by_name || '—'} · {fullTime(a.decided_at)}
+            {a.note && ` · หมายเหตุ: ${a.note}`}
+            {!isDiscount && a.refunded_at && ` · คืนเงินแล้ว ${fullTime(a.refunded_at)}`}
+          </p>
+          {awaitingRefund && (
+            <>
+              <p className="pos-note is-warn">อนุมัติแล้วแต่ยังไม่ได้บันทึกการคืนเงิน</p>
+              <RefundMethodPicker method={method} setMethod={setMethod} busy={busy} />
+              <div className="pos-dialog-actions">
+                <button type="button" className="pos-btn pos-btn-primary" onClick={onRecordRefund} disabled={busy}>
+                  {busy ? 'กำลังบันทึก…' : `บันทึกคืนเงิน ${thb2(a.amount)}`}
+                </button>
+              </div>
+            </>
+          )}
+        </>
       )}
     </>
   )

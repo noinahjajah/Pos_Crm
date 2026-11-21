@@ -4,6 +4,7 @@
 //   POST /internal/orders/:id/mark-refunded  อัปเดตบิลหลังคืนเงิน
 //   GET  /internal/approvals/:id             ข้อมูลคำขอคืนเงิน (ขอให้ Dev 3 เพิ่ม)
 //   GET  /internal/reports/top-menus         เมนูขายดี
+//   GET  /internal/reports/approved-refunds  คืนเงินที่อนุมัติแล้วแต่ยังไม่ได้คืน (หักรายได้ตั้งแต่อนุมัติ)
 //   GET  /internal/orders?status=waiting_payment&branch_id=          บิลรอชำระ (ขอให้ Dev 3 เพิ่ม)
 //   GET  /internal/approvals?type=refund&status=approved&branch_id=  คำขอคืนเงินที่อนุมัติแล้ว (ขอให้ Dev 3 เพิ่ม)
 // POS_MODE=mock → ใช้บิลจำลองในหน่วยความจำ ระหว่างรอ pos ของ Dev 3
@@ -43,6 +44,8 @@ const httpPos = {
     (await call('GET', `/internal/approvals?${new URLSearchParams({ type: 'refund', status: 'approved', branch_id: branchId })}`)) ?? [],
   topMenus: ({ branchId, from, to, limit }) =>
     call('GET', `/internal/reports/top-menus?${new URLSearchParams({ from, to, limit, ...(branchId ? { branch_id: branchId } : {}) })}`),
+  approvedRefunds: async ({ branchId, from, to }) =>
+    (await call('GET', `/internal/reports/approved-refunds?${new URLSearchParams({ from, to, ...(branchId ? { branch_id: branchId } : {}) })}`)) ?? [],
 }
 
 // ===================== pos จำลอง =====================
@@ -92,6 +95,9 @@ const mockPos = {
   },
   async listApprovedRefunds({ branchId }) {
     return [...mockApprovals.values()].filter((a) => a.branch_id === branchId && a.type === 'refund' && a.status === 'approved')
+  },
+  async approvedRefunds() {
+    return []
   },
   async topMenus() {
     return [

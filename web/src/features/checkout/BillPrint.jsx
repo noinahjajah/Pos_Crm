@@ -7,6 +7,7 @@ import { billNumbers, lineTotal, tableLabel } from './checkoutUtils'
 
 export default function BillPrint({ order, branchName, ...slipProps }) {
   const n = billNumbers(order)
+  const items = order.items || []
   return (
     <PrintSlip label="ใบแจ้งยอด" {...slipProps}>
       <div className="ps-center">
@@ -30,7 +31,7 @@ export default function BillPrint({ order, branchName, ...slipProps }) {
       </dl>
       <hr className="ps-rule" />
       <ul className="ps-items">
-        {(order.items || []).map((it, i) => (
+        {items.map((it, i) => (
           <li key={it.id || i}>
             <div className="ps-row">
               <span>
@@ -43,6 +44,10 @@ export default function BillPrint({ order, branchName, ...slipProps }) {
       </ul>
       <hr className="ps-rule" />
       <div className="ps-totals">
+        <div className="ps-row">
+          <span>จำนวนรายการ</span>
+          <span className="ps-amount">{items.length} รายการ</span>
+        </div>
         <div className="ps-row">
           <span>ยอดรวมรายการ</span>
           <span className="ps-amount">{baht(n.subtotal)}</span>
