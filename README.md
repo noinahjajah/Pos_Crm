@@ -10,9 +10,9 @@
 <br>
 
 [![test](https://github.com/noinahjajah/Pos_Crm/actions/workflows/test.yml/badge.svg)](https://github.com/noinahjajah/Pos_Crm/actions/workflows/test.yml)
-[![UAT](https://img.shields.io/badge/UAT-48%2F49_ผ่าน-2E6B5A?style=flat)](เอกสาร/UAT.md)
+[![UAT](https://img.shields.io/badge/UAT-48%2F49_passed-2E6B5A?style=flat)](เอกสาร/UAT.md)
 ![Phase](https://img.shields.io/badge/Phase-1-2E6B5A?style=flat)
-![CSI400](https://img.shields.io/badge/CSI400-เว็บเซอร์วิส-1E1C1A?style=flat)
+![CSI400](https://img.shields.io/badge/CSI400-Web_Services-1E1C1A?style=flat)
 
 ![Node.js](https://img.shields.io/badge/Node.js_22-339933?style=flat&logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express_5-000000?style=flat&logo=express&logoColor=white)
@@ -34,10 +34,10 @@
 
 <table>
   <tr>
-    <td align="center" width="25%"><h2>4</h2>microservices<br><sub>identity · catalog · pos · payment</sub></td>
-    <td align="center" width="25%"><h2>37</h2>requirement เฟส 1<br><sub>ทดสอบ UAT ครบทุกข้อ</sub></td>
-    <td align="center" width="25%"><h2>48 / 49</h2>UAT ผ่าน<br><sub>ไม่มีเคสที่ไม่ผ่าน</sub></td>
-    <td align="center" width="25%"><h2>155</h2>test อัตโนมัติ<br><sub>รันทุก Pull Request</sub></td>
+    <td align="center" width="25%"><h3>4</h3>microservices<br><sub>identity · catalog · pos · payment</sub></td>
+    <td align="center" width="25%"><h3>37</h3>requirement เฟส 1<br><sub>ทดสอบ UAT ครบทุกข้อ</sub></td>
+    <td align="center" width="25%"><h3>48 / 49</h3>UAT ผ่าน<br><sub>ไม่มีเคสที่ไม่ผ่าน</sub></td>
+    <td align="center" width="25%"><h3>155</h3>test อัตโนมัติ<br><sub>รันทุก Pull Request</sub></td>
   </tr>
 </table>
 
