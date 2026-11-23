@@ -173,19 +173,19 @@ flowchart LR
 
 | ส่วน | ผู้รับผิดชอบ | สถานะ | หมายเหตุ |
 |---|---|:---:|---|
-| 👤 identity service | เปมิกา | ✅ | login · refresh · ผู้ใช้ · สาขา · role ใน JWT (schema `identity1`) |
-| 🚪 gateway | เปมิกา | ✅ | ตรวจ JWT · ตารางสิทธิ์แบบปฏิเสธไว้ก่อน · rate limit · proxy · SSE |
-| 🖥️ login · layout · ผู้ใช้ · สาขา · งานพิมพ์ | เปมิกา | ✅ | router · `api/client.js` · layout ทั้งแอป · ใบแจ้งยอด/ใบเสร็จ 58 มม. |
-| 🐳 Docker Compose ทั้งระบบ | เปมิกา · วรัตถา | ✅ | `docker compose up` · โหมดพัฒนา · healthcheck ทุก service |
-| 📦 catalog service | วรัตถา | ✅ | หมวด เมนู (รูป) ตัวเลือก สต็อก คัดลอกเมนู internal API |
-| 💵 payment service | วรัตถา | ✅ | รับเงิน คืนเงิน รายจ่าย รายงาน · เรียก pos จริง (`POS_MODE=http`) |
-| 🖥️ หน้าหลังร้าน + หน้าคิดเงิน | วรัตถา | ✅ | เมนู ตัวเลือก สต็อก รายจ่าย รายงาน กำไร คิดเงิน |
-| 🧾 pos service | ภัทรพล | ✅ | โต๊ะ บิล ตั๋วครัว ย้าย/รวมโต๊ะ คำขออนุมัติ |
-| 🖥️ ผังโต๊ะ · สั่งอาหาร · อนุมัติ | ภัทรพล | ✅ | หน้าโต๊ะ หน้าบิล คำขออนุมัติ realtime |
-| 👨‍🍳 จอครัว (`/kitchen`) | ภัทรพล | 🧩 | มี `KitchenPage.jsx` แล้ว ยังคอมเมนต์ปิดใน `router.jsx` และ `navItems.js` |
-| 🗄️ SQL ของฐานข้อมูล | ทุกคน | ✅ | `supabase/migrations/` (4 schema) · `supabase/tests/` |
-| 📚 เอกสาร (README · UAT · รายงาน) | เปมิกา | ✅ | ทดสอบ UAT 49 เคส · รายงานโปรเจกต์ · คู่มือติดตั้งและใช้งาน |
-| 🗑️ ลบหมวดหมู่ + 🤖 CI | เปมิกา | 🔄 | [PR #6](https://github.com/noinahjajah/Pos_Crm/pull/6) |
+|  identity service | เปมิกา | ✅ | login · refresh · ผู้ใช้ · สาขา · role ใน JWT (schema `identity1`) |
+|  gateway | เปมิกา | ✅ | ตรวจ JWT · ตารางสิทธิ์แบบปฏิเสธไว้ก่อน · rate limit · proxy · SSE |
+|  login · layout · ผู้ใช้ · สาขา · งานพิมพ์ | เปมิกา | ✅ | router · `api/client.js` · layout ทั้งแอป · ใบแจ้งยอด/ใบเสร็จ 58 มม. |
+|  Docker Compose ทั้งระบบ | ทุกคน | ✅ | `docker compose up` · โหมดพัฒนา · healthcheck ทุก service |
+|  catalog service | วรัตถา | ✅ | หมวด เมนู (รูป) ตัวเลือก สต็อก คัดลอกเมนู internal API |
+|  payment service | วรัตถา | ✅ | รับเงิน คืนเงิน รายจ่าย รายงาน · เรียก pos จริง (`POS_MODE=http`) |
+|  หน้าหลังร้าน + หน้าคิดเงิน | วรัตถา | ✅ | เมนู ตัวเลือก สต็อก รายจ่าย รายงาน กำไร คิดเงิน |
+|  pos service | ภัทรพล | ✅ | โต๊ะ บิล ตั๋วครัว ย้าย/รวมโต๊ะ คำขออนุมัติ |
+|  ผังโต๊ะ · สั่งอาหาร · อนุมัติ | ภัทรพล | ✅ | หน้าโต๊ะ หน้าบิล คำขออนุมัติ realtime |
+|  จอครัว (`/kitchen`) | ภัทรพล | 🧩 | มี `KitchenPage.jsx` แล้ว ยังคอมเมนต์ปิดใน `router.jsx` และ `navItems.js` |
+|  SQL ของฐานข้อมูล | ทุกคน | ✅ | `supabase/migrations/` (4 schema) · `supabase/tests/` |
+|  เอกสาร (README · UAT · รายงาน) | เปมิกา | ✅ | ทดสอบ UAT 49 เคส · รายงานโปรเจกต์ · คู่มือติดตั้งและใช้งาน |
+|  CI | เปมิกา | 🔄 | [PR #6](https://github.com/noinahjajah/Pos_Crm/pull/6) |
 
 ผลทดสอบ: **UAT ผ่าน 48 / 49 เคส** (เหลือ UAT-16 จอครัว) · **test อัตโนมัติ 155 ข้อผ่าน** — รายละเอียดใน [📄 รายงานโปรเจกต์](เอกสาร/REPORT.md) และ [🧪 UAT](เอกสาร/UAT.md)
 
