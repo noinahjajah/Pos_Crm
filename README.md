@@ -1,26 +1,68 @@
 <div align="center">
 
-# 🍽️ POS & CRM — ระบบขายหน้าร้าน 3 สาขา
+<img src="เอกสาร/readme/banner.svg" alt="POS & CRM ระบบขายหน้าร้าน 3 สาขา" width="100%">
 
-ระบบ POS สำหรับร้านที่มี 3 สาขา (ร้านอาหาร · ร้านเครื่องดื่ม · บาร์)<br>
+<br>
+
+**ระบบ POS หลายสาขา** สำหรับร้านอาหาร · ร้านเครื่องดื่ม · บาร์<br>
 เปิดโต๊ะ สั่งอาหาร ส่งเข้าครัว คิดเงิน ขออนุมัติส่วนลด/คืนเงิน จัดการเมนูและสต็อก พร้อมแดชบอร์ดกำไรรายสาขา
 
-![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)
-![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Auth-3FCF8E?logo=supabase&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![Architecture](https://img.shields.io/badge/Architecture-Microservices-orange)
-![Phase](https://img.shields.io/badge/Phase-1-blue)
+<br>
 
-[![Figma Prototype](https://img.shields.io/badge/▶_Figma-Prototype-F24E1E?logo=figma&logoColor=white)](https://www.figma.com/proto/pWc3YWHYawV6L3Ykm57Ke5?node-id=3-2&starting-point-node-id=3%3A2)
-[![Figma Design](https://img.shields.io/badge/Figma-Design_File-A259FF?logo=figma&logoColor=white)](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5)
-[![Report](https://img.shields.io/badge/📄-รายงานโปรเจกต์-555)](เอกสาร/REPORT.md)
-[![UAT](https://img.shields.io/badge/🧪-UAT_ผ่าน_48%2F49-2E6B5A)](เอกสาร/UAT.md)
 [![test](https://github.com/noinahjajah/Pos_Crm/actions/workflows/test.yml/badge.svg)](https://github.com/noinahjajah/Pos_Crm/actions/workflows/test.yml)
+[![UAT](https://img.shields.io/badge/UAT-48%2F49_ผ่าน-2E6B5A?style=flat)](เอกสาร/UAT.md)
+![Phase](https://img.shields.io/badge/Phase-1-2E6B5A?style=flat)
+![CSI400](https://img.shields.io/badge/CSI400-เว็บเซอร์วิส-1E1C1A?style=flat)
+
+![Node.js](https://img.shields.io/badge/Node.js_22-339933?style=flat&logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express_5-000000?style=flat&logo=express&logoColor=white)
+![React](https://img.shields.io/badge/React_19-20232A?style=flat&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=flat&logo=supabase&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker_Compose-2496ED?style=flat&logo=docker&logoColor=white)
+
+<br>
+
+[**▶️ Prototype**](https://www.figma.com/proto/pWc3YWHYawV6L3Ykm57Ke5?node-id=3-2&starting-point-node-id=3%3A2) &nbsp;·&nbsp;
+[**🎨 Figma**](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5) &nbsp;·&nbsp;
+[**📄 รายงาน**](เอกสาร/REPORT.md) &nbsp;·&nbsp;
+[**🧪 UAT**](เอกสาร/UAT.md) &nbsp;·&nbsp;
+[**📋 Spec**](เอกสาร/pos-crm-phase1-spec.md) &nbsp;·&nbsp;
+[**🚀 เริ่มใช้งาน**](#-เริ่มต้นใช้งาน)
+
+<br>
+
+<table>
+  <tr>
+    <td align="center" width="25%"><h2>4</h2>microservices<br><sub>identity · catalog · pos · payment</sub></td>
+    <td align="center" width="25%"><h2>37</h2>requirement เฟส 1<br><sub>ทดสอบ UAT ครบทุกข้อ</sub></td>
+    <td align="center" width="25%"><h2>48 / 49</h2>UAT ผ่าน<br><sub>ไม่มีเคสที่ไม่ผ่าน</sub></td>
+    <td align="center" width="25%"><h2>155</h2>test อัตโนมัติ<br><sub>รันทุก Pull Request</sub></td>
+  </tr>
+</table>
 
 </div>
+
+---
+
+## 📸 หน้าจอ
+
+<table>
+  <tr>
+    <td width="50%"><img src="เอกสาร/readme/dashboard.png" alt="แดชบอร์ดรวมทุกสาขา"><p align="center"><b>แดชบอร์ดรวมทุกสาขา</b><br><sub>owner · ยอดขาย 7 วัน เปรียบเทียบสาขา</sub></p></td>
+    <td width="50%"><img src="เอกสาร/readme/tables.png" alt="ผังโต๊ะ"><p align="center"><b>ผังโต๊ะ</b><br><sub>staff · แยกโซน ในร้าน / ด้านนอก · สถานะโต๊ะ</sub></p></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="เอกสาร/readme/menus.png" alt="จัดการเมนู"><p align="center"><b>จัดการเมนู</b><br><sub>manager · owner · รูป ราคา หมวด เปิด/ปิดขาย</sub></p></td>
+    <td width="50%"><img src="เอกสาร/readme/option-groups.png" alt="กลุ่มตัวเลือกเสริม"><p align="center"><b>กลุ่มตัวเลือกเสริม</b><br><sub>ขนาด น้ำแข็ง ท็อปปิ้ง · ราคาบวกเพิ่ม</sub></p></td>
+  </tr>
+</table>
+
+<details>
+<summary><b>หน้าเข้าสู่ระบบ</b></summary>
+<br>
+<img src="เอกสาร/readme/login.png" alt="หน้าเข้าสู่ระบบ" width="100%">
+</details>
 
 ---
 
@@ -38,6 +80,7 @@
 
 ## 📑 สารบัญ
 
+- [หน้าจอ](#-หน้าจอ)
 - [ภาพรวมระบบ](#-ภาพรวมระบบ)
 - [Prototype (Figma)](#-prototype-figma)
 - [สถาปัตยกรรม](#️-สถาปัตยกรรม)
