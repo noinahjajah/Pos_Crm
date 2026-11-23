@@ -35,7 +35,7 @@
 <table>
   <tr>
     <td align="center" width="25%"><h3>4</h3>microservices<br><sub>identity · catalog · pos · payment</sub></td>
-    <td align="center" width="25%"><h3>37</h3>ความสามารถตามสเปก<br><sub>ข้อ 1.1 – 1.37 ทดสอบครบทุกข้อ</sub></td>
+    <td align="center" width="25%"><h3>3</h3>ผู้จัดทำ<br><sub>เปมิกา · วรัตถา · ภัทรพล</sub></td>
     <td align="center" width="25%"><h3>48 / 49</h3>UAT ผ่าน<br><sub>ไม่มีเคสที่ไม่ผ่าน</sub></td>
     <td align="center" width="25%"><h3>155</h3>test อัตโนมัติ<br><sub>รันทุก Pull Request</sub></td>
   </tr>
@@ -230,7 +230,7 @@ Pos_Crm/
 ├── docker-compose.yml      รันทั้งระบบ (เว็บ :8000)
 ├── docker-compose.dev.yml  โหมดพัฒนา แก้โค้ดแล้ว reload เอง (เว็บ :5173)
 └── เอกสาร/
-    ├── pos-crm-phase1-spec.md         requirement · ERD · API · แบ่งงาน
+    ├── pos-crm-phase1-spec.md         ฟีเจอร์ · ERD · API · แบ่งงาน
     ├── frontend-folder-structure.md   โครงสร้าง web
     ├── POS-CRM-Database-Microservices.png
     ├── REPORT.md                      รายงานโปรเจกต์
@@ -509,18 +509,18 @@ sequenceDiagram
 | เอกสาร | เนื้อหา |
 |---|---|
 | 📄 [รายงานโปรเจกต์](เอกสาร/REPORT.md) | ที่มา ขอบเขต สถาปัตยกรรม การออกแบบ ความคืบหน้า ปัญหาและแนวทางต่อ |
-| 🧪 [UAT](เอกสาร/UAT.md) | ผลทดสอบการยอมรับของผู้ใช้ 49 เคส ครบ requirement `1.1 – 1.37` · ผ่าน 48 · ผ่านบางส่วน 1 · ไม่ผ่าน 0 · พร้อมช่องลงนาม |
-| 📋 [Spec เฟส 1](เอกสาร/pos-crm-phase1-spec.md) | requirement · ERD · API gateway · แบ่งงาน |
+| 🧪 [UAT](เอกสาร/UAT.md) | ผลทดสอบการยอมรับของผู้ใช้ 49 เคส ครบทุกฟีเจอร์เฟส 1 · ผ่าน 48 · ผ่านบางส่วน 1 · ไม่ผ่าน 0 · พร้อมช่องลงนาม |
+| 📋 [Spec เฟส 1](เอกสาร/pos-crm-phase1-spec.md) | ฟีเจอร์ · ERD · API gateway · แบ่งงาน |
 | 🗂️ [โครงสร้าง Frontend](เอกสาร/frontend-folder-structure.md) | การแบ่งโฟลเดอร์ของ `web/` |
 | 🎨 [Figma](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5) | Prototype หน้าจอและ design system |
 
-| หมวด UAT | Requirement | เคส | ✅ ผ่าน |
+| หมวด UAT | ผู้รับผิดชอบ | เคส | ✅ ผ่าน |
 |---|---|:---:|:---:|
-| 👤 ผู้ใช้ สิทธิ์ และสาขา | 1.1 – 1.6 | 10 | 10 |
-| 🪑 โต๊ะและออร์เดอร์ | 1.7 – 1.13 | 9 | 8 (+1 บางส่วน) |
-| 📦 เมนู ตัวเลือก สต็อก | 1.14 – 1.22 | 11 | 11 |
-| 💵 ชำระเงินและอนุมัติ | 1.23 – 1.31 | 12 | 12 |
-| 📊 รายจ่ายและแดชบอร์ด | 1.32 – 1.37 | 7 | 7 |
+| 👤 ผู้ใช้ สิทธิ์ และสาขา | เปมิกา | 10 | 10 |
+| 🪑 โต๊ะและออร์เดอร์ | ภัทรพล | 9 | 8 (+1 บางส่วน) |
+| 📦 เมนู ตัวเลือก สต็อก | วรัตถา | 11 | 11 |
+| 💵 ชำระเงินและอนุมัติ | วรัตถา · ภัทรพล | 12 | 12 |
+| 📊 รายจ่ายและแดชบอร์ด | วรัตถา | 7 | 7 |
 | **รวม** | | **49** | **48** |
 
 ---

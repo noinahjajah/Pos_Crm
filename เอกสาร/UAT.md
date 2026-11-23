@@ -6,7 +6,7 @@
 | | |
 |---|---|
 | **ระบบ** | POS & CRM · 3 สาขา (ร้านอาหาร R01 · ร้านเครื่องดื่ม D01 · บาร์ B01) |
-| **เวอร์ชันที่ทดสอบ** | `main` commit `ef56d2b` + [PR #6](https://github.com/noinahjajah/Pos_Crm/pull/6) (branch `dev1/delete-category-ci` commit `939f7ec`) |
+| **เวอร์ชันที่ทดสอบ** | `main` commit `ef56d2b` + [PR #6](https://github.com/noinahjajah/Pos_Crm/pull/6) |
 | **สภาพแวดล้อม** | Docker Compose บน Windows · เว็บ `http://localhost:5173` → Gateway `:8080` → identity `:3001` · catalog `:3002` · pos `:3003` · payment `:3004` → Supabase จริง |
 | **วันที่ทดสอบ** | จันทร์ 23 พ.ย. 2569 เวลา 11:05:59 – 11:07:07 น. (เวลาไทย) · ตรวจหน้าเว็บ UAT-03 / UAT-16 เวลา 11:08 น. |
 | **วิธีทดสอบ** | สคริปต์ยิง API ผ่าน gateway ด้วยบัญชีจริงทั้ง 3 role (49 เคส) + เปิดหน้าเว็บตรวจเมนูตาม role |

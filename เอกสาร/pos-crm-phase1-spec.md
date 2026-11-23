@@ -23,7 +23,7 @@
 
 > หมายเหตุ: ข้อความนี้สรุปจากสิ่งที่ doc ทั้ง 3 ฉบับอ้างอิง ไม่ใช่ข้อความต้นฉบับของ requirement ถ้าต้นฉบับแก้ถ้อยคำ ให้ยึดต้นฉบับ
 
-### ผู้ใช้ สิทธิ์ และสาขา (Dev 1)
+### ผู้ใช้ สิทธิ์ และสาขา (เปมิกา)
 
 | ข้อ | ข้อกำหนด (ฉบับล่าสุด) |
 |---|---|
@@ -34,19 +34,19 @@
 | 1.5 | **เพิ่ม/แก้ไข/ลบผู้ใช้ — เฉพาะ owner** (manager ดูรายชื่อพนักงานสาขาตัวเองได้อย่างเดียว) |
 | 1.6 | **owner เพิ่ม/แก้ไข/ลบสาขา** |
 
-### โต๊ะและออร์เดอร์ (Dev 3)
+### โต๊ะและออร์เดอร์ (ภัทรพล)
 
 | ข้อ | ข้อกำหนด |
 |---|---|
 | 1.7 | เปิดโต๊ะ ระบุจำนวนลูกค้า บันทึกเวลาเปิด (`opened_at`) |
 | 1.8 | โต๊ะมี 3 สถานะ: ว่าง / มีลูกค้า / รอชำระ |
 | 1.9 | สั่งอาหารได้หลายรอบ ระบุจำนวน ตัวเลือก หมายเหตุ (เก็บ snapshot ชื่อ/ราคา) |
-| 1.10 | พิมพ์ใบออร์เดอร์เข้าครัว (โต๊ะ เวลา รายการ ตัวเลือก หมายเหตุ) และใบเสร็จ — Dev 1 ทำ layout, Dev 3 ส่งข้อมูล |
+| 1.10 | พิมพ์ใบออร์เดอร์เข้าครัว (โต๊ะ เวลา รายการ ตัวเลือก หมายเหตุ) และใบเสร็จ — เปมิกา ทำ layout, ภัทรพล ส่งข้อมูล |
 | 1.11 | ย้ายโต๊ะ |
 | 1.12 | รวมโต๊ะเป็นบิลเดียว |
 | 1.13 | ไม่มีการแยกบิล |
 
-### เมนู ตัวเลือก สต็อก (Dev 2)
+### เมนู ตัวเลือก สต็อก (วรัตถา)
 
 | ข้อ | ข้อกำหนด |
 |---|---|
@@ -60,7 +60,7 @@
 | 1.21 | สต็อกเหลือ 0 → ปิดขายอัตโนมัติ |
 | 1.22 | เติม/แก้สต็อกได้ (`{quantity}` ตั้งค่า หรือ `{add}` เติมเพิ่ม) · **จาก 0 → มากกว่า 0 ไม่เปิดขายให้อัตโนมัติ** staff เปิดเองเมื่อพร้อม (ของเข้าแล้วแต่อาจยังไม่ได้เตรียม) |
 
-### ชำระเงินและอนุมัติ (Dev 2 ฝั่งเงิน / Dev 3 ฝั่งบิล)
+### ชำระเงินและอนุมัติ (วรัตถา ฝั่งเงิน / ภัทรพล ฝั่งบิล)
 
 | ข้อ | ข้อกำหนด |
 |---|---|
@@ -74,7 +74,7 @@
 | 1.30 | ส่วนลด/คืนเงินมีผลเฉพาะคำขอที่ `approved` |
 | 1.31 | log ผู้ขอ ผู้อนุมัติ เวลา เหตุผลทุกคำขอ (ห้ามลบ) |
 
-### รายจ่ายและแดชบอร์ด (Dev 2)
+### รายจ่ายและแดชบอร์ด (วรัตถา)
 
 | ข้อ | ข้อกำหนด |
 |---|---|
@@ -841,17 +841,17 @@ const routes = [
 
 ---
 
-## 8. แบ่งงานเฟส 1 — Dev 3 คน (DB ใครของมัน)
+## 8. แบ่งงานเฟส 1 — 3 คน (DB ใครของมัน)
 
 หลักการ: 1 service = 1 schema = 1 เจ้าของ ไม่มีใครแตะตารางของคนอื่น คุยกันผ่าน API เท่านั้น
 
-| Dev | Service / Schema | ตาราง | งานเสริม |
+| ผู้รับผิดชอบ | Service / Schema | ตาราง | งานเสริม |
 |---|---|---|---|
-| Dev 1 | identity | branches, roles, profiles (3) | API Gateway, JWT hook, Docker Compose, layout พิมพ์ใบออร์เดอร์/ใบเสร็จ |
-| Dev 2 | catalog + payment | categories, menus, option_groups, options, menu_option_groups, stocks, payments, expenses (8) | รายงาน/แดชบอร์ด |
-| Dev 3 | pos | dining_tables, orders, order_tables, kitchen_tickets, order_items, order_item_options, approvals, refund_items (8) | จอครัว + แจ้งเตือนอนุมัติ realtime, VAT |
+| เปมิกา | identity | branches, roles, profiles (3) | API Gateway, JWT hook, Docker Compose, layout พิมพ์ใบออร์เดอร์/ใบเสร็จ |
+| วรัตถา | catalog + payment | categories, menus, option_groups, options, menu_option_groups, stocks, payments, expenses (8) | รายงาน/แดชบอร์ด |
+| ภัทรพล | pos | dining_tables, orders, order_tables, kitchen_tickets, order_items, order_item_options, approvals, refund_items (8) | จอครัว + แจ้งเตือนอนุมัติ realtime, VAT |
 
-### Dev 1 — identity + gateway (1.1–1.6)
+### เปมิกา — identity + gateway (1.1–1.6)
 
 - schema identity, custom access token hook (ใส่ `user_role`, `branch_id` ลง JWT)
 - seed ตาราง `roles`: staff, manager, owner (staff = waiter + cashier รวมกัน)
@@ -863,7 +863,7 @@ const routes = [
 - **1.10 ส่วนพิมพ์:** layout ใบออร์เดอร์เข้าครัวและใบเสร็จ (ก่อน VAT / VAT / สุทธิ)
 - **ส่งมอบก่อนใคร (สัปดาห์แรก):** gateway + token ทดสอบ 3 role (staff, manager, owner)
 
-### Dev 2 — catalog + payment + รายงาน (1.14–1.22, 1.25, 1.32–1.37 และฝั่งเงินของ 1.23, 1.28)
+### วรัตถา — catalog + payment + รายงาน (1.14–1.22, 1.25, 1.32–1.37 และฝั่งเงินของ 1.23, 1.28)
 
 - catalog: หมวดหมู่ (owner เท่านั้น) · เมนูและกลุ่มตัวเลือกเป็นของแต่ละสาขา (`branch_id`) รูปใน Supabase Storage — manager จัดการเฉพาะสาขาตัวเอง, owner ทุกสาขา (1.14, 1.16–1.18)
 - ราคาอยู่ใน `menus.price` (แก้ผ่าน `PATCH /menus/:id`) · `POST /menus/:id/copy` ให้ owner คัดลอกเมนูข้ามสาขา
@@ -875,7 +875,7 @@ const routes = [
 - รายงาน: `/reports/daily`, `/reports/branches`, `/reports/profit` (1.34–1.37)
 - Frontend: หน้าเมนู/ตัวเลือก/สต็อก, หน้าคิดเงิน, หน้ารายจ่าย, แดชบอร์ด manager และ owner
 
-### Dev 3 — pos (1.7–1.13, 1.20 ฝั่งเรียกตัดสต็อก, 1.23–1.24, 1.26–1.31)
+### ภัทรพล — pos (1.7–1.13, 1.20 ฝั่งเรียกตัดสต็อก, 1.23–1.24, 1.26–1.31)
 
 - โต๊ะ 3 สถานะ, เปิดโต๊ะ + จำนวนลูกค้า + `opened_at` (1.7, 1.8)
 - สั่งหลายรอบ = `kitchen_tickets` + `order_items` + snapshot (1.9) เรียก catalog lookup (ส่ง `branch_id`)/deduct/restore
@@ -890,9 +890,9 @@ const routes = [
 ### ลำดับทำงานที่แนะนำ
 
 1. ทั้ง 3 คน: ตกลง contract ของ internal API + ใช้ header จำลอง `X-User-*` ทดสอบก่อน gateway เสร็จ
-2. Dev 1: gateway + login ก่อน / Dev 2: catalog + stock + ราคา / Dev 3: โต๊ะ + เปิดบิล
-3. Dev 3 สั่งอาหารเมื่อ Dev 2 มี lookup/deduct (mock ไปก่อนได้)
-4. Dev 2 ทำ payment เมื่อ Dev 3 มี `summary` / `mark-paid`
+2. เปมิกา: gateway + login ก่อน / วรัตถา: catalog + stock + ราคา / ภัทรพล: โต๊ะ + เปิดบิล
+3. ภัทรพล สั่งอาหารเมื่อ วรัตถา มี lookup/deduct (mock ไปก่อนได้)
+4. วรัตถา ทำ payment เมื่อ ภัทรพล มี `summary` / `mark-paid`
 5. ส่วนลด/คืนเงินและแจ้งเตือนอนุมัติ ทำหลังรับเงินได้แล้ว
 6. รายงาน/แดชบอร์ดทำท้ายสุด เมื่อมีข้อมูลบิลจริง
 
