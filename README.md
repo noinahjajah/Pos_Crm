@@ -119,14 +119,14 @@
 | ▶️ **ทดลองกดใช้งาน** | [เปิด Prototype](https://www.figma.com/proto/pWc3YWHYawV6L3Ykm57Ke5?node-id=3-2&starting-point-node-id=3%3A2) · เริ่มที่หน้า Login |
 | 🎨 **ไฟล์ออกแบบ** | [เปิดไฟล์ Figma](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5) |
 
-| # | หน้าจอ | Role | Requirement |
+| # | หน้าจอ | Role | หน้าที่ |
 |:---:|---|:---:|---|
-| 01 | [Login](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5?node-id=3-2) · บัญชีทดสอบแยกตาม role | ทุก role | 1.1 · 1.2 |
-| 02 | [Owner Dashboard](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5?node-id=3-74) · ภาพรวมทุกสาขา | O | 1.4 · 1.34 · 1.36 |
-| 03 | [Manager Dashboard](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5?node-id=4-56) · เห็นเฉพาะสาขาตัวเอง | M | 1.3 · 1.27 |
-| 04 | [จัดการผู้ใช้](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5?node-id=4-237) · กำหนด role และสาขา | O | 1.5 |
-| 05 | [คำขอรออนุมัติ](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5?node-id=5-137) · อนุมัติ/ปฏิเสธ ส่วนลดและคืนเงิน | M O | 1.29 – 1.31 |
-| 06 | [Audit Log](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5?node-id=5-385) · ใคร ทำอะไร ที่ไหน เมื่อไหร่ | O | 1.31 |
+| 01 | [Login](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5?node-id=3-2) · บัญชีทดสอบแยกตาม role | ทุก role | เปมิกา เมฆลอย|
+| 02 | [Owner Dashboard](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5?node-id=3-74) · ภาพรวมทุกสาขา | O | วรัตถา เตนากุล |
+| 03 | [Manager Dashboard](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5?node-id=4-56) · เห็นเฉพาะสาขาตัวเอง | M | ภัทรพล ถ่อมดี |
+| 04 | [จัดการผู้ใช้](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5?node-id=4-237) · กำหนด role และสาขา | O |  ภัทรพล ถ่อมดี |
+| 05 | [คำขอรออนุมัติ](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5?node-id=5-137) · อนุมัติ/ปฏิเสธ ส่วนลดและคืนเงิน | M O | วรัตถา เตนากุล |
+| 06 | [Audit Log](https://www.figma.com/design/pWc3YWHYawV6L3Ykm57Ke5?node-id=5-385) · ใคร ทำอะไร ที่ไหน เมื่อไหร่ | O | ภัทรพล ถ่อมดี |
 
 **วิธีดู:** เปิดลิงก์ Prototype แล้วคลิกบนหน้าจอได้เลย — **เข้าสู่ระบบ** → Owner Dashboard · บัญชีทดสอบ Owner/Manager → แดชบอร์ดของ role นั้น · เมนูซ้ายสลับหน้า · ชื่อผู้ใช้มุมล่างซ้าย → กลับหน้า Login
 
