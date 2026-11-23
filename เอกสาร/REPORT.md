@@ -189,7 +189,7 @@ curl http://localhost:8080/health                                               
 | Health check | `GET /health` ทุก service · Docker healthcheck | ✅ ทุก service healthy |
 | Unit / Integration | `npm test` ทุก service: catalog 21 · gateway 38 · identity 17 · payment 51 · pos 28 · SQL test ใน `supabase/tests` | ✅ 155 / 155 |
 | CI | GitHub Actions (`.github/workflows/test.yml`) รัน test ทุก service ทุก Pull Request และทุก push เข้า `main` | ✅ |
-| **UAT** | 49 เคสครบ requirement `1.1 – 1.37` ทดสอบกับระบบจริงด้วยบัญชีจริงทั้ง 3 role | **ผ่าน 48 · ผ่านบางส่วน 1 · ไม่ผ่าน 0** |
+| **UAT** | 49 เคสครบ requirement `1.1 – 1.37` ทดสอบกับระบบจริงด้วยบัญชีจริงทั้ง 3 role (23 พ.ย. 2569 11:05–11:07 น. บน `main` + PR #6) | **ผ่าน 48 · ผ่านบางส่วน 1 · ไม่ผ่าน 0** |
 
 ผล UAT รายเคสอยู่ใน [`UAT.md`](UAT.md)
 
