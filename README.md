@@ -70,7 +70,7 @@
 
 | รหัสนักศึกษา | ชื่อ-นามสกุล | ตำแหน่ง | รับผิดชอบ | GitHub |
 |---|---|---|---|---|
-| 67167033 | เปมิกา เมฆลอย | Full Stack Developer | **Dev 1** · identity · gateway · Docker · CI · ลูกมือทีม · เอกสาร · UAT · รายงาน · README | [@l0w0l-0](https://github.com/l0w0l-0) |
+| 67167033 | เปมิกา เมฆลอย | Full Stack Developer | **Dev 1** · identity · · ลูกมือทีม · เอกสาร · UAT · รายงาน · README | [@l0w0l-0](https://github.com/l0w0l-0) |
 | 67133846 | วรัตถา เตนากุล | Full Stack Developer | **Dev 2** · catalog · payment · รายงาน | [@warattha48](https://github.com/warattha48) |
 | 67180663 | ภัทรพล ถ่อมดี | Full Stack Developer | **Dev 3** · pos (โต๊ะ ออร์เดอร์ ครัว อนุมัติ) | [@noinahjajah](https://github.com/noinahjajah) |
 
