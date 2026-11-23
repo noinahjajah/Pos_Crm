@@ -35,7 +35,7 @@
 <table>
   <tr>
     <td align="center" width="25%"><h3>4</h3>microservices<br><sub>identity · catalog · pos · payment</sub></td>
-    <td align="center" width="25%"><h3>37</h3>requirement เฟส 1<br><sub>ทดสอบ UAT ครบทุกข้อ</sub></td>
+    <td align="center" width="25%"><h3>37</h3>ความสามารถตามสเปก<br><sub>ข้อ 1.1 – 1.37 ทดสอบครบทุกข้อ</sub></td>
     <td align="center" width="25%"><h3>48 / 49</h3>UAT ผ่าน<br><sub>ไม่มีเคสที่ไม่ผ่าน</sub></td>
     <td align="center" width="25%"><h3>155</h3>test อัตโนมัติ<br><sub>รันทุก Pull Request</sub></td>
   </tr>
@@ -70,9 +70,9 @@
 
 | รหัสนักศึกษา | ชื่อ-นามสกุล | ตำแหน่ง | รับผิดชอบ | GitHub |
 |---|---|---|---|---|
-| 67167033 | เปมิกา เมฆลอย | Full Stack Developer | **Dev 1** · ลูกมือทีม · เอกสาร · UAT · รายงาน · README | [@l0w0l-0](https://github.com/l0w0l-0) |
-| 67133846 | วรัตถา เตนากุล | Full Stack Developer | **Dev 2** · catalog · payment · รายงาน | [@warattha48](https://github.com/warattha48) |
-| 67180663 | ภัทรพล ถ่อมดี | Full Stack Developer | **Dev 3** · pos (โต๊ะ ออร์เดอร์ ครัว อนุมัติ) | [@noinahjajah](https://github.com/noinahjajah) |
+| 67167033 | เปมิกา เมฆลอย | Full Stack Developer | ลูกมือทีม · เอกสาร · UAT · รายงาน · README | [@l0w0l-0](https://github.com/l0w0l-0) |
+| 67133846 | วรัตถา เตนากุล | Full Stack Developer | catalog · payment · รายงาน | [@warattha48](https://github.com/warattha48) |
+| 67180663 | ภัทรพล ถ่อมดี | Full Stack Developer | pos (โต๊ะ ออร์เดอร์ ครัว อนุมัติ) | [@noinahjajah](https://github.com/noinahjajah) |
 
 > จัดทำในรายวิชา **CSI400 – เว็บเซอร์วิส**
 
@@ -173,19 +173,19 @@ flowchart LR
 
 | ส่วน | ผู้รับผิดชอบ | สถานะ | หมายเหตุ |
 |---|---|:---:|---|
-| 👤 identity service | Dev 1 | ✅ | login · refresh · ผู้ใช้ · สาขา · role ใน JWT (schema `identity1`) |
-| 🚪 gateway | Dev 1 | ✅ | ตรวจ JWT · ตารางสิทธิ์แบบปฏิเสธไว้ก่อน · rate limit · proxy · SSE |
-| 🖥️ login · layout · ผู้ใช้ · สาขา · งานพิมพ์ | Dev 1 | ✅ | router · `api/client.js` · layout ทั้งแอป · ใบแจ้งยอด/ใบเสร็จ 58 มม. |
-| 🐳 Docker Compose ทั้งระบบ | Dev 1 · Dev 2 | ✅ | `docker compose up` · โหมดพัฒนา · healthcheck ทุก service |
-| 📦 catalog service | Dev 2 | ✅ | หมวด เมนู (รูป) ตัวเลือก สต็อก คัดลอกเมนู internal API |
-| 💵 payment service | Dev 2 | ✅ | รับเงิน คืนเงิน รายจ่าย รายงาน · เรียก pos จริง (`POS_MODE=http`) |
-| 🖥️ หน้าหลังร้าน + หน้าคิดเงิน | Dev 2 | ✅ | เมนู ตัวเลือก สต็อก รายจ่าย รายงาน กำไร คิดเงิน |
-| 🧾 pos service | Dev 3 | ✅ | โต๊ะ บิล ตั๋วครัว ย้าย/รวมโต๊ะ คำขออนุมัติ |
-| 🖥️ ผังโต๊ะ · สั่งอาหาร · อนุมัติ | Dev 3 | ✅ | หน้าโต๊ะ หน้าบิล คำขออนุมัติ realtime |
-| 👨‍🍳 จอครัว (`/kitchen`) | Dev 3 | 🧩 | มี `KitchenPage.jsx` แล้ว ยังคอมเมนต์ปิดใน `router.jsx` และ `navItems.js` |
+| 👤 identity service | เปมิกา | ✅ | login · refresh · ผู้ใช้ · สาขา · role ใน JWT (schema `identity1`) |
+| 🚪 gateway | เปมิกา | ✅ | ตรวจ JWT · ตารางสิทธิ์แบบปฏิเสธไว้ก่อน · rate limit · proxy · SSE |
+| 🖥️ login · layout · ผู้ใช้ · สาขา · งานพิมพ์ | เปมิกา | ✅ | router · `api/client.js` · layout ทั้งแอป · ใบแจ้งยอด/ใบเสร็จ 58 มม. |
+| 🐳 Docker Compose ทั้งระบบ | เปมิกา · วรัตถา | ✅ | `docker compose up` · โหมดพัฒนา · healthcheck ทุก service |
+| 📦 catalog service | วรัตถา | ✅ | หมวด เมนู (รูป) ตัวเลือก สต็อก คัดลอกเมนู internal API |
+| 💵 payment service | วรัตถา | ✅ | รับเงิน คืนเงิน รายจ่าย รายงาน · เรียก pos จริง (`POS_MODE=http`) |
+| 🖥️ หน้าหลังร้าน + หน้าคิดเงิน | วรัตถา | ✅ | เมนู ตัวเลือก สต็อก รายจ่าย รายงาน กำไร คิดเงิน |
+| 🧾 pos service | ภัทรพล | ✅ | โต๊ะ บิล ตั๋วครัว ย้าย/รวมโต๊ะ คำขออนุมัติ |
+| 🖥️ ผังโต๊ะ · สั่งอาหาร · อนุมัติ | ภัทรพล | ✅ | หน้าโต๊ะ หน้าบิล คำขออนุมัติ realtime |
+| 👨‍🍳 จอครัว (`/kitchen`) | ภัทรพล | 🧩 | มี `KitchenPage.jsx` แล้ว ยังคอมเมนต์ปิดใน `router.jsx` และ `navItems.js` |
 | 🗄️ SQL ของฐานข้อมูล | ทุกคน | ✅ | `supabase/migrations/` (4 schema) · `supabase/tests/` |
-| 📚 เอกสาร (README · UAT · รายงาน) | Dev 1 | ✅ | ทดสอบ UAT 49 เคส · รายงานโปรเจกต์ · คู่มือติดตั้งและใช้งาน |
-| 🗑️ ลบหมวดหมู่ + 🤖 CI | Dev 1 | 🔄 | [PR #6](https://github.com/noinahjajah/Pos_Crm/pull/6) |
+| 📚 เอกสาร (README · UAT · รายงาน) | เปมิกา | ✅ | ทดสอบ UAT 49 เคส · รายงานโปรเจกต์ · คู่มือติดตั้งและใช้งาน |
+| 🗑️ ลบหมวดหมู่ + 🤖 CI | เปมิกา | 🔄 | [PR #6](https://github.com/noinahjajah/Pos_Crm/pull/6) |
 
 ผลทดสอบ: **UAT ผ่าน 48 / 49 เคส** (เหลือ UAT-16 จอครัว) · **test อัตโนมัติ 155 ข้อผ่าน** — รายละเอียดใน [📄 รายงานโปรเจกต์](เอกสาร/REPORT.md) และ [🧪 UAT](เอกสาร/UAT.md)
 
