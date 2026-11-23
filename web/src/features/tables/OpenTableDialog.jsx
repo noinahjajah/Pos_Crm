@@ -28,7 +28,7 @@ export default function OpenTableDialog({ table, onClose, onOpened }) {
     }
   }
 
-  const subtitle = [table.zone, table.seats ? `${table.seats} ที่นั่ง` : null].filter(Boolean).join(' · ')
+  const subtitle = [table.zone /* , table.seats ? `${table.seats} ที่นั่ง` : null */].filter(Boolean).join(' · ') // จำนวนที่นั่ง: ยังไม่เปิดใช้
 
   return (
     <Dialog title={`เปิดโต๊ะ ${table.table_no}`} subtitle={subtitle} onClose={onClose} busy={busy}>

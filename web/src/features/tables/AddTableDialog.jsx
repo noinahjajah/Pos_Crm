@@ -1,14 +1,15 @@
 import { useId, useState } from 'react'
 import { createTable } from '../../api/pos'
 import { errorText } from '../../lib/format'
-import { Dialog, Stepper } from '../../components/ui/posUi'
+import { Dialog /* , Stepper */ } from '../../components/ui/posUi' // Stepper: ใช้กับช่องจำนวนที่นั่ง (ปิดไว้)
 
 // เพิ่มโต๊ะในผัง (manager สาขาตัวเอง / owner เลือกสาขา) — ชื่อโต๊ะซ้ำในสาขาเดียวกันไม่ได้
 
 export default function AddTableDialog({ branchId, branchName, zones = [], onClose, onCreated }) {
   const zoneListId = useId()
   const [tableNo, setTableNo] = useState('')
-  const [seats, setSeats] = useState(4)
+  // จำนวนที่นั่ง: ยังไม่เปิดใช้ (เปิดคอมเมนต์ที่นี่ + seats ใน createTable + ช่องในฟอร์ม + import Stepper)
+  // const [seats, setSeats] = useState(4)
   const [zone, setZone] = useState(zones[0] && zones[0] !== 'โต๊ะทั้งหมด' ? zones[0] : '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -21,7 +22,7 @@ export default function AddTableDialog({ branchId, branchName, zones = [], onClo
     try {
       const table = await createTable({
         table_no: tableNo.trim(),
-        seats,
+        // seats, // ไม่ส่ง → ใช้ค่าเริ่มต้นฝั่ง backend
         zone: zone.trim() || null,
         ...(branchId ? { branch_id: branchId } : {}),
       })
@@ -47,10 +48,12 @@ export default function AddTableDialog({ branchId, branchName, zones = [], onClo
           />
         </label>
 
+        {/* จำนวนที่นั่ง: ยังไม่เปิดใช้
         <div className="pos-field">
           <span>จำนวนที่นั่ง</span>
           <Stepper value={seats} onChange={setSeats} min={1} max={50} label="จำนวนที่นั่ง" />
         </div>
+        */}
 
         <label className="pos-field">
           <span>โซน (ไม่บังคับ)</span>

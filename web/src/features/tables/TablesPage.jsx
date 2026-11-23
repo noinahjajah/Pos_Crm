@@ -255,9 +255,9 @@ function TableCard({ table: t, onClick }) {
             {t.status === 'waiting_payment' ? `รอชำระ: ${thb(o.total)}` : thb(o.subtotal ?? o.total)}
           </span>
         </>
-      ) : (
+      ) : null /* จำนวนที่นั่ง: ยังไม่เปิดใช้
         <span className="pos-table-meta">{t.seats ? `${t.seats} ที่นั่ง` : ''}</span>
-      )}
+      */}
     </button>
   )
 }
