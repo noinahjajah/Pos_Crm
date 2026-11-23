@@ -12,6 +12,7 @@ const data = (promise) => promise.then((res) => res.data)
 export const listCategories = (query) => data(api.get('/catalog/categories', { query }))
 export const createCategory = (body) => data(api.post('/catalog/categories', { body }))
 export const updateCategory = (id, body) => data(api.patch(`/catalog/categories/${id}`, { body }))
+export const deleteCategory = (id) => data(api.delete(`/catalog/categories/${id}`))
 
 // ---------- เมนู (1.14, 1.15) ----------
 /** query: { branch_id?, category_id?, available?, q? } */
