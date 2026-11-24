@@ -12,7 +12,9 @@
 //            tables: [{ id, table_no }], subtotal, discount_amount, vat_amount, total,
 //            tickets: [{ id, round_no, status, created_at, created_by_name?,
 //                        items: [{ id, menu_id, menu_name, quantity, unit_price, note,
+//                                  ordered_quantity, cancelled_quantity, cancellations: [{ quantity, cooked, reason, cancelled_at }],
 //                                  options: [{ option_id, option_name, extra_price }] }] }] }
+//            quantity = จำนวนที่ยังไม่ถูกยกเลิก (0 = ยกเลิกหมดแล้ว)
 // =====================================================================
 
 import { api } from './client'
@@ -75,7 +77,14 @@ export const listKitchenTickets = (status = 'pending,preparing') =>
 export const updateKitchenTicket = (id, status) =>
   POS_MOCK ? mock.updateKitchenTicket(id, status) : data(api.patch(`/pos/kitchen/tickets/${id}`, { body: { status } }))
 
-/** ปิดโต๊ะที่เปิดแล้วลูกค้าไม่ได้สั่ง → บิล cancelled โต๊ะกลับเป็นว่าง (ใช้ได้เฉพาะบิลที่ยังไม่มีรายการอาหาร) */
+/**
+ * ยกเลิกรายการที่ส่งครัวแล้ว (บิล open / waiting_payment) → order (+ stock_restore_failed)
+ * body: { quantity, cooked, reason? } — cooked = false คืนสต็อก · true ไม่คืนสต็อก
+ */
+export const cancelOrderItem = (orderId, itemId, body) =>
+  POS_MOCK ? mock.cancelOrderItem(orderId, itemId, body) : data(api.post(`/pos/orders/${orderId}/items/${itemId}/cancel`, { body }))
+
+/** ยกเลิกทั้งบิล → cancelled โต๊ะกลับเป็นว่าง (บิลที่ยังไม่ได้สั่ง หรือยกเลิกครบทุกรายการแล้ว) */
 export const cancelOrder = (orderId) =>
   POS_MOCK ? mock.cancelOrder(orderId) : data(api.post(`/pos/orders/${orderId}/cancel`))
 
@@ -127,5 +136,5 @@ export const lineAmount = (it) => unitWithOptions(it) * Number(it.quantity || 0)
 /** ยอดรวมของตั๋ว/ตะกร้า */
 export const itemsAmount = (items) => (items || []).reduce((s, it) => s + lineAmount(it), 0)
 
-/** รายการอาหารทั้งบิล (ทุกรอบ) */
-export const orderItems = (order) => (order?.tickets || []).flatMap((t) => t.items || [])
+/** รายการอาหารทั้งบิล (ทุกรอบ) ไม่รวมรายการที่ยกเลิกหมดแล้ว */
+export const orderItems = (order) => (order?.tickets || []).flatMap((t) => t.items || []).filter((it) => Number(it.quantity) > 0)

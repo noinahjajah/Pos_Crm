@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthContext'
 import DiscountRequestDialog from '../approvals/DiscountRequestDialog'
 import { hhmm, tablesText, thb, useBranchName, useToast } from '../../lib/posUtils'
 import { ConfirmDialog, MockBanner, Stepper, Toast } from '../../components/ui/posUi'
+import CancelItemDialog from './CancelItemDialog'
 import MenuOptionDialog from './MenuOptionDialog'
 import TicketSentDialog from './TicketSentDialog'
 import '../../styles/pos.css'
@@ -31,7 +32,7 @@ const soldOut = (m) => !m.is_available || Number(m.quantity) <= 0
 export default function OrderPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user, isStaff } = useAuth()
+  const { user, isStaff, isManager } = useAuth()
   const branchName = useBranchName()
   const [order, setOrder] = useState(null)
   const [discounts, setDiscounts] = useState([]) // คำขอส่วนลดของบิลนี้
@@ -50,6 +51,7 @@ export default function OrderPage() {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(null) // ตั๋วที่เพิ่งส่ง
   const [printing, setPrinting] = useState(null) // ตั๋วที่กำลังพิมพ์
+  const [cancelling, setCancelling] = useState(null) // รายการที่กำลังจะยกเลิก
   const [toast, notify] = useToast()
   const menuCache = useRef(new Map())
   // ต้องคงที่ — PrintSlip สั่งพิมพ์ใหม่ทุกครั้งที่ onAfterPrint เปลี่ยน
@@ -204,6 +206,19 @@ export default function OrderPage() {
     }
   }
 
+  // ยกเลิกรายการเสร็จ → ใช้บิลที่ backend ส่งกลับ · ยังไม่ได้ทำ = คืนสต็อก → โหลดเมนูใหม่
+  function itemCancelled(updated, { quantity, cooked }) {
+    const { stock_restore_failed: restoreFailed, ...next } = updated
+    setOrder(next)
+    setCancelling(null)
+    if (!cooked) {
+      menuCache.current.clear()
+      loadMenus().catch(() => {})
+    }
+    if (restoreFailed) notify('ยกเลิกรายการแล้ว แต่คืนสต็อกไม่สำเร็จ กรุณาแจ้งผู้จัดการให้ปรับสต็อกเอง', 'error')
+    else notify(`ยกเลิก ${quantity} ที่แล้ว${cooked ? ' (ไม่คืนสต็อก)' : ' · คืนสต็อกแล้ว'}`)
+  }
+
   async function bill() {
     setBilling(true)
     try {
@@ -244,6 +259,11 @@ export default function OrderPage() {
   const sentTotal = order.subtotal ?? tickets.reduce((s, t) => s + itemsAmount(t.items), 0)
   const isOpen = order.status === 'open'
   const staffName = user?.full_name || user?.username || ''
+  // ยกเลิกรายการได้ก่อนจ่ายเงิน (เปิดอยู่ / รอชำระ) · staff และ manager
+  const canCancelItems = (isStaff || isManager) && ['open', 'waiting_payment'].includes(order.status)
+  const activeCount = tickets.reduce((s, t) => s + (t.items || []).reduce((q, it) => q + Number(it.quantity || 0), 0), 0)
+  // สั่งไปแล้วแต่ยกเลิกครบทุกรายการ → ยกเลิกทั้งบิลได้
+  const allCancelled = tickets.length > 0 && activeCount === 0
 
   return (
     <div className="pos-page">
@@ -340,17 +360,36 @@ export default function OrderPage() {
                     {t.status === 'served' ? 'เสิร์ฟแล้ว' : 'ส่งครัวแล้ว'}
                   </span>
                 </div>
-                {(t.items || []).map((it, i) => (
-                  <div key={it.id || i} className="pos-line">
-                    <span className="pos-line-qty">{it.quantity}x</span>
-                    <span>
-                      {it.menu_name}
-                      {it.options?.length > 0 && <span className="pos-line-sub">{optionText(it)}</span>}
-                      {it.note && <span className="pos-line-sub">{it.note}</span>}
-                    </span>
-                    <span>{thb(lineAmount(it))}</span>
-                  </div>
-                ))}
+                {(t.items || []).map((it, i) => {
+                  const gone = Number(it.quantity) <= 0 // ยกเลิกหมดแล้ว
+                  return (
+                    <div key={it.id || i} className={`pos-line ${canCancelItems ? 'has-action' : ''} ${gone ? 'is-cancelled' : ''}`}>
+                      <span className="pos-line-qty">{gone ? it.ordered_quantity : it.quantity}x</span>
+                      <span>
+                        <span className="pos-line-name">{it.menu_name}</span>
+                        {it.options?.length > 0 && <span className="pos-line-sub">{optionText(it)}</span>}
+                        {it.note && <span className="pos-line-sub">{it.note}</span>}
+                        {it.cancelled_quantity > 0 && (
+                          <span className="pos-line-cancel">
+                            {gone ? 'ยกเลิกแล้ว' : `ยกเลิก ${it.cancelled_quantity} จาก ${it.ordered_quantity}`}
+                          </span>
+                        )}
+                      </span>
+                      <span>{gone ? '—' : thb(lineAmount(it))}</span>
+                      {canCancelItems && (
+                        <button
+                          type="button"
+                          className="pos-link-btn is-danger"
+                          onClick={() => setCancelling(it)}
+                          disabled={gone}
+                          aria-label={`ยกเลิก ${it.menu_name}`}
+                        >
+                          ยกเลิก
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             ))}
 
@@ -438,14 +477,14 @@ export default function OrderPage() {
                 </button>
               )}
               {isOpen && (
-                <button type="button" className="pos-btn" onClick={() => setConfirm('bill')} disabled={!tickets.length || cart.length > 0} title={cart.length ? 'ส่งรายการที่ค้างเข้าครัวก่อน' : undefined}>
+                <button type="button" className="pos-btn" onClick={() => setConfirm('bill')} disabled={!activeCount || cart.length > 0} title={cart.length ? 'ส่งรายการที่ค้างเข้าครัวก่อน' : undefined}>
                   เรียกเก็บเงิน
                 </button>
               )}
             </div>
-            {isOpen && tickets.length === 0 && (
+            {((isOpen && tickets.length === 0) || (canCancelItems && allCancelled)) && (
               <button type="button" className="pos-btn pos-btn-danger pos-btn-block pos-close-table" onClick={() => setConfirm('close')} disabled={closing || sending}>
-                {closing ? 'กำลังปิดโต๊ะ…' : 'ปิดโต๊ะ (ลูกค้าไม่ได้สั่ง)'}
+                {closing ? 'กำลังปิดโต๊ะ…' : allCancelled ? 'ปิดโต๊ะ (ยกเลิกทุกรายการแล้ว)' : 'ปิดโต๊ะ (ลูกค้าไม่ได้สั่ง)'}
               </button>
             )}
           </div>
@@ -490,7 +529,7 @@ export default function OrderPage() {
             </div>
             <div>
               <span>จำนวนรายการ</span>
-              <strong>{tickets.reduce((s, t) => s + (t.items || []).reduce((q, it) => q + Number(it.quantity || 0), 0), 0)} รายการ · {tickets.length} รอบ</strong>
+              <strong>{activeCount} รายการ · {tickets.length} รอบ</strong>
             </div>
             <div>
               <span>ยอดก่อน VAT</span>
@@ -510,7 +549,7 @@ export default function OrderPage() {
       {confirm === 'close' && (
         <ConfirmDialog
           title={`ปิดโต๊ะ ${tables}`}
-          subtitle="ลูกค้าไม่ได้สั่งอาหาร — บิลนี้จะถูกยกเลิกและโต๊ะกลับเป็นว่าง"
+          subtitle={`${allCancelled ? 'ยกเลิกทุกรายการแล้ว' : 'ลูกค้าไม่ได้สั่งอาหาร'} — บิลนี้จะถูกยกเลิกและโต๊ะกลับเป็นว่าง`}
           confirmLabel="ปิดโต๊ะ"
           danger
           busy={closing}
@@ -520,6 +559,8 @@ export default function OrderPage() {
           {cart.length > 0 && <p className="pos-note is-warn">รายการที่เลือกไว้แต่ยังไม่ได้ส่งเข้าครัว {cart.length} รายการ จะถูกล้างทิ้ง</p>}
         </ConfirmDialog>
       )}
+
+      {cancelling && <CancelItemDialog order={order} item={cancelling} onClose={() => setCancelling(null)} onDone={itemCancelled} />}
 
       {sent && (
         <TicketSentDialog

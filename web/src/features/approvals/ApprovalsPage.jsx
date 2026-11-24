@@ -24,15 +24,15 @@ const REFUND_METHODS = [
 ]
 
 const money = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const thb2 = (n) => `฿${money.format(Number(n) || 0)}`
-const thb = (n) => `฿${new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 }).format(Number(n) || 0)}`
+const thb2 = (n) => `${money.format(Number(n) || 0)} ฿`
+const thb = (n) => `${new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 }).format(Number(n) || 0)} ฿`
 
 const isToday = (v) => v && new Date(v).toDateString() === new Date().toDateString()
 const when = (v) => (isToday(v) ? hhmm(v) : new Date(v).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
 const fullTime = (v) =>
   v ? new Date(v).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
 
-/** บิลโต๊ะ T10 · ส่วนลด ฿100 / บิล B-0042 · คืน ฿90 */
+/** บิลโต๊ะ T10 · ส่วนลด 100 ฿ / บิล B-0042 · คืน 90 ฿ */
 function headline(a) {
   const where = a.type === 'discount' && a.tables?.length ? `บิลโต๊ะ ${tablesText(a)}` : `บิล ${a.order_no || a.order_id.slice(0, 8)}`
   return `${where} · ${a.type === 'discount' ? 'ส่วนลด' : 'คืน'} ${thb(a.amount)}`
@@ -249,7 +249,7 @@ export default function ApprovalsPage() {
 
           {/* ---------- ประวัติ ---------- */}
           <section className="pos-panel" aria-label="ประวัติคำขอ">
-            <h2 className="pos-panel-title">ประวัติคำขอทั้งหมด (บันทึกผู้ขอ ผู้อนุมัติ เวลา เหตุผล · 1.31)</h2>
+            <h2 className="pos-panel-title">ประวัติคำขอทั้งหมด</h2>
             {history.length === 0 ? (
               <div className="pos-cart-empty">ยังไม่มีคำขอที่ตัดสินแล้ว</div>
             ) : (

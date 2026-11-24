@@ -3,7 +3,7 @@
 //             GET  /internal/users?ids=      ชื่อพนักงานที่แสดงในบิล/คำขอ
 //   catalog:  POST /internal/menus/lookup    ชื่อ/ราคา/ตัวเลือกตอนสั่ง (snapshot)
 //             POST /internal/stocks/deduct   ตัดสต็อก (reference = id ตั๋ว)
-//             POST /internal/stocks/restore  คืนสต็อกเมื่อบันทึกตั๋วไม่สำเร็จ
+//             POST /internal/stocks/restore  คืนสต็อกเมื่อบันทึกตั๋วไม่สำเร็จ / ยกเลิกรายการที่ยังไม่ได้ทำ
 import { AppError, badRequest, branchForCreate } from './helpers.js'
 
 const IDENTITY_URL = (process.env.IDENTITY_URL || 'http://localhost:3001').replace(/\/$/, '')
@@ -79,6 +79,18 @@ export async function deductStocks(branchId, reference, items) {
   const e = r.json.error || {}
   if (r.status === 409) throw new AppError(409, 'STOCK_NOT_ENOUGH', e.message || 'เมนูบางรายการหมดหรือปิดขาย', e.details || [])
   throw new AppError(502, 'CATALOG_ERROR', 'ตัดสต็อกไม่สำเร็จ กรุณาลองใหม่')
+}
+
+/** คืนสต็อกตามรายการ (ยกเลิกรายการที่ยังไม่ได้ทำ) · reference เดิมเรียกซ้ำได้ไม่คืนซ้ำ · คืนไม่สำเร็จ → false */
+export async function restoreStockItems(branchId, reference, items) {
+  try {
+    const r = await call(CATALOG_URL, 'catalog', 'POST', '/internal/stocks/restore', { branch_id: branchId, reference, items })
+    if (r.ok) return true
+    console.error('[pos] คืนสต็อกรายการที่ยกเลิกไม่สำเร็จ (ต้องตรวจมือ)', reference, r.status, r.json)
+  } catch (err) {
+    console.error('[pos] คืนสต็อกรายการที่ยกเลิกไม่สำเร็จ (ต้องตรวจมือ)', reference, err.message)
+  }
+  return false
 }
 
 /** คืนสต็อกที่ตัดไปด้วย reference เดิม (ใช้เฉพาะตอนบันทึกตั๋วไม่สำเร็จ) */

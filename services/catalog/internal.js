@@ -2,7 +2,7 @@
 // ต้องมี X-Internal-Key แต่ไม่ต้องมี X-User-*
 //   POST /internal/menus/lookup   ตรวจเมนู/ตัวเลือก ได้ชื่อและราคาไปเก็บตอนสั่ง
 //   POST /internal/stocks/deduct  ตัดสต็อกตอนสั่ง (ตัดหมดหรือไม่ตัดเลย)
-//   POST /internal/stocks/restore คืนสต็อกเฉพาะตอนสั่งไม่สำเร็จ
+//   POST /internal/stocks/restore คืนสต็อกตอนสั่งไม่สำเร็จ (reference) / ยกเลิกรายการที่ยังไม่ได้ทำ (items + reference กันคืนซ้ำ)
 import { Router } from 'express'
 import { db, run } from './db.js'
 import { AppError, conflict, parse, send, uuid, z } from './helpers.js'
@@ -106,7 +106,8 @@ router.post('/stocks/deduct', async (req, res) => {
   send(res, { replayed: Boolean(out.replayed), items: out.items })
 })
 
-// คืนสต็อกเฉพาะตอนบันทึกการสั่งไม่สำเร็จ (ไม่ใช้ตอนคืนเงิน) · ไม่เปิดขายให้
+// คืนสต็อก: สั่งไม่สำเร็จ / ยกเลิกรายการที่ยังไม่ได้ทำ (ไม่ใช้ตอนคืนเงิน) · ไม่เปิดขายให้
+// ส่ง items → คืนตาม items (reference ใช้กันคืนซ้ำ) · ไม่ส่ง items → คืนทั้งหมดที่ตัดด้วย reference
 router.post('/stocks/restore', async (req, res) => {
   const { branch_id, items, reference: ref } = parse(restoreSchema, req.body)
   const out = await run(

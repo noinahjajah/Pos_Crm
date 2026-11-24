@@ -40,11 +40,19 @@ function DeltaPct({ now, before, label, invert = false }) {
   const pct = Math.round(((now - before) / Math.abs(before)) * 1000) / 10
   const good = invert ? pct <= 0 : pct >= 0
   return (
-    <span className={`pos-kpi-sub ${good ? 'is-ok' : 'is-danger'}`}>
-      {pct >= 0 ? '+' : ''}
-      {pct}% จาก {label}
+    <span className="pos-kpi-delta">
+      <b className={good ? 'is-ok' : 'is-danger'}>
+        {pct >= 0 ? '▲' : '▼'}
+        {Math.abs(pct)}%
+      </b>
+      <span>จาก {label}</span>
     </span>
   )
+}
+
+const num = (n) => {
+  const v = Math.round(Number(n) || 0)
+  return v < 0 ? `–${Math.abs(v).toLocaleString('en-US')}` : v.toLocaleString('en-US')
 }
 
 function downloadCsv(filename, rows) {
@@ -202,55 +210,28 @@ export default function ProfitPage() {
         </div>
       </div>
 
-      <div className="pos-dash-layout">
-        <section className="pos-panel" aria-label="รายเดือน">
-          <h2 className="pos-panel-title">รายเดือน · {branchId ? branchName(branchId) : 'ทุกสาขา'}</h2>
+      <div className="pos-dash-layout" style={{ marginBottom: 16, ...(branchId ? { gridTemplateColumns: 'minmax(0, 1fr)' } : null) }}>
+        <section className="pos-panel" aria-label="รายรับเทียบรายจ่าย">
+          <h2 className="pos-panel-title">รายรับ vs รายจ่าย</h2>
           {!loaded ? (
-            <div className="pos-skeleton" />
+            <div className="pos-skeleton" style={{ height: 180 }} />
           ) : (
-            <div className="pos-rtable-wrap">
-              <table className="pos-rtable">
-                <thead>
-                  <tr>
-                    <th>เดือน</th>
-                    <th className="is-num">รายรับ</th>
-                    {PROFIT_CATEGORIES.map((c) => (
-                      <th key={c.value} className="is-num">
-                        {CAT_SHORT[c.value]}
-                      </th>
-                    ))}
-                    <th className="is-num">รายจ่ายรวม</th>
-                    <th className="is-num">กำไร</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {monthly.map((m) => (
-                    <tr key={m.key}>
-                      <td>
-                        <strong>{monthShort(m.key)}</strong> <span className="pos-muted pos-small">{m.key.slice(0, 4)}</span>
-                      </td>
-                      <td className="is-num">{thb(m.revenue)}</td>
-                      {PROFIT_CATEGORIES.map((c) => (
-                        <td key={c.value} className="is-num">
-                          {thb(m.cats[c.value] || 0)}
-                        </td>
-                      ))}
-                      <td className="is-num">
-                        <strong>{thb(m.expenses)}</strong>
-                      </td>
-                      <td className={`is-num ${m.profit < 0 ? 'pos-danger-text' : 'pos-ok-text'}`}>
-                        <strong>{thb(m.profit)}</strong>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <GroupedBarChart
+              categories={monthly.map((m) => ({ key: m.key, label: monthShort(m.key) }))}
+              series={[
+                { key: 'revenue', label: 'รายรับ', color: SERIES_COLORS[0] },
+                { key: 'expenses', label: 'รายจ่าย', color: SERIES_COLORS[1] },
+              ]}
+              values={{ revenue: monthly.map((m) => m.revenue), expenses: monthly.map((m) => m.expenses) }}
+              format={thb}
+              height={160}
+              caption="รายรับเทียบรายจ่ายรายเดือน"
+            />
           )}
         </section>
 
-        <div className="pos-refund-side">
-          {!branchId && (
+        {!branchId && (
+          <div className="pos-refund-side">
             <section className="pos-panel" aria-label="แยกตามสาขา">
               <h2 className="pos-panel-title">แยกตามสาขา · {last ? monthShort(last.key) : ''}</h2>
               {!loaded ? (
@@ -277,40 +258,94 @@ export default function ProfitPage() {
                               <strong>{b.name}</strong>
                             </span>
                           </td>
-                          <td className="is-num">{thb(b.revenue)}</td>
-                          <td className="is-num">{thb(b.expenses)}</td>
+                          <td className="is-num">{num(b.revenue)}</td>
+                          <td className="is-num">{num(b.expenses)}</td>
                           <td className={`is-num ${b.profit < 0 ? 'pos-danger-text' : 'pos-ok-text'}`}>
-                            <strong>{thb(b.profit)}</strong>
+                            <strong>{num(b.profit)}</strong>
                           </td>
                         </tr>
                       ))}
+                      <tr className="pos-rtable-total">
+                        <td>
+                          <strong>รวมทุกสาขา</strong>
+                        </td>
+                        <td className="is-num">
+                          <strong>{num(branchRows.reduce((s, b) => s + b.revenue, 0))}</strong>
+                        </td>
+                        <td className="is-num">
+                          <strong>{num(branchRows.reduce((s, b) => s + b.expenses, 0))}</strong>
+                        </td>
+                        <td className="is-num pos-ok-text">
+                          <strong>{num(branchRows.reduce((s, b) => s + b.profit, 0))}</strong>
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
+                  <p className="pos-muted pos-small">หน่วย: บาท</p>
                 </div>
               )}
             </section>
-          )}
-
-          <section className="pos-panel" aria-label="รายรับเทียบรายจ่าย">
-            <h2 className="pos-panel-title">รายรับ vs รายจ่าย</h2>
-            {!loaded ? (
-              <div className="pos-skeleton" style={{ height: 180 }} />
-            ) : (
-              <GroupedBarChart
-                categories={monthly.map((m) => ({ key: m.key, label: monthShort(m.key) }))}
-                series={[
-                  { key: 'revenue', label: 'รายรับ', color: SERIES_COLORS[0] },
-                  { key: 'expenses', label: 'รายจ่าย', color: SERIES_COLORS[1] },
-                ]}
-                values={{ revenue: monthly.map((m) => m.revenue), expenses: monthly.map((m) => m.expenses) }}
-                format={thb}
-                height={160}
-                caption="รายรับเทียบรายจ่ายรายเดือน"
-              />
-            )}
-          </section>
-        </div>
+          </div>
+        )}
       </div>
+
+      <section className="pos-panel" aria-label="รายเดือน">
+        <div className="pos-panel-head-row">
+          <h2 className="pos-panel-title">รายเดือน · {branchId ? branchName(branchId) : 'ทุกสาขา'}</h2>
+          <span className="pos-muted pos-small">หน่วย: บาท · เดือนล่าสุดอยู่ล่างสุด</span>
+        </div>
+        {!loaded ? (
+          <div className="pos-skeleton" />
+        ) : (
+          <div className="pos-rtable-wrap">
+            <table className="pos-rtable">
+              <thead>
+                <tr className="pos-rtable-group">
+                  <th colSpan={2} />
+                  <th colSpan={PROFIT_CATEGORIES.length} className="is-center">
+                    รายจ่ายแยกหมวด
+                  </th>
+                  <th colSpan={2} />
+                </tr>
+                <tr>
+                  <th>เดือน</th>
+                  <th className="is-num">รายรับ</th>
+                  {PROFIT_CATEGORIES.map((c) => (
+                    <th key={c.value} className="is-num">
+                      {CAT_SHORT[c.value]}
+                    </th>
+                  ))}
+                  <th className="is-num">รายจ่ายรวม</th>
+                  <th className="is-num">กำไร</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthly.map((m) => (
+                  <tr key={m.key}>
+                    <td>
+                      <strong>{monthShort(m.key)}</strong> <span className="pos-muted pos-small">{m.key.slice(0, 4)}</span>
+                    </td>
+                    <td className="is-num">
+                      <strong>{num(m.revenue)}</strong>
+                    </td>
+                    {PROFIT_CATEGORIES.map((c) => (
+                      <td key={c.value} className="is-num pos-muted">
+                        {num(m.cats[c.value] || 0)}
+                      </td>
+                    ))}
+                    <td className="is-num">
+                      <strong>{num(m.expenses)}</strong>
+                    </td>
+                    <td className={`is-num ${m.profit < 0 ? 'pos-danger-text' : 'pos-ok-text'}`}>
+                      <strong>{num(m.profit)}</strong>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   )
 }

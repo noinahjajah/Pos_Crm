@@ -11,11 +11,11 @@ export function errorText(err) {
 
 const money = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 export const fmt = (n) => money.format(Number(n) || 0)
-/** 1660 → '฿1,660.00' */
-export const thb2 = (n) => `฿${fmt(n)}`
+/** 1660 → '1,660.00 ฿' */
+export const thb2 = (n) => `${fmt(n)} ฿`
 const whole = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 })
-/** 1700 → '฿1,700' */
-export const thb = (n) => `฿${whole.format(Number(n) || 0)}`
+/** 1700 → '1,700 ฿' */
+export const thb = (n) => `${whole.format(Number(n) || 0)} ฿`
 
 /**
  * ยอดบิลตามสูตร spec 1.24 — ราคาเมนูยังไม่รวม VAT
@@ -31,8 +31,9 @@ export function billNumbers(order) {
   return { subtotal, discount, beforeVat, vat, total }
 }
 
-/** รายการอาหารของบิล: บิลจาก payment ส่ง items มาแบน · บิลจาก pos แยกตามรอบ (tickets) */
-export const billItems = (order) => order?.items || (order?.tickets || []).flatMap((t) => t.items || [])
+/** รายการอาหารของบิล: บิลจาก payment ส่ง items มาแบน · บิลจาก pos แยกตามรอบ (tickets) · ไม่รวมรายการที่ยกเลิกหมดแล้ว */
+export const billItems = (order) =>
+  (order?.items || (order?.tickets || []).flatMap((t) => t.items || [])).filter((it) => Number(it.quantity) > 0)
 
 /** ยอดของรายการ 1 แถว (ราคาเมนู + ตัวเลือก) × จำนวน */
 export function lineTotal(item) {

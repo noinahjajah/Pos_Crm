@@ -125,7 +125,7 @@ export default function CheckoutPage({ orderId: orderIdProp, onDone, onBack }) {
             {items.map((it, i) => (
               <div key={it.id || i} className="pos-bill-line">
                 <span>
-                  {it.menu_name} <span className="pos-muted">x{it.quantity}</span>
+                  <span className="pos-muted">{i + 1}.</span> {it.menu_name} <span className="pos-muted">x{it.quantity}</span>
                   {it.options?.length > 0 && <span className="pos-line-sub">{it.options.map((o) => o.option_name || o.name).join(' · ')}</span>}
                 </span>
                 <span>{thb(lineTotal(it))}</span>

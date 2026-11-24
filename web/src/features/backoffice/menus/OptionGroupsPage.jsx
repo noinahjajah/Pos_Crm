@@ -330,8 +330,9 @@ function GroupEditor({ group, branchId, isOwner, menus, links, onCancel, onSaved
                   </td>
                   <td>
                     <div className="pos-price-input">
-                      <span>+฿</span>
+                      <span>+</span>
                       <input type="number" min="0" step="0.01" inputMode="decimal" value={r.extra_price} onChange={setRow(r.key, 'extra_price')} placeholder="0" aria-label={`ราคาบวกเพิ่มของตัวเลือกที่ ${i + 1}`} />
+                      <span>฿</span>
                     </div>
                   </td>
                   <td className="is-center">

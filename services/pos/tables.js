@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { db, run } from './db.js'
 import { allow, atLeastOne, badRequest, branchFilter, conflict, idParam, mustBeMyBranch, notFound, parse, send, uuid, z } from './helpers.js'
 import { branchForWrite } from './services.js'
+import { activeQty } from './views.js'
 
 const tableNo = z.string().trim().min(1, 'กรุณากรอกชื่อโต๊ะ').max(20)
 const seats = z.number().int().min(1).max(50)
@@ -32,7 +33,7 @@ function toTable(row) {
           guest_count: o.guest_count,
           opened_at: o.opened_at,
           status: o.status,
-          item_count: (o.order_items || []).reduce((s, i) => s + i.quantity, 0),
+          item_count: (o.order_items || []).reduce((s, i) => s + activeQty(i), 0),
           subtotal: Number(o.subtotal),
           total: Number(o.total),
         }
@@ -40,7 +41,7 @@ function toTable(row) {
   }
 }
 
-const TABLE_WITH_ORDER = '*, order_tables(left_at, orders(id, order_no, guest_count, opened_at, status, subtotal, total, order_items(quantity)))'
+const TABLE_WITH_ORDER = '*, order_tables(left_at, orders(id, order_no, guest_count, opened_at, status, subtotal, total, order_items(quantity, cancelled_quantity)))'
 
 const router = Router()
 

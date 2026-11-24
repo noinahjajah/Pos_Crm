@@ -12,8 +12,8 @@ export const TABLE_STATUS = {
 }
 
 const thbFormat = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 })
-/** 1120 → '฿1,120' · 12.5 → '฿12.5' */
-export const thb = (n) => `฿${thbFormat.format(Number(n) || 0)}`
+/** 1120 → '1,120 ฿' · 12.5 → '12.5 ฿' */
+export const thb = (n) => `${thbFormat.format(Number(n) || 0)} ฿`
 
 /** '2026-11-16T18:42:00Z' → '18:42' */
 export function hhmm(value) {

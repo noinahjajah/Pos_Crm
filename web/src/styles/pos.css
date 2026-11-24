@@ -745,6 +745,22 @@
 .pos-line-qty {
   color: var(--app-muted);
 }
+/* ยกเลิกรายการ: ปุ่มต่อท้ายแถว · ยกเลิกหมดแล้ว = ขีดฆ่า */
+.pos-line.has-action {
+  grid-template-columns: 32px 1fr auto auto;
+  align-items: start;
+}
+.pos-line.is-cancelled {
+  color: var(--app-muted);
+}
+.pos-line.is-cancelled .pos-line-name {
+  text-decoration: line-through;
+}
+.pos-line-cancel {
+  display: block;
+  font-size: 12px;
+  color: var(--app-danger);
+}
 .pos-line-sub {
   display: block;
   font-size: 12px;
@@ -2365,4 +2381,93 @@ tr.is-selected .pos-row-link,
   .pos-cashier-layout {
     grid-template-columns: 1fr;
   }
+}
+
+/* หน้ากำไร-ขาดทุน (ตาม Figma) */
+.pos-kpi-delta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--app-muted);
+}
+.pos-kpi-delta b {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.pos-kpi-delta b.is-ok {
+  color: var(--app-ok);
+  background: color-mix(in srgb, var(--app-ok) 16%, transparent);
+}
+.pos-kpi-delta b.is-danger {
+  color: var(--app-danger);
+  background: color-mix(in srgb, var(--app-danger) 16%, transparent);
+}
+.pos-panel-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pos-rtable-total td {
+  border-top: 1px solid var(--app-line);
+}
+.pos-rtable-group th {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--app-muted);
+}
+
+/* กราฟแท่งชุดเดียว: แกน Y + เส้นกริด + ป้ายค่า (ตาม Figma) */
+.pos-chart-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--app-soft);
+  font-size: 13px;
+}
+.pos-chart-pill.is-muted {
+  color: var(--app-muted);
+}
+.pos-chart-body {
+  position: relative;
+  padding-left: 40px;
+}
+.pos-chart-plotwrap {
+  position: relative;
+}
+.pos-chart-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.pos-chart-grid span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px solid var(--app-line);
+  color: var(--app-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+.pos-chart-grid span b {
+  position: absolute;
+  left: -40px;
+  top: -6px;
+  width: 34px;
+  font-weight: 400;
+}
+.pos-chart-body .pos-chart-plot {
+  position: relative;
+}
+.pos-chart-tip .is-profit {
+  color: var(--app-ok);
+}
+.pos-chart-axis span.is-active {
+  color: var(--app-text, inherit);
+  font-weight: 700;
 }

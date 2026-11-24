@@ -12,7 +12,7 @@ const POLL_LIVE = 60_000
 const POLL_OFFLINE = 15_000
 const POPUP_MS = 8000
 
-const thb = (n) => `฿${new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 }).format(Number(n) || 0)}`
+const thb = (n) => `${new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 }).format(Number(n) || 0)} ฿`
 
 function BellIcon() {
   return (

@@ -5,8 +5,11 @@ import { notFound, round2 } from './helpers.js'
 import { userNames } from './services.js'
 
 const TABLES = 'order_tables(table_id, joined_at, left_at, dining_tables(table_no))'
-export const ORDER_FULL = `*, ${TABLES}, kitchen_tickets(*, order_items(*, order_item_options(*)))`
-export const ORDER_SUMMARY = `*, ${TABLES}, order_items(quantity)`
+export const ORDER_FULL = `*, ${TABLES}, kitchen_tickets(*, order_items(*, order_item_options(*), order_item_cancellations(*)))`
+export const ORDER_SUMMARY = `*, ${TABLES}, order_items(quantity, cancelled_quantity)`
+
+/** จำนวนที่ยังไม่ถูกยกเลิก */
+export const activeQty = (oi) => oi.quantity - (oi.cancelled_quantity || 0)
 export const APPROVAL_FULL = `*, orders(order_no, status, subtotal, discount_amount, total, ${TABLES}), refund_items(order_item_id, quantity, amount, order_items(menu_name))`
 
 const num = (v) => (v == null ? null : Number(v))
@@ -23,6 +26,7 @@ export function currentTables(orderTables = []) {
     .sort((a, b) => String(a.table_no).localeCompare(String(b.table_no), 'th', { numeric: true }))
 }
 
+// quantity = จำนวนที่ยังไม่ถูกยกเลิก (ใช้คิดเงิน/ใบเสร็จ/คืนเงิน) · ordered_quantity = จำนวนที่สั่งตอนแรก
 export function toItem(oi) {
   const options = (oi.order_item_options || []).map((o) => ({
     option_id: o.option_id,
@@ -30,15 +34,21 @@ export function toItem(oi) {
     extra_price: num(o.extra_price),
   }))
   const unit = num(oi.unit_price) + options.reduce((s, o) => s + o.extra_price, 0)
+  const quantity = activeQty(oi)
   return {
     id: oi.id,
     menu_id: oi.menu_id,
     menu_name: oi.menu_name,
-    quantity: oi.quantity,
+    quantity,
+    ordered_quantity: oi.quantity,
+    cancelled_quantity: oi.cancelled_quantity || 0,
+    cancellations: (oi.order_item_cancellations || [])
+      .sort((a, b) => a.cancelled_at.localeCompare(b.cancelled_at))
+      .map((c) => ({ id: c.id, quantity: c.quantity, cooked: c.cooked, reason: c.reason, cancelled_by: c.cancelled_by, cancelled_at: c.cancelled_at })),
     unit_price: num(oi.unit_price),
     note: oi.note,
     options,
-    line_total: round2(unit * oi.quantity),
+    line_total: round2(unit * quantity),
   }
 }
 
@@ -107,14 +117,15 @@ export function toOrderSummary(row) {
     paid_at: paid ? row.closed_at : null,
     payment_method: row.payment_method,
     tables: currentTables(row.order_tables),
-    item_count: (row.order_items || []).reduce((s, i) => s + i.quantity, 0),
+    item_count: (row.order_items || []).reduce((s, i) => s + activeQty(i), 0),
     ...money(row),
   }
 }
 
 /** สรุปบิลสำหรับ payment (internal) — รายการแบน + table_no แบบข้อความ */
 export function toPaymentSummary(order) {
-  const items = order.tickets.flatMap((t) => t.items)
+  // ใบเสร็จ/คิดเงิน: ไม่แสดงรายการที่ยกเลิกหมดแล้ว
+  const items = order.tickets.flatMap((t) => t.items).filter((i) => i.quantity > 0)
   return {
     id: order.id,
     order_no: order.order_no,

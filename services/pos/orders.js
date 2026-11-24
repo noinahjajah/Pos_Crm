@@ -4,7 +4,7 @@ import { Router } from 'express'
 import { db, rpc, run } from './db.js'
 import { publishApproval } from './events.js'
 import { allow, branchFilter, conflict, dateString, dayRangeIso, idParam, mustBeMyBranch, parse, send, uuid, z } from './helpers.js'
-import { deductStocks, lookupMenus, restoreStocks } from './services.js'
+import { deductStocks, lookupMenus, restoreStockItems, restoreStocks } from './services.js'
 import { ORDER_SUMMARY, loadApproval, loadOrder, toOrder, toOrderSummary } from './views.js'
 
 const tableIds = z.array(uuid).min(1, 'เลือกอย่างน้อย 1 โต๊ะ').max(20)
@@ -35,6 +35,12 @@ const approvalSchema = z
   })
   .refine((v) => v.value_type !== 'percent' || v.value <= 100, { path: ['value'], message: 'เปอร์เซ็นต์ต้องไม่เกิน 100' })
   .refine((v) => v.type !== 'refund' || v.value_type === 'amount', { path: ['value_type'], message: 'คืนเงินใช้ value_type = amount' })
+const itemParams = z.object({ id: uuid, itemId: uuid })
+const cancelItemSchema = z.object({
+  quantity: z.number().int().min(1, 'อย่างน้อย 1').max(999),
+  cooked: z.boolean({ required_error: 'เลือกว่าทำอาหารไปแล้วหรือยัง' }),
+  reason: z.string().trim().max(200).nullish().transform((v) => v || null),
+})
 const listSchema = z.object({
   status: z.enum(['open', 'waiting_payment', 'paid', 'refunded', 'merged', 'cancelled']).optional(),
   date: dateString.optional(),
@@ -155,7 +161,30 @@ router.post('/:id/request-payment', allow('staff', 'manager'), async (req, res) 
   send(res, await fullOrder(id))
 })
 
-// POST /orders/:id/cancel — ยกเลิกบิลที่เปิดผิด (ยังไม่ได้สั่งอะไร) คืนโต๊ะเป็นว่าง
+// POST /orders/:id/items/:itemId/cancel — ยกเลิกรายการหลังส่งครัว (บิลยังไม่จ่าย) { quantity, cooked, reason? }
+// cooked = false (ยังไม่ได้ทำ) → คืนสต็อก · cooked = true (ทำแล้ว) → ไม่คืนสต็อก
+// บันทึกการยกเลิกก่อน แล้วค่อยคืนสต็อก (reference = id การยกเลิก กันคืนซ้ำ) · คืนไม่สำเร็จ → stock_restore_failed
+router.post('/:id/items/:itemId/cancel', allow('staff', 'manager'), async (req, res) => {
+  const { id, itemId } = parse(itemParams, req.params)
+  const { quantity, cooked, reason } = parse(cancelItemSchema, req.body)
+  const order = await myOrder(req, id)
+  const cancellation = await rpc('cancel_order_item', {
+    p_order_id: id,
+    p_item_id: itemId,
+    p_quantity: quantity,
+    p_cooked: cooked,
+    p_reason: reason,
+    p_actor: req.user.id,
+  })
+  let stockRestoreFailed = false
+  if (!cooked) {
+    const item = order.kitchen_tickets.flatMap((t) => t.order_items || []).find((i) => i.id === itemId)
+    stockRestoreFailed = !(await restoreStockItems(order.branch_id, `cancel:${cancellation.id}`, [{ menu_id: item.menu_id, quantity }]))
+  }
+  send(res, { ...(await fullOrder(id)), stock_restore_failed: stockRestoreFailed })
+})
+
+// POST /orders/:id/cancel — ยกเลิกทั้งบิล: เปิดผิด (ยังไม่ได้สั่ง) หรือยกเลิกครบทุกรายการแล้ว → โต๊ะว่าง
 router.post('/:id/cancel', allow('staff', 'manager'), async (req, res) => {
   const { id } = parse(idParam, req.params)
   await myOrder(req, id)

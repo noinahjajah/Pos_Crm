@@ -431,11 +431,29 @@ export async function updateKitchenTicket(id, status) {
   throw notFound('ไม่พบตั๋ว')
 }
 
+/** ยกเลิกรายการ (จำลอง) · mock ไม่มีสต็อกของตัวเอง เลยไม่ได้คืนสต็อกจริง */
+export async function cancelOrderItem(orderId, itemId, { quantity, cooked, reason } = {}) {
+  await wait()
+  const order = findOrder(orderId)
+  if (!['open', 'waiting_payment'].includes(order.status)) throw conflict('บิลนี้ปิดไปแล้ว ยกเลิกรายการไม่ได้')
+  const it = allItems(order).find((x) => x.id === itemId)
+  if (!it) throw notFound('รายการนี้ไม่ได้อยู่ในบิล')
+  it.ordered_quantity ??= it.quantity
+  it.cancelled_quantity ??= 0
+  it.cancellations ??= []
+  if (!quantity || quantity < 1 || it.cancelled_quantity + quantity > it.ordered_quantity) throw conflict('ยกเลิกเกินจำนวนที่เหลืออยู่')
+  it.cancelled_quantity += quantity
+  it.quantity = it.ordered_quantity - it.cancelled_quantity
+  it.cancellations.push({ id: uid(), quantity, cooked: Boolean(cooked), reason: reason || null, cancelled_at: new Date().toISOString() })
+  save()
+  return { ...toOrder(order), stock_restore_failed: false }
+}
+
 export async function cancelOrder(orderId) {
   await wait()
   const order = findOrder(orderId)
-  mustBeOpen(order)
-  if (order.tickets.length) throw conflict('บิลนี้สั่งอาหารแล้ว ยกเลิกไม่ได้')
+  if (!['open', 'waiting_payment'].includes(order.status)) throw conflict('บิลนี้ไม่ได้อยู่ในสถานะเปิด')
+  if (allItems(order).some((it) => it.quantity > 0)) throw conflict('บิลนี้ยังมีรายการอาหาร ยกเลิกทั้งบิลไม่ได้ (ยกเลิกทุกรายการก่อน)')
   order.status = 'cancelled'
   save()
   return toOrder(order)
@@ -445,7 +463,7 @@ export async function requestPayment(orderId) {
   await wait()
   const order = findOrder(orderId)
   mustBeOpen(order)
-  if (!order.tickets.length) throw conflict('ยังไม่มีรายการอาหาร เรียกเก็บเงินไม่ได้')
+  if (!allItems(order).some((it) => it.quantity > 0)) throw conflict('ยังไม่มีรายการอาหาร เรียกเก็บเงินไม่ได้')
   order.status = 'waiting_payment'
   save()
   return toOrder(order)

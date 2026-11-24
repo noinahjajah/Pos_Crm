@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { YGrid, niceMax } from './chartScale'
 
 // กราฟแท่งแบบกลุ่ม (หลายชุดข้อมูล) — ใช้ในแดชบอร์ดเจ้าของและหน้ากำไร
 // - สีตามลำดับชุดข้อมูลจาก --app-series-1..4 (ผ่านตัวตรวจ dataviz) · ชุดเกิน 4 ให้ผู้เรียกรวมเป็น "อื่น ๆ" เอง
@@ -9,7 +10,7 @@ import { useMemo, useState } from 'react'
 
 export default function GroupedBarChart({ categories, series, values, format = String, height = 200, caption }) {
   const [active, setActive] = useState(null)
-  const max = useMemo(() => Math.max(1, ...series.flatMap((s) => values[s.key] || [])), [series, values])
+  const max = useMemo(() => niceMax(Math.max(1, ...series.flatMap((s) => values[s.key] || []))), [series, values])
   const hasData = series.some((s) => (values[s.key] || []).some((v) => v > 0))
 
   if (!hasData) return <div className="pos-cart-empty">ยังไม่มีข้อมูลในช่วงนี้</div>
@@ -19,7 +20,7 @@ export default function GroupedBarChart({ categories, series, values, format = S
       <div className="pos-chart-head">
         <div className="pos-chart-tip" aria-hidden="true">
           {active != null ? (
-            <>
+            <span className="pos-chart-pill">
               <strong>{categories[active].label}</strong>
               {series.map((s) => (
                 <span key={s.key} className="pos-chart-tip-item">
@@ -27,9 +28,9 @@ export default function GroupedBarChart({ categories, series, values, format = S
                   {s.label} {format(values[s.key]?.[active] ?? 0)}
                 </span>
               ))}
-            </>
+            </span>
           ) : (
-            <span className="pos-muted">ชี้ที่กลุ่มแท่งเพื่อดูตัวเลข</span>
+            <span className="pos-chart-pill is-muted">ชี้ที่กลุ่มแท่งเพื่อดูตัวเลข</span>
           )}
         </div>
         <ul className="pos-legend" aria-label="คำอธิบายสี">
@@ -42,27 +43,34 @@ export default function GroupedBarChart({ categories, series, values, format = S
         </ul>
       </div>
 
-      <div className="pos-chart-plot" style={{ height }} onMouseLeave={() => setActive(null)} role="img" aria-label={caption}>
-        {categories.map((c, i) => (
-          <button
-            key={c.key}
-            type="button"
-            className={`pos-chart-col is-group ${active === i ? 'is-active' : ''}`}
-            onMouseEnter={() => setActive(i)}
-            onFocus={() => setActive(i)}
-            onBlur={() => setActive(null)}
-            aria-label={`${c.label}: ${series.map((s) => `${s.label} ${format(values[s.key]?.[i] ?? 0)}`).join(', ')}`}
-          >
-            {series.map((s) => (
-              <span key={s.key} className="pos-chart-bar" style={{ height: `${((values[s.key]?.[i] ?? 0) / max) * 100}%`, background: s.color }} />
+      <div className="pos-chart-body">
+        <div className="pos-chart-plotwrap">
+          <YGrid ticks={[max, max / 2, 0].map((v) => ({ value: v, pct: (v / max) * 100 }))} />
+          <div className="pos-chart-plot" style={{ height }} onMouseLeave={() => setActive(null)} role="img" aria-label={caption}>
+            {categories.map((c, i) => (
+              <button
+                key={c.key}
+                type="button"
+                className={`pos-chart-col is-group ${active === i ? 'is-active' : ''}`}
+                onMouseEnter={() => setActive(i)}
+                onFocus={() => setActive(i)}
+                onBlur={() => setActive(null)}
+                aria-label={`${c.label}: ${series.map((s) => `${s.label} ${format(values[s.key]?.[i] ?? 0)}`).join(', ')}`}
+              >
+                {series.map((s) => (
+                  <span key={s.key} className="pos-chart-bar" style={{ height: `${((values[s.key]?.[i] ?? 0) / max) * 100}%`, background: s.color }} />
+                ))}
+              </button>
             ))}
-          </button>
-        ))}
-      </div>
-      <div className="pos-chart-axis" aria-hidden="true">
-        {categories.map((c) => (
-          <span key={c.key}>{c.label}</span>
-        ))}
+          </div>
+        </div>
+        <div className="pos-chart-axis" aria-hidden="true">
+          {categories.map((c, i) => (
+            <span key={c.key} className={active === i ? 'is-active' : ''}>
+              {c.label}
+            </span>
+          ))}
+        </div>
       </div>
 
       <table className="pos-sr-only">

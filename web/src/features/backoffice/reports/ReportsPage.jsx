@@ -5,6 +5,7 @@ import { useApprovalFeed } from '../../../api/approvalFeed'
 import { listApprovals } from '../../../api/pos'
 import { useReportFeed } from '../../../api/reportFeed'
 import { hhmm, thb } from '../../../lib/posUtils'
+import { YGrid, niceMax } from '../chartScale'
 import GroupedBarChart from '../GroupedBarChart'
 import { OTHER_COLOR, SERIES_COLORS } from '../seriesColors'
 import { errorText, todayTh, useBranchScope } from '../useBranchScope'
@@ -102,20 +103,29 @@ function Delta({ now, before, unit = '%', suffix = 'จากเมื่อว�
     if (!before) return <span className="pos-kpi-sub">{now ? 'เมื่อวานไม่มียอด' : 'ยังไม่มียอด'}</span>
     const pct = Math.round(((now - before) / before) * 100)
     return (
-      <span className={`pos-kpi-sub ${pct >= 0 ? 'is-ok' : 'is-danger'}`}>
-        {pct >= 0 ? '+' : ''}
-        {pct}% {suffix}
+      <span className="pos-kpi-delta">
+        <b className={pct >= 0 ? 'is-ok' : 'is-danger'}>
+          {pct >= 0 ? '▲' : '▼'}
+          {Math.abs(pct)}%
+        </b>
+        <span>{suffix}</span>
       </span>
     )
   }
   const diff = now - before
   return (
-    <span className={`pos-kpi-sub ${diff >= 0 ? 'is-ok' : 'is-danger'}`}>
-      {diff >= 0 ? '+' : ''}
-      {diff} {unit} {suffix}
+    <span className="pos-kpi-delta">
+      <b className={diff >= 0 ? 'is-ok' : 'is-danger'}>
+        {diff >= 0 ? '▲' : '▼'}
+        {Math.abs(diff)} {unit}
+      </b>
+      <span>{suffix}</span>
     </span>
   )
 }
+
+const num = (n) => Math.round(Number(n) || 0).toLocaleString('en-US')
+const ROW = { alignItems: 'stretch', marginBottom: 16 }
 
 export default function ReportsPage() {
   const scope = useBranchScope({ allowAll: true })
@@ -225,7 +235,7 @@ function PendingRefunds({ approvals }) {
   if (!approvals) return null
   const refunds = approvals.filter((a) => a.type === 'refund').sort((a, b) => (b.requested_at || '').localeCompare(a.requested_at || ''))
   return (
-    <section className="pos-panel" style={{ marginBottom: 16 }} aria-label="คำขอคืนเงินรออนุมัติ">
+    <section className="pos-panel" aria-label="คำขอคืนเงินรออนุมัติ">
       <div className="pos-panel-head">
         <h2 className="pos-panel-title" style={{ margin: 0 }}>
           คำขอคืนเงินรออนุมัติ ({refunds.length})
@@ -255,6 +265,62 @@ function PendingRefunds({ approvals }) {
             </Link>
           )
         })
+      )}
+    </section>
+  )
+}
+
+/** ยอดขายรายชั่วโมง (วันนี้) หรือรายวัน 7/30 วัน · refreshKey เปลี่ยน → โหลดใหม่ */
+function HourlySalesPanel({ branchId, refreshKey, live }) {
+  const [range /* , setRange */] = useState('today') // today | 7 | 30 (7/30 ปิดไว้ก่อน)
+  const [state, setState] = useState({ range: null, points: null, error: '', at: null })
+  useEffect(() => {
+    let cancelled = false
+    const load = () =>
+      (range === 'today' ? hourlySales(todayTh(), branchId) : dailySales(Number(range), branchId))
+        .then((points) => !cancelled && setState({ range, points, error: '', at: new Date() }))
+        .catch((err) => !cancelled && setState((s) => ({ ...s, range, error: errorText(err) })))
+    load()
+    const id = setInterval(load, live ? REFRESH_MS : REFRESH_OFFLINE_MS)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [branchId, range, refreshKey, live])
+
+  const loading = state.range !== range
+
+  return (
+    <section className="pos-panel" aria-label="ยอดขาย">
+      <div className="pos-panel-head">
+        <div>
+          <h2 className="pos-panel-title" style={{ margin: 0 }}>
+            {range === 'today' ? 'ยอดขายรายชั่วโมง' : `ยอดขายรายวัน · ${range} วัน`}
+          </h2>
+          <p className="pos-dialog-sub">
+            เงินที่รับ รวม VAT{state.at ? ` · อัปเดต ${hhmm(state.at)}` : ''} <LiveBadge live={live} />
+          </p>
+        </div>
+        {/* TODO: แท็บ 7 วัน / 30 วัน — ปิดไว้ก่อน รอสรุปวิธีรวมข้อมูลตามชั่วโมง (ดูช่วงเวลาที่คนเยอะ)
+        <div className="pos-tabs" role="tablist" style={{ margin: 0 }}>
+          {[
+            ['today', 'วันนี้'],
+            ['7', '7 วัน'],
+            ['30', '30 วัน'],
+          ].map(([key, label]) => (
+            <button key={key} type="button" role="tab" aria-selected={range === key} className={range === key ? 'is-active' : ''} onClick={() => setRange(key)}>
+              {label}
+            </button>
+          ))}
+        </div>
+        */}
+      </div>
+      {loading ? (
+        <div className="pos-skeleton" style={{ height: 240 }} />
+      ) : state.error ? (
+        <p className="pos-note is-warn">{state.error}</p>
+      ) : (
+        <BarChart points={state.points} dense={range === '30'} />
       )}
     </section>
   )
@@ -361,29 +427,20 @@ function OwnerOverview({ branches }) {
         </div>
       </div>
 
-      <PendingRefunds approvals={pending} />
-
-      <section className="pos-panel" style={{ marginBottom: 16 }} aria-label="ยอดขาย 7 วันแยกสาขา">
-        <h2 className="pos-panel-title">ยอดขาย 7 วัน แยกสาขา</h2>
-        {!weekValues ? (
-          <div className="pos-skeleton" style={{ height: 220 }} />
-        ) : (
-          <GroupedBarChart
-            categories={week.map((d) => ({ key: d.date, label: dayLabel(d.date) }))}
-            series={series}
-            values={weekValues}
-            format={thb}
-            caption="ยอดขายสุทธิรายวันแยกสาขา 7 วันล่าสุด"
-          />
-        )}
-      </section>
-
-      <ProfitLossPanel title="กำไร / ขาดทุน รวมทุกสาขา" refreshKey={version} />
-
+      <div className="pos-dash-layout" style={ROW}>
       <section className="pos-panel" aria-label="เปรียบเทียบสาขาวันนี้">
-        <h2 className="pos-panel-title">
-          เปรียบเทียบสาขา · วันนี้{state.at ? ` · อัปเดต ${hhmm(state.at)}` : ''} <LiveBadge live={live} />
-        </h2>
+        <div className="pos-panel-head">
+          <div>
+            <h2 className="pos-panel-title" style={{ margin: 0 }}>
+              เปรียบเทียบสาขา · วันนี้
+            </h2>
+            <p className="pos-dialog-sub">
+              {state.at ? `อัปเดต ${hhmm(state.at)} ` : ''}
+              <LiveBadge live={live} />
+            </p>
+          </div>
+          <span className="pos-muted pos-small">หน่วย: บาท</span>
+        </div>
         {!t ? (
           <div className="pos-skeleton" style={{ height: 160 }} />
         ) : (
@@ -412,17 +469,17 @@ function OwnerOverview({ branches }) {
                           <strong>{b.name}</strong>
                         </span>
                       </td>
-                      <td className="is-num">{thb(now?.net_sales || 0)}</td>
+                      <td className="is-num">{num(now?.net_sales || 0)}</td>
                       <td className="is-num">{now?.bill_count || 0}</td>
-                      <td className="is-num">{thb(Math.round(now?.avg_per_bill || 0))}</td>
+                      <td className="is-num">{num(now?.avg_per_bill || 0)}</td>
                       <td>{state.tops.get(b.id) || <span className="pos-muted">—</span>}</td>
                       <td>
                         {d == null ? (
                           <span className="pos-muted pos-small">{now?.net_sales ? 'เมื่อวานไม่มียอด' : '—'}</span>
                         ) : (
                           <span className={`pos-pill ${d >= 0 ? 'is-available' : 'is-waiting'}`}>
-                            {d >= 0 ? '+' : ''}
-                            {d}%
+                            {d >= 0 ? '▲' : '▼'}
+                            {Math.abs(d)}%
                           </span>
                         )}
                       </td>
@@ -434,6 +491,28 @@ function OwnerOverview({ branches }) {
           </div>
         )}
       </section>
+        <PendingRefunds approvals={pending} />
+      </div>
+
+      <div className="pos-dash-layout" style={ROW}>
+      <section className="pos-panel" aria-label="ยอดขาย 7 วันแยกสาขา">
+        <h2 className="pos-panel-title">ยอดขาย 7 วัน แยกสาขา</h2>
+        {!weekValues ? (
+          <div className="pos-skeleton" style={{ height: 220 }} />
+        ) : (
+          <GroupedBarChart
+            categories={week.map((d) => ({ key: d.date, label: dayLabel(d.date) }))}
+            series={series}
+            values={weekValues}
+            format={thb}
+            caption="ยอดขายสุทธิรายวันแยกสาขา 7 วันล่าสุด"
+          />
+        )}
+      </section>
+      <ProfitLossPanel title="กำไร / ขาดทุน รวมทุกสาขา" refreshKey={version} />
+      </div>
+
+      <HourlySalesPanel refreshKey={version} live={live} />
     </>
   )
 }
@@ -525,11 +604,7 @@ function Overview({ branchId }) {
         </div>
       </div>
 
-      <PendingRefunds approvals={pending} />
-
-      <ProfitLossPanel branchId={branchId} refreshKey={version} />
-
-      <div className="pos-dash-layout">
+      <div className="pos-dash-layout" style={ROW}>
         <section className="pos-panel" aria-label="ยอดขาย">
           <div className="pos-panel-head">
             <div>
@@ -561,8 +636,19 @@ function Overview({ branchId }) {
           )}
         </section>
 
+        <PendingRefunds approvals={pending} />
+      </div>
+
+      <div className="pos-dash-layout" style={ROW}>
+        <ProfitLossPanel branchId={branchId} refreshKey={version} />
+
         <section className="pos-panel" aria-label="เมนูขายดีวันนี้">
-          <h2 className="pos-panel-title">เมนูขายดีวันนี้</h2>
+          <div className="pos-panel-head">
+            <h2 className="pos-panel-title" style={{ margin: 0 }}>
+              เมนูขายดีวันนี้
+            </h2>
+            <span className="pos-muted pos-small">หน่วย: บาท</span>
+          </div>
           {!t ? (
             <div className="pos-skeleton" style={{ height: 200 }} />
           ) : !t.top_menus ? (
@@ -586,7 +672,7 @@ function Overview({ branchId }) {
                       <td className="pos-muted">{i + 1}</td>
                       <td>{m.menu_name}</td>
                       <td className="is-num">{m.quantity}</td>
-                      <td className="is-num">{thb(m.amount)}</td>
+                      <td className="is-num">{num(m.amount)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -623,7 +709,7 @@ function ProfitLossPanel({ branchId, title, refreshKey = 0 }) {
   const lossTotal = lossDays.reduce((s, p) => s + p.value, 0)
 
   return (
-    <section className="pos-panel" style={{ marginBottom: 16 }} aria-label="กำไร ขาดทุน รายวัน">
+    <section className="pos-panel" aria-label="กำไร ขาดทุน รายวัน">
       <div className="pos-panel-head">
         <div>
           <h2 className="pos-panel-title" style={{ margin: 0 }}>
@@ -664,8 +750,13 @@ function ProfitLossChart({ points, dense }) {
   const [active, setActive] = useState(null)
   const maxUp = Math.max(0, ...points.map((p) => p.value))
   const maxDown = Math.max(0, ...points.map((p) => -p.value))
-  const span = maxUp + maxDown || 1
-  const upPct = (maxUp / span) * 100 || (maxDown ? 0 : 100)
+  const step = niceMax(Math.max(maxUp, maxDown)) / 2
+  const upTop = maxUp ? Math.ceil(maxUp / step) * step : 0
+  const downTop = maxDown ? Math.ceil(maxDown / step) * step : 0
+  const span = upTop + downTop || 1
+  const upPct = (upTop / span) * 100 || (downTop ? 0 : 100)
+  const ticks = []
+  for (let v = -downTop; v <= upTop + 1e-9; v += step) ticks.push({ value: Math.round(v), pct: ((v + downTop) / span) * 100 })
 
   if (!points.some((p) => p.value !== 0 || p.sales || p.expenses)) return <div className="pos-cart-empty">ยังไม่มียอดขายหรือรายจ่ายในช่วงนี้</div>
 
@@ -676,7 +767,7 @@ function ProfitLossChart({ points, dense }) {
     <div className="pos-chart">
       <div className="pos-chart-tip" aria-hidden="true">
         {hovered ? (
-          <>
+          <span className="pos-chart-pill">
             <strong className={hovered.value < 0 ? 'is-loss' : 'is-profit'}>
               {hovered.value < 0 ? 'ขาดทุน ' : 'กำไร '}
               {thb(Math.abs(hovered.value))}
@@ -684,35 +775,40 @@ function ProfitLossChart({ points, dense }) {
             <span>
               {hovered.label} · ขาย {thb(hovered.sales)} · รายจ่าย {thb(hovered.expenses)}
             </span>
-          </>
+          </span>
         ) : (
-          <span className="pos-muted">ชี้ที่แท่งเพื่อดูยอดขาย รายจ่าย และกำไร/ขาดทุนของวัน</span>
+          <span className="pos-chart-pill is-muted">ชี้ที่แท่งเพื่อดูยอดขาย รายจ่าย และกำไร/ขาดทุนของวัน</span>
         )}
       </div>
-      <div className="pos-chart-plot pos-pl-plot" role="img" aria-label="กราฟกำไรขาดทุนรายวัน" onMouseLeave={() => setActive(null)}>
-        {points.map((p, i) => (
-          <button
-            key={p.key}
-            type="button"
-            className={`pos-chart-col pos-pl-col ${active === i ? 'is-active' : ''}`}
-            onMouseEnter={() => setActive(i)}
-            onFocus={() => setActive(i)}
-            onBlur={() => setActive(null)}
-            aria-label={`${p.label} ${p.value < 0 ? 'ขาดทุน' : 'กำไร'} ${thb(Math.abs(p.value))}`}
-          >
-            <span className="pos-pl-up" style={{ height: `${upPct}%` }}>
-              {p.value > 0 && <span className="pos-chart-bar is-profit" style={{ height: `${(p.value / (maxUp || 1)) * 100}%` }} />}
-            </span>
-            <span className="pos-pl-down" style={{ height: `${100 - upPct}%` }}>
-              {p.value < 0 && <span className="pos-chart-bar is-loss" style={{ height: `${(-p.value / (maxDown || 1)) * 100}%` }} />}
-            </span>
-          </button>
-        ))}
-      </div>
-      <div className="pos-chart-axis" aria-hidden="true">
-        {points.map((p, i) => (
-          <span key={p.key}>{i % labelEvery === 0 || i === points.length - 1 ? p.label : ''}</span>
-        ))}
+      <div className="pos-chart-body">
+        <div className="pos-chart-plotwrap">
+          <YGrid ticks={ticks} />
+          <div className="pos-chart-plot pos-pl-plot" role="img" aria-label="กราฟกำไรขาดทุนรายวัน" onMouseLeave={() => setActive(null)}>
+            {points.map((p, i) => (
+              <button
+                key={p.key}
+                type="button"
+                className={`pos-chart-col pos-pl-col ${active === i ? 'is-active' : ''}`}
+                onMouseEnter={() => setActive(i)}
+                onFocus={() => setActive(i)}
+                onBlur={() => setActive(null)}
+                aria-label={`${p.label} ${p.value < 0 ? 'ขาดทุน' : 'กำไร'} ${thb(Math.abs(p.value))}`}
+              >
+                <span className="pos-pl-up" style={{ height: `${upPct}%` }}>
+                  {p.value > 0 && <span className="pos-chart-bar is-profit" style={{ height: `${(p.value / (upTop || 1)) * 100}%` }} />}
+                </span>
+                <span className="pos-pl-down" style={{ height: `${100 - upPct}%` }}>
+                  {p.value < 0 && <span className="pos-chart-bar is-loss" style={{ height: `${(-p.value / (downTop || 1)) * 100}%` }} />}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="pos-chart-axis" aria-hidden="true">
+          {points.map((p, i) => (
+            <span key={p.key} className={active === i ? 'is-active' : ''}>{i % labelEvery === 0 || i === points.length - 1 ? p.label : ''}</span>
+          ))}
+        </div>
       </div>
       <table className="pos-sr-only">
         <caption>กำไร/ขาดทุนรายวัน</caption>
@@ -734,7 +830,8 @@ function ProfitLossChart({ points, dense }) {
 /** กราฟแท่งชุดเดียว · ชี้/โฟกัสแท่งเพื่อดูยอด · มีตารางสำหรับโปรแกรมอ่านหน้าจอ */
 function BarChart({ points, dense }) {
   const [active, setActive] = useState(null)
-  const max = useMemo(() => Math.max(1, ...points.map((p) => p.value)), [points])
+  const dataMax = useMemo(() => Math.max(1, ...points.map((p) => p.value)), [points])
+  const max = useMemo(() => niceMax(dataMax), [dataMax])
   const total = points.reduce((s, p) => s + p.value, 0)
 
   if (!points.length || total === 0) return <div className="pos-cart-empty">ยังไม่มียอดขายในช่วงนี้</div>
@@ -746,32 +843,39 @@ function BarChart({ points, dense }) {
     <div className="pos-chart">
       <div className="pos-chart-tip" aria-hidden="true">
         {hovered ? (
-          <>
-            <strong>{thb(hovered.value)}</strong> · {hovered.label}
-          </>
+          <span className="pos-chart-pill">
+            <strong>{thb(hovered.value)}</strong> {hovered.label}
+          </span>
         ) : (
-          <span className="pos-muted">รวม {thb(total)} · ชี้ที่แท่งเพื่อดูยอด</span>
+          <span className="pos-chart-pill is-muted">รวม {thb(total)} · ชี้ที่แท่งเพื่อดูยอด</span>
         )}
       </div>
-      <div className="pos-chart-plot" role="img" aria-label={`กราฟยอดขาย รวม ${thb(total)}`} onMouseLeave={() => setActive(null)}>
-        {points.map((p, i) => (
-          <button
-            key={p.key}
-            type="button"
-            className={`pos-chart-col ${active === i ? 'is-active' : ''}`}
-            onMouseEnter={() => setActive(i)}
-            onFocus={() => setActive(i)}
-            onBlur={() => setActive(null)}
-            aria-label={`${p.label} ${thb(p.value)}`}
-          >
-            <span className="pos-chart-bar" style={{ height: `${(Math.max(0, p.value) / max) * 100}%` }} />
-          </button>
-        ))}
-      </div>
-      <div className="pos-chart-axis" aria-hidden="true">
-        {points.map((p, i) => (
-          <span key={p.key}>{i % labelEvery === 0 || i === points.length - 1 ? p.label : ''}</span>
-        ))}
+      <div className="pos-chart-body">
+        <div className="pos-chart-plotwrap">
+          <YGrid ticks={[max, max / 2, 0].map((v) => ({ value: v, pct: (v / max) * 100 }))} />
+          <div className="pos-chart-plot" role="img" aria-label={`กราฟยอดขาย รวม ${thb(total)}`} onMouseLeave={() => setActive(null)}>
+            {points.map((p, i) => (
+              <button
+                key={p.key}
+                type="button"
+                className={`pos-chart-col ${active === i ? 'is-active' : ''}`}
+                onMouseEnter={() => setActive(i)}
+                onFocus={() => setActive(i)}
+                onBlur={() => setActive(null)}
+                aria-label={`${p.label} ${thb(p.value)}`}
+              >
+                <span className="pos-chart-bar" style={{ height: `${(Math.max(0, p.value) / max) * 100}%` }} />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="pos-chart-axis" aria-hidden="true">
+          {points.map((p, i) => (
+            <span key={p.key} className={active === i ? 'is-active' : ''}>
+              {i % labelEvery === 0 || i === points.length - 1 ? p.label : ''}
+            </span>
+          ))}
+        </div>
       </div>
       <table className="pos-sr-only">
         <caption>ยอดขาย</caption>
