@@ -4,7 +4,7 @@ import { useApprovalFeed } from '../../api/approvalFeed'
 import { createRefund } from '../../api/payment'
 import { APPROVAL_STATUS, APPROVAL_TYPE, POS_MOCK, approveApproval, getOrder, listApprovals, rejectApproval } from '../../api/pos'
 import { VAT_RATE } from '../../lib/constants'
-import { errorText } from '../../lib/format'
+import { errorText, formatBaht } from '../../lib/format'
 import { hhmm, tablesText, useToast } from '../../lib/posUtils'
 import { MockBanner, Toast } from '../../components/ui/posUi'
 import '../../styles/pos.css'
@@ -23,9 +23,8 @@ const REFUND_METHODS = [
   ['credit_card', 'บัตรเครดิต/เดบิต'],
 ]
 
-const money = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const thb2 = (n) => `${money.format(Number(n) || 0)} ฿`
-const thb = (n) => `${new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 }).format(Number(n) || 0)} ฿`
+const thb2 = (n) => `${formatBaht(n)} ฿`
+const thb = thb2
 
 const isToday = (v) => v && new Date(v).toDateString() === new Date().toDateString()
 const when = (v) => (isToday(v) ? hhmm(v) : new Date(v).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
@@ -329,7 +328,7 @@ function Detail({ a, order, note, setNote, busy, onDecide, method, setMethod, on
   const newNet = !pending
     ? paidTotal
     : Number.isFinite(subtotal)
-      ? Math.round((subtotal - existingDiscount - a.amount) * (1 + VAT_RATE) * 100) / 100
+      ? subtotal - existingDiscount - a.amount + Math.round((subtotal - existingDiscount - a.amount) * VAT_RATE)
       : NaN
   const where = isDiscount && a.tables?.length ? `บิลโต๊ะ ${tablesText(a)}` : `บิล ${a.order_no || a.order_id.slice(0, 8)}`
 

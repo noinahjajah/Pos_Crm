@@ -53,9 +53,9 @@ const httpPos = {
 // เปลี่ยน MOCK_BRANCH เป็น id สาขาจริงจาก identity.branches ได้ใน .env
 const MOCK_BRANCH = process.env.MOCK_BRANCH_ID || '11111111-1111-4111-8111-111111111111'
 
-/** VAT ตามสูตร 1.24: vat = (subtotal − discount) × 7% · total = subtotal − discount + vat */
+/** VAT ตามสูตร 1.24: vat = (subtotal − discount) × 7% ปัดเป็นบาทเต็ม · total = subtotal − discount + vat */
 const withVat = (o) => {
-  const vat = round2((o.subtotal - o.discount_amount) * 0.07)
+  const vat = Math.round((o.subtotal - o.discount_amount) * 0.07)
   return { ...o, vat_amount: vat, total: round2(o.subtotal - o.discount_amount + vat) }
 }
 

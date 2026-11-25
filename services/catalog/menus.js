@@ -9,7 +9,7 @@ import {
   branchFilter,
   conflict,
   idParam,
-  money,
+  price,
   mustBeMyBranch,
   name,
   notFound,
@@ -32,7 +32,7 @@ const createSchema = z.object({
   category_id: uuid,
   name,
   description,
-  price: money,
+  price,
   image_url: imageUrl,
   image: image.optional(),
 })
@@ -41,7 +41,7 @@ const updateSchema = z
     category_id: uuid.optional(),
     name: name.optional(),
     description: description.optional(),
-    price: money.optional(),
+    price: price.optional(),
     image_url: imageUrl,
     image: image.optional(),
   })

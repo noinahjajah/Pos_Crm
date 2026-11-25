@@ -19,7 +19,9 @@ export function Placeholder({ title }) {
 export function CheckoutRoute() {
   const { orderId } = useParams()
   const navigate = useNavigate()
-  return <CheckoutPage orderId={orderId} onDone={() => navigate('/cashier')} onBack={() => navigate(-1)} />
+  const { isOwner } = useAuth()
+  // owner ไม่มีหน้าคิดเงินของสาขา → จ่ายเสร็จกลับผังโต๊ะ
+  return <CheckoutPage orderId={orderId} onDone={() => navigate(isOwner ? '/tables' : '/cashier')} onBack={() => navigate(-1)} />
 }
 
 /** / → หน้าแรกของ role */

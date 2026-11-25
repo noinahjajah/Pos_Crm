@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useApprovalFeed } from '../../api/approvalFeed'
 import { listApprovals } from '../../api/pos'
+import { formatBaht } from '../../lib/format'
 import '../../styles/pos.css' // อยู่บนแถบบนทุกหน้า ต้องโหลดสไตล์เอง
 
 // กระดิ่งบนแถบบนของผู้จัดการ/เจ้าของ (1.29)
@@ -12,7 +13,7 @@ const POLL_LIVE = 60_000
 const POLL_OFFLINE = 15_000
 const POPUP_MS = 8000
 
-const thb = (n) => `${new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 }).format(Number(n) || 0)} ฿`
+const thb = (n) => `${formatBaht(n)} ฿`
 
 function BellIcon() {
   return (

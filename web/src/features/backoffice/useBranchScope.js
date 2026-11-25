@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../api/client'
+import { formatBaht } from '../../lib/format'
 
 // ของที่หน้าหลังร้านของ Dev 2 ใช้ร่วมกัน (สต็อก รายจ่าย รายงาน หมวดหมู่)
 
@@ -12,9 +13,9 @@ export function errorText(err) {
   return fields.length ? `${err.message} — ${fields.join(', ')}` : err.message || 'เกิดข้อผิดพลาด'
 }
 
-const bahtFormat = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-/** 1234.5 → '1,234.50' */
-export const baht = (n) => bahtFormat.format(Number(n) || 0)
+
+/** 1234 → '1,234' · มีสตางค์ปัดขึ้น → '1,235' */
+export const baht = formatBaht
 
 /** วันนี้ตามเวลาไทย 'YYYY-MM-DD' */
 export function todayTh() {

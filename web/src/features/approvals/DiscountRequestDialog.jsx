@@ -20,13 +20,13 @@ export default function DiscountRequestDialog({ order, onClose, onSent }) {
   const [error, setError] = useState('')
 
   const num = Number(value)
-  const discount = valueType === 'percent' ? Math.round(base * num) / 100 : num
+  const discount = valueType === 'percent' ? Math.round((base * num) / 100) : num // ส่วนลด % ปัดเป็นบาทเต็มเหมือน pos
   const invalid =
     !value || !Number.isFinite(num) || num <= 0 ? 'กรอกจำนวนส่วนลด' : valueType === 'percent' && num > 100 ? 'เปอร์เซ็นต์ต้องไม่เกิน 100' : discount > base ? 'ส่วนลดมากกว่ายอดบิล' : ''
   const canSend = !invalid && reason.trim() && !busy
   // VAT ตาม spec 1.24: vat = (subtotal − discount) × 7%
   const after = base - (invalid ? 0 : discount)
-  const net = Math.round(after * (1 + VAT_RATE) * 100) / 100
+  const net = after + Math.round(after * VAT_RATE) // VAT ปัดเป็นบาทเต็ม
 
   function pickReason(r) {
     // "อื่นๆ" ให้พิมพ์เอง

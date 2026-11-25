@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { listBranches } from '../api/identity'
 import { useAuth } from '../features/auth/AuthContext'
+import { formatBaht } from './format'
 
 // ตัวช่วยของหน้าร้าน Dev 3 (ผังโต๊ะ รับออร์เดอร์)
 
@@ -11,9 +12,8 @@ export const TABLE_STATUS = {
   waiting_payment: { label: 'รอชำระ', cls: 'is-waiting' },
 }
 
-const thbFormat = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 })
-/** 1120 → '1,120 ฿' · 12.5 → '12.5 ฿' */
-export const thb = (n) => `${thbFormat.format(Number(n) || 0)} ฿`
+/** 1120 → '1,120 ฿' · มีสตางค์ปัดขึ้น 12.5 → '13 ฿' */
+export const thb = (n) => `${formatBaht(n)} ฿`
 
 /** '2026-11-16T18:42:00Z' → '18:42' */
 export function hhmm(value) {

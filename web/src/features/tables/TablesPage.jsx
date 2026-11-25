@@ -95,7 +95,6 @@ export default function TablesPage() {
   }, [tables])
 
   function tap(t) {
-    if (isOwner) return // owner ดูผัง/จัดการโต๊ะเท่านั้น ไม่ได้รับออร์เดอร์
     if (t.status === 'available') setOpening(t)
     else if (t.status === 'occupied' && t.order) navigate(`/orders/${t.order.id}`)
     else if (t.status === 'waiting_payment' && t.order) navigate(`/checkout/${t.order.id}`)
@@ -112,7 +111,7 @@ export default function TablesPage() {
           <h1 className="pos-title">ผังโต๊ะ</h1>
           <p className="pos-subtitle">
             {todayLabel(now)}
-            {isOwner ? ' · ดูผังโต๊ะและเพิ่มโต๊ะของแต่ละสาขา' : ' · แตะโต๊ะว่างเพื่อเปิดโต๊ะ · แตะโต๊ะที่มีลูกค้าเพื่อสั่งเพิ่ม'}
+            {isOwner ? ' · เลือกสาขา แล้วแตะโต๊ะเพื่อเปิดโต๊ะ สั่งอาหาร หรือคิดเงิน' : ' · แตะโต๊ะว่างเพื่อเปิดโต๊ะ · แตะโต๊ะที่มีลูกค้าเพื่อสั่งเพิ่ม'}
           </p>
         </div>
         {isOwner && branches.length > 0 && (
@@ -158,16 +157,12 @@ export default function TablesPage() {
               + เพิ่มโต๊ะ
             </button>
           )}
-          {!isOwner && (
-            <>
-              <button className="pos-btn" onClick={() => setMoveMode('move')} disabled={!hasOccupied}>
-                ย้ายโต๊ะ
-              </button>
-              <button className="pos-btn" onClick={() => setMoveMode('merge')} disabled={!hasOccupied}>
-                รวมโต๊ะ
-              </button>
-            </>
-          )}
+          <button className="pos-btn" onClick={() => setMoveMode('move')} disabled={!hasOccupied}>
+            ย้ายโต๊ะ
+          </button>
+          <button className="pos-btn" onClick={() => setMoveMode('merge')} disabled={!hasOccupied}>
+            รวมโต๊ะ
+          </button>
         </div>
       </div>
 

@@ -223,12 +223,13 @@ describe('POST /payments — Idempotency-Key และสถานะบิล',
     const r = await post('/payments', { order_id: 'e0000000-0000-4000-8000-0000000000ff', method: 'cash', cash_received: 1 })
     assert.equal(r.status, 404)
   })
-  test('บิลของสาขาอื่น → 403 · owner ไม่มีสิทธิ์เรียก (POST เป็น S M)', async () => {
+  test('บิลของสาขาอื่น → 403 · owner รับเงินได้ทุกสาขา (คิดเงินจากผังโต๊ะ)', async () => {
     orders.get(ORDER).branch_id = OTHER
     assert.equal((await pay()).status, 403)
-    orders.get(ORDER).branch_id = BRANCH
     currentUser = { id: 'o', role: 'owner', branchId: null }
-    assert.equal((await pay({}, 'key-0003-abcdef')).status, 403)
+    const r = await pay({}, 'key-0003-abcdef')
+    assert.equal(r.status, 201)
+    assert.equal(r.body.data.payment.branch_id, OTHER)
   })
   test('pos ล่ม: เงินยังบันทึกแล้ว (order_status_synced = false) เพื่อให้ syncPending ลองใหม่', async () => {
     fakePos.markPaid = async () => {

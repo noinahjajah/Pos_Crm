@@ -139,7 +139,7 @@ const allItems = (order) => order.tickets.flatMap((t) => t.items)
 function totals(order) {
   const subtotal = allItems(order).reduce((s, it) => s + lineAmount(it), 0)
   const discount = Number(order.discount_amount || 0)
-  const vat = Math.round((subtotal - discount) * VAT_RATE * 100) / 100
+  const vat = Math.round((subtotal - discount) * VAT_RATE) // บาทเต็ม
   return { subtotal, discount_amount: discount, vat_amount: vat, total: subtotal - discount + vat }
 }
 

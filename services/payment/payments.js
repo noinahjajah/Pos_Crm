@@ -104,7 +104,7 @@ export async function syncPending() {
 export const paymentRouter = Router()
 
 // POST /payments — รับเงิน · ต้องส่ง header Idempotency-Key (กดซ้ำด้วย key เดิม = ไม่รับเงินซ้ำ)
-paymentRouter.post('/', allow('staff', 'manager'), async (req, res) => {
+paymentRouter.post('/', allow('staff', 'manager', 'owner'), async (req, res) => {
   const key = req.get('idempotency-key')
   if (!key || !/^[A-Za-z0-9_.:-]{8,100}$/.test(key)) {
     throw new AppError(400, 'IDEMPOTENCY_KEY_REQUIRED', 'ต้องส่ง header Idempotency-Key (8–100 ตัว เช่น uuid)')

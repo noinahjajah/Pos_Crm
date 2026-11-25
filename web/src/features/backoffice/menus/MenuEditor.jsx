@@ -142,7 +142,7 @@ export default function MenuEditor({
       </label>
       <label className="pos-field">
         <span>ราคา (บาท, ก่อน VAT)</span>
-        <input className="pos-input" type="number" min="0" step="0.01" inputMode="decimal" value={form.price} onChange={set('price')} />
+        <input className="pos-input" type="number" min="0" step="1" inputMode="numeric" value={form.price} onChange={set('price')} />
       </label>
       <label className="pos-field">
         <span>รายละเอียด (ไม่บังคับ)</span>

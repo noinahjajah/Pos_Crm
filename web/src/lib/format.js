@@ -1,9 +1,20 @@
 // จัดรูปแบบเงินบาท วันที่แบบไทย
 
-const money = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+/**
+ * เงินที่แสดงบนจอ: ไม่มีทศนิยม · มีเศษสตางค์ → ปัดขึ้นเป็นบาทเต็ม (ติดลบปัดออกจากศูนย์ เช่น −12.3 → −13)
+ * ใช้แค่ตอนแสดงผล ตัวเลขจริงในระบบไม่เปลี่ยน · ปัดสตางค์ก่อนกันเศษ float เช่น 12.000000001
+ */
+export function roundUpBaht(n) {
+  const v = Math.round((Number(n) || 0) * 100) / 100
+  return v < 0 ? -Math.ceil(-v) : Math.ceil(v) || 0
+}
 
-/** 1234.5 → '1,234.50' */
-export const baht = (n) => money.format(Number(n) || 0)
+const money = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 })
+/** จำนวนเงินแบบมีคั่นหลักพัน ไม่มีทศนิยม: 1234.2 → '1,235' */
+export const formatBaht = (n) => money.format(roundUpBaht(n))
+
+/** 1234 → '1,234' · มีสตางค์ (บิลเก่า) ปัดขึ้น → 1234.01 → '1,235' */
+export const baht = formatBaht
 
 /** → '18 พ.ย. 2569 14:05' */
 export function thaiDateTime(value) {

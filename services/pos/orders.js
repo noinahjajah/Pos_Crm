@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import { db, rpc, run } from './db.js'
 import { publishApproval } from './events.js'
-import { allow, branchFilter, conflict, dateString, dayRangeIso, idParam, mustBeMyBranch, parse, send, uuid, z } from './helpers.js'
+import { allow, branchFilter, conflict, dateString, dayRangeIso, idParam, mustBeMyBranch, notFound, parse, send, uuid, z } from './helpers.js'
 import { deductStocks, lookupMenus, restoreStockItems, restoreStocks } from './services.js'
 import { ORDER_SUMMARY, loadApproval, loadOrder, toOrder, toOrderSummary } from './views.js'
 
@@ -59,9 +59,16 @@ const fullOrder = async (id) => toOrder(await loadOrder(id))
 const router = Router()
 
 // POST /orders — เปิดโต๊ะ/เปิดบิล { table_ids, guest_count } (1.7)
-router.post('/', allow('staff', 'manager'), async (req, res) => {
+// owner ไม่มีสาขาของตัวเอง → ใช้สาขาของโต๊ะที่เลือก (open_order ตรวจว่าทุกโต๊ะอยู่สาขาเดียวกัน)
+router.post('/', allow('staff', 'manager', 'owner'), async (req, res) => {
   const { table_ids, guest_count } = parse(openSchema, req.body)
-  const order = await rpc('open_order', { p_branch_id: req.user.branchId, p_table_ids: table_ids, p_guest_count: guest_count, p_actor: req.user.id })
+  let branchId = req.user.branchId
+  if (req.user.role === 'owner') {
+    const table = await run(db.from('dining_tables').select('branch_id').eq('id', table_ids[0]).maybeSingle())
+    if (!table) throw notFound('ไม่พบโต๊ะ', 'TABLE_NOT_FOUND')
+    branchId = table.branch_id
+  }
+  const order = await rpc('open_order', { p_branch_id: branchId, p_table_ids: table_ids, p_guest_count: guest_count, p_actor: req.user.id })
   send(res, await fullOrder(order.id), { status: 201 })
 })
 
@@ -89,7 +96,7 @@ router.get('/:id', allow('staff', 'manager', 'owner'), async (req, res) => {
 })
 
 // POST /orders/:id/tables/move — ย้ายโต๊ะ (1.11)
-router.post('/:id/tables/move', allow('staff', 'manager'), async (req, res) => {
+router.post('/:id/tables/move', allow('staff', 'manager', 'owner'), async (req, res) => {
   const { id } = parse(idParam, req.params)
   const { from_table_id, to_table_id } = parse(moveSchema, req.body)
   await myOrder(req, id)
@@ -98,7 +105,7 @@ router.post('/:id/tables/move', allow('staff', 'manager'), async (req, res) => {
 })
 
 // POST /orders/:id/tables/merge — รวมโต๊ะเป็นบิลเดียว (1.12) · ไม่มีแยกบิล (1.13)
-router.post('/:id/tables/merge', allow('staff', 'manager'), async (req, res) => {
+router.post('/:id/tables/merge', allow('staff', 'manager', 'owner'), async (req, res) => {
   const { id } = parse(idParam, req.params)
   const { table_ids } = parse(mergeSchema, req.body)
   await myOrder(req, id)
@@ -109,7 +116,7 @@ router.post('/:id/tables/merge', allow('staff', 'manager'), async (req, res) => 
 // POST /orders/:id/tickets — สั่งอาหาร 1 รอบ → ข้อมูลพิมพ์ใบออร์เดอร์ (1.9, 1.10, 1.20)
 // ลำดับ: ตรวจเมนูกับ catalog (ได้ snapshot ชื่อ/ราคา) → ตัดสต็อก (reference = id ตั๋ว) → บันทึกตั๋ว
 // บันทึกตั๋วไม่สำเร็จ → คืนสต็อกด้วย reference เดิม · ส่ง Idempotency-Key ซ้ำ = ไม่สั่งซ้ำ ไม่ตัดสต็อกซ้ำ
-router.post('/:id/tickets', allow('staff', 'manager'), async (req, res) => {
+router.post('/:id/tickets', allow('staff', 'manager', 'owner'), async (req, res) => {
   const { id } = parse(idParam, req.params)
   const { items } = parse(ticketSchema, req.body)
   const order = await myOrder(req, id)
@@ -154,7 +161,7 @@ router.post('/:id/tickets', allow('staff', 'manager'), async (req, res) => {
 })
 
 // POST /orders/:id/request-payment — เรียกเก็บเงิน → รอชำระ (1.8, 1.24)
-router.post('/:id/request-payment', allow('staff', 'manager'), async (req, res) => {
+router.post('/:id/request-payment', allow('staff', 'manager', 'owner'), async (req, res) => {
   const { id } = parse(idParam, req.params)
   await myOrder(req, id)
   await rpc('request_payment', { p_order_id: id })
@@ -164,7 +171,7 @@ router.post('/:id/request-payment', allow('staff', 'manager'), async (req, res) 
 // POST /orders/:id/items/:itemId/cancel — ยกเลิกรายการหลังส่งครัว (บิลยังไม่จ่าย) { quantity, cooked, reason? }
 // cooked = false (ยังไม่ได้ทำ) → คืนสต็อก · cooked = true (ทำแล้ว) → ไม่คืนสต็อก
 // บันทึกการยกเลิกก่อน แล้วค่อยคืนสต็อก (reference = id การยกเลิก กันคืนซ้ำ) · คืนไม่สำเร็จ → stock_restore_failed
-router.post('/:id/items/:itemId/cancel', allow('staff', 'manager'), async (req, res) => {
+router.post('/:id/items/:itemId/cancel', allow('staff', 'manager', 'owner'), async (req, res) => {
   const { id, itemId } = parse(itemParams, req.params)
   const { quantity, cooked, reason } = parse(cancelItemSchema, req.body)
   const order = await myOrder(req, id)
@@ -185,7 +192,7 @@ router.post('/:id/items/:itemId/cancel', allow('staff', 'manager'), async (req, 
 })
 
 // POST /orders/:id/cancel — ยกเลิกทั้งบิล: เปิดผิด (ยังไม่ได้สั่ง) หรือยกเลิกครบทุกรายการแล้ว → โต๊ะว่าง
-router.post('/:id/cancel', allow('staff', 'manager'), async (req, res) => {
+router.post('/:id/cancel', allow('staff', 'manager', 'owner'), async (req, res) => {
   const { id } = parse(idParam, req.params)
   await myOrder(req, id)
   await rpc('cancel_order', { p_order_id: id, p_actor: req.user.id })

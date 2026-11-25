@@ -40,23 +40,24 @@ begin
   return o;
 end $$;
 
+-- VAT และส่วนลด % ปัดเป็นบาทเต็ม (ปัดตามปกติ .50 ขึ้น) → total เป็นบาทเต็มเสมอ
 -- ไม่มีส่วนลด: ตัวเลขกลม
-select pg_temp.ok((select subtotal = 100 and discount_amount = 0 and vat_amount = 7 and total = 107 from pg_temp.bill('V1', 100, 1)), '100 → VAT 7.00 · total 107.00');
+select pg_temp.ok((select subtotal = 100 and discount_amount = 0 and vat_amount = 7 and total = 107 from pg_temp.bill('V1', 100, 1)), '100 → VAT 7 · total 107');
 
--- ปัดเศษ VAT: 0.50 × 7% = 0.035 → 0.04 (ปัดขึ้นที่ครึ่ง)
-select pg_temp.ok((select subtotal = 0.5 and vat_amount = 0.04 and total = 0.54 from pg_temp.bill('V2', 0.5, 1)), '0.50 → VAT 0.04 (ปัด .035 ขึ้น)');
+-- ปัดลง: 315 × 7% = 22.05 → 22
+select pg_temp.ok((select subtotal = 315 and vat_amount = 22 and total = 337 from pg_temp.bill('V2', 315, 1)), '315 → VAT 22 (ปัด 22.05 ลง) · total 337');
 
--- 3 × 33.33 = 99.99 · VAT 6.9993 → 7.00 · total 106.99
-select pg_temp.ok((select subtotal = 99.99 and vat_amount = 7.00 and total = 106.99 from pg_temp.bill('V3', 33.33, 3)), '3 × 33.33 → VAT 7.00 · total 106.99');
+-- ปัดขึ้นที่ครึ่ง: 50 × 7% = 3.50 → 4
+select pg_temp.ok((select vat_amount = 4 and total = 54 from pg_temp.bill('V3', 50, 1)), '50 → VAT 4 (ปัด 3.50 ขึ้น) · total 54');
 
--- ปัดลง: 10.01 × 7% = 0.7007 → 0.70
-select pg_temp.ok((select vat_amount = 0.70 and total = 10.71 from pg_temp.bill('V4', 10.01, 1)), '10.01 → VAT 0.70 (ปัดลง)');
+-- 3 × 33 = 99 · VAT 6.93 → 7 · total 106
+select pg_temp.ok((select subtotal = 99 and vat_amount = 7 and total = 106 from pg_temp.bill('V4', 33, 3)), '3 × 33 → VAT 7 · total 106');
 
--- ส่วนลดบาท: (200 − 30) × 7% = 11.90 · total 181.90 (VAT คิดหลังหักส่วนลด)
-select pg_temp.ok((select discount_amount = 30 and vat_amount = 11.90 and total = 181.90 from pg_temp.bill('V5', 200, 1, 'amount', 30)), 'ส่วนลด 30 บาท → VAT คิดหลังหักส่วนลด');
+-- ส่วนลดบาท: (200 − 30) × 7% = 11.90 → 12 · total 182 (VAT คิดหลังหักส่วนลด)
+select pg_temp.ok((select discount_amount = 30 and vat_amount = 12 and total = 182 from pg_temp.bill('V5', 200, 1, 'amount', 30)), 'ส่วนลด 30 บาท → VAT คิดหลังหักส่วนลด');
 
--- ส่วนลด 50% ของ 99.99 = 49.995 → 50.00 · (99.99 − 50.00) × 7% = 3.4993 → 3.50 · total 53.49
-select pg_temp.ok((select discount_amount = 50.00 and vat_amount = 3.50 and total = 53.49 from pg_temp.bill('V6', 33.33, 3, 'percent', 50)), 'ส่วนลด 50% ปัดเศษ → total 53.49');
+-- ส่วนลด 50% ของ 99 = 49.50 → 50 · (99 − 50) × 7% = 3.43 → 3 · total 52
+select pg_temp.ok((select discount_amount = 50 and vat_amount = 3 and total = 52 from pg_temp.bill('V6', 33, 3, 'percent', 50)), 'ส่วนลด 50% ปัดเป็นบาทเต็ม → total 52');
 
 -- ส่วนลด 100% → ทุกอย่างเป็น 0
 select pg_temp.ok((select discount_amount = 100 and vat_amount = 0 and total = 0 from pg_temp.bill('V7', 100, 1, 'percent', 100)), 'ส่วนลด 100% → VAT 0 · total 0');

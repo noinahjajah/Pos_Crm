@@ -75,6 +75,12 @@ export const money = z
   .min(0, 'ต้องไม่ติดลบ')
   .max(999999.99)
   .transform((v) => Math.round(v * 100) / 100)
+/** ราคาเมนู/ตัวเลือก: บาทเต็ม ไม่มีสตางค์ (บิลไม่มีทศนิยม) */
+export const price = z
+  .number({ invalid_type_error: 'ต้องเป็นตัวเลข' })
+  .int('ราคาต้องเป็นจำนวนเต็ม (ไม่มีสตางค์)')
+  .min(0, 'ต้องไม่ติดลบ')
+  .max(999999)
 export const atLeastOne = (v) => Object.keys(v).length > 0
 
 // ===================== ผู้ใช้และสิทธิ์ =====================

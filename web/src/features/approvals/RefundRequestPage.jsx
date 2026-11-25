@@ -99,7 +99,7 @@ export default function RefundRequestPage() {
   const refundAmount =
     mode === 'full'
       ? total
-      : Math.min(total, Math.round(picked.reduce((s, it) => s + (lineAmount(it) / it.quantity) * qty[it.id], 0) * ratio * 100) / 100)
+      : Math.min(total, Math.round(picked.reduce((s, it) => s + (lineAmount(it) / it.quantity) * qty[it.id], 0) * ratio))
   const beforeVat = Math.round((refundAmount / (1 + VAT_RATE)) * 100) / 100
   const vat = Math.round((refundAmount - beforeVat) * 100) / 100
 

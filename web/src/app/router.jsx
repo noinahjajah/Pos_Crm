@@ -40,20 +40,22 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Home /> },
 
-          // ผังโต๊ะ S M O — manager/owner เพิ่มโต๊ะได้ · owner ดูอย่างเดียว (เปิดโต๊ะ/ย้าย/รวมเป็นของ S M)
+          // ผังโต๊ะ + รับออร์เดอร์ + คิดเงินจากโต๊ะ S M O — owner ทำได้เหมือนพนักงาน (ใช้สาขาของบิล/โต๊ะ)
           {
             element: <RequireRole roles={SMO} />,
-            children: [{ path: '/tables', element: <TablesPage /> }],
+            children: [
+              { path: '/tables', element: <TablesPage /> },
+              { path: '/orders/:id', element: <OrderPage /> },
+              { path: '/checkout/:orderId', element: <CheckoutRoute /> },
+            ],
           },
 
           // หน้าร้าน S M
           {
             element: <RequireRole roles={SM} />,
             children: [
-              { path: '/orders/:id', element: <OrderPage /> },
               // { path: '/kitchen', element: <KitchenPage /> }, // จอครัว: ยังไม่เปิดใช้ (เปิดคอมเมนต์ที่นี่ + import ด้านบน + เมนูใน navItems.js)
               { path: '/cashier', element: <CashierPage /> },
-              { path: '/checkout/:orderId', element: <CheckoutRoute /> },
               { path: '/menus/availability', element: <MenuAvailabilityPage /> },
             ],
           },

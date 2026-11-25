@@ -32,7 +32,7 @@ const soldOut = (m) => !m.is_available || Number(m.quantity) <= 0
 export default function OrderPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user, isStaff, isManager } = useAuth()
+  const { user, isStaff, isManager, isOwner } = useAuth()
   const branchName = useBranchName()
   const [order, setOrder] = useState(null)
   const [discounts, setDiscounts] = useState([]) // คำขอส่วนลดของบิลนี้
@@ -59,7 +59,9 @@ export default function OrderPage() {
 
   // ---------- โหลดบิล + เมนู ----------
   const loadOrder = useCallback(() => getOrder(id).then(setOrder), [id])
-  const loadMenus = useCallback(() => listMenus().then((rows) => setMenus(rows || [])), [])
+  // เมนูของสาขาที่บิลนี้อยู่ (owner ไม่มีสาขาของตัวเอง จึงส่ง branch_id ของบิลไปเสมอ)
+  const branchOf = order?.branch_id
+  const loadMenus = useCallback(() => listMenus(branchOf ? { branch_id: branchOf } : undefined).then((rows) => setMenus(rows || [])), [branchOf])
   const loadDiscounts = useCallback(
     () => listApprovals({ order_id: id, type: 'discount' }).then((rows) => setDiscounts(rows || [])),
     [id],
@@ -67,7 +69,8 @@ export default function OrderPage() {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([getOrder(id), listMenus(), listApprovals({ order_id: id, type: 'discount' }).catch(() => [])])
+    getOrder(id)
+      .then((o) => Promise.all([o, listMenus({ branch_id: o.branch_id }), listApprovals({ order_id: id, type: 'discount' }).catch(() => [])]))
       .then(([o, m, a]) => {
         if (cancelled) return
         setOrder(o)
@@ -260,7 +263,7 @@ export default function OrderPage() {
   const isOpen = order.status === 'open'
   const staffName = user?.full_name || user?.username || ''
   // ยกเลิกรายการได้ก่อนจ่ายเงิน (เปิดอยู่ / รอชำระ) · staff และ manager
-  const canCancelItems = (isStaff || isManager) && ['open', 'waiting_payment'].includes(order.status)
+  const canCancelItems = (isStaff || isManager || isOwner) && ['open', 'waiting_payment'].includes(order.status)
   const activeCount = tickets.reduce((s, t) => s + (t.items || []).reduce((q, it) => q + Number(it.quantity || 0), 0), 0)
   // สั่งไปแล้วแต่ยกเลิกครบทุกรายการ → ยกเลิกทั้งบิลได้
   const allCancelled = tickets.length > 0 && activeCount === 0

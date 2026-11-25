@@ -9,7 +9,7 @@ import {
   branchFilter,
   dbError,
   idParam,
-  money,
+  price,
   mustBeMyBranch,
   name,
   notFound,
@@ -21,7 +21,7 @@ import {
 
 const optionSchema = z.object({
   name,
-  extra_price: money.default(0),
+  extra_price: price.default(0),
   sort_order: z.number().int().min(0).max(999).optional(),
 })
 const maxSelect = z.number().int().min(1, 'max_select อย่างน้อย 1').max(20)
@@ -37,7 +37,7 @@ const updateGroupSchema = z
   .object({ name: name.optional(), is_required: z.boolean().optional(), max_select: maxSelect.optional(), is_active: z.boolean().optional() })
   .refine(atLeastOne, 'ต้องส่งอย่างน้อย 1 ช่อง')
 const updateOptionSchema = z
-  .object({ name: name.optional(), extra_price: money.optional(), sort_order: z.number().int().min(0).max(999).optional(), is_active: z.boolean().optional() })
+  .object({ name: name.optional(), extra_price: price.optional(), sort_order: z.number().int().min(0).max(999).optional(), is_active: z.boolean().optional() })
   .refine(atLeastOne, 'ต้องส่งอย่างน้อย 1 ช่อง')
 
 /** จัดรูปกลุ่ม: เรียงตัวเลือก + แปลงราคาเป็นตัวเลข */

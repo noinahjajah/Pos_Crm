@@ -170,8 +170,8 @@ try {
 
   r = await staff('GET', `/orders/${order.id}`)
   const o = r.body.data
-  // (80+10)×2 + 45 + 45×2 = 315 · VAT 22.05 · 337.05
-  check(o.subtotal === 315 && o.vat_amount === 22.05 && o.total === 337.05 && o.tickets.length === 2, 'ยอดบิล + VAT 7%', o)
+  // (80+10)×2 + 45 + 45×2 = 315 · VAT 22.05 → 22 · 337
+  check(o.subtotal === 315 && o.vat_amount === 22 && o.total === 337 && o.tickets.length === 2, 'ยอดบิล + VAT 7%', o)
   check(o.tickets[0].items[0].line_total === 180 && o.tickets[0].items[0].options[0].option_name === 'ไข่ดาว', 'รายการ + ตัวเลือก + line_total', o.tickets[0].items)
   r = await otherManager('GET', `/orders/${order.id}`)
   check(r.status === 403, 'manager สาขาอื่นดูบิลไม่ได้')
@@ -212,7 +212,7 @@ try {
   check(r.status === 403, 'staff เปิด stream ไม่ได้')
 
   r = await staff('POST', `/orders/${order.id}/approvals`, { type: 'discount', value_type: 'percent', value: 10, reason: 'ลูกค้าประจำ' })
-  check(r.status === 201 && r.body.data.amount === 39.5 && r.body.data.requested_by_name === 'สมศรี' && r.body.data.request_no && r.body.data.order_subtotal === 395, 'ขอส่วนลด 10%', r.body)
+  check(r.status === 201 && r.body.data.amount === 40 && r.body.data.requested_by_name === 'สมศรี' && r.body.data.request_no && r.body.data.order_subtotal === 395, 'ขอส่วนลด 10%', r.body)
   const disc = r.body.data
   await new Promise((x) => setTimeout(x, 300))
   check(sseText.includes('event: approval') && sseText.includes(disc.id), 'SSE แจ้ง manager ทันที', sseText.slice(0, 200))
@@ -225,21 +225,21 @@ try {
   r = await manager('POST', `/approvals/${disc.id}/approve`, { note: 'โอเค' })
   check(r.status === 200 && r.body.data.status === 'approved' && r.body.data.approved_by_name === 'วิชัย' && r.body.data.note === 'โอเค', 'manager อนุมัติ', r.body)
   r = await staff('GET', `/orders/${order.id}`)
-  check(r.body.data.discount_amount === 39.5 && r.body.data.total === 380.39, 'ส่วนลดเข้าบิล ยอดใหม่ 380.39', r.body.data)
+  check(r.body.data.discount_amount === 40 && r.body.data.total === 380, 'ส่วนลดเข้าบิล ยอดใหม่ 380', r.body.data)
 
   // เรียกเก็บเงิน + payment (internal)
-  r = await internal('POST', `/internal/orders/${order.id}/mark-paid`, { payment_id: randomUUID(), method: 'cash', amount: 380.39, paid_by: STAFF })
+  r = await internal('POST', `/internal/orders/${order.id}/mark-paid`, { payment_id: randomUUID(), method: 'cash', amount: 380, paid_by: STAFF })
   check(r.status === 409 && r.body.error.code === 'ORDER_NOT_WAITING_PAYMENT', 'ยังไม่เรียกเก็บเงิน → payment รับเงินไม่ได้', r.body)
   r = await staff('POST', `/orders/${order.id}/request-payment`)
   check(r.status === 200 && r.body.data.status === 'waiting_payment', 'เรียกเก็บเงิน', r.body)
   r = await internal('GET', `/internal/orders?status=waiting_payment&branch_id=${BRANCH}`)
   check(r.status === 200 && r.body.data.length === 1 && r.body.data[0].table_no === 'T10, T2' || r.body.data[0]?.table_no === 'T2, T10', 'payment เห็นบิลรอชำระ', r.body)
   r = await internal('GET', `/internal/orders/${order.id}/summary`)
-  check(r.body.data.total === 380.39 && r.body.data.items.length === 4 && r.body.data.items[0].line_total, 'summary สำหรับ payment', r.body.data)
+  check(r.body.data.total === 380 && r.body.data.items.length === 4 && r.body.data.items[0].line_total, 'summary สำหรับ payment', r.body.data)
   const payId = randomUUID()
-  r = await internal('POST', `/internal/orders/${order.id}/mark-paid`, { payment_id: payId, method: 'cash', amount: 380.39, paid_by: STAFF, paid_at: new Date().toISOString() })
+  r = await internal('POST', `/internal/orders/${order.id}/mark-paid`, { payment_id: payId, method: 'cash', amount: 380, paid_by: STAFF, paid_at: new Date().toISOString() })
   check(r.status === 200 && r.body.data.status === 'paid', 'mark-paid', r.body)
-  r = await internal('POST', `/internal/orders/${order.id}/mark-paid`, { payment_id: payId, method: 'cash', amount: 380.39, paid_by: STAFF })
+  r = await internal('POST', `/internal/orders/${order.id}/mark-paid`, { payment_id: payId, method: 'cash', amount: 380, paid_by: STAFF })
   check(r.status === 200, 'mark-paid ซ้ำ (payment ลองใหม่) → ไม่ error')
   r = await staff('GET', '/tables')
   check(r.body.data.every((t) => t.status === 'available'), 'จ่ายแล้วโต๊ะว่างทั้งหมด (1.26)', r.body.data.map((t) => t.status))
@@ -251,15 +251,15 @@ try {
   check(r.body.data.length === 1 && r.body.data[0].payment_method === 'cash' && r.body.data[0].paid_at, 'รายการบิลจ่ายแล้ววันนี้ (หน้าขอคืนเงิน)', r.body)
   const teaItem = o.tickets[1].items[0]
   r = await staff('POST', `/orders/${order.id}/approvals`, { type: 'refund', value: 1, reason: 'ไม่ได้รับเครื่องดื่ม', refund_items: [{ order_item_id: teaItem.id, quantity: 1 }] })
-  check(r.status === 201 && r.body.data.amount === 43.34 && r.body.data.refund_items[0].menu_name === 'ชาไทยเย็น', 'ขอคืนเงิน 1 แก้ว = 43.34', r.body)
+  check(r.status === 201 && r.body.data.amount === 43 && r.body.data.refund_items[0].menu_name === 'ชาไทยเย็น', 'ขอคืนเงิน 1 แก้ว = 43', r.body)
   const ref = r.body.data
   await owner('POST', `/approvals/${ref.id}/approve`, {})
   r = await internal('GET', `/internal/approvals?type=refund&status=approved&branch_id=${BRANCH}`)
   check(r.body.data.length === 1 && r.body.data[0].id === ref.id, 'payment เห็นคำขอคืนเงินที่ต้องคืน', r.body)
   r = await internal('GET', `/internal/approvals/${ref.id}`)
   check(r.body.data.status === 'approved' && r.body.data.branch_id === BRANCH, 'payment อ่านคำขอ', r.body)
-  r = await internal('POST', `/internal/orders/${order.id}/mark-refunded`, { payment_id: randomUUID(), approval_id: ref.id, amount: 43.34 })
-  check(r.status === 200 && r.body.data.status === 'refunded' && r.body.data.refunded_amount === 43.34, 'mark-refunded', r.body)
+  r = await internal('POST', `/internal/orders/${order.id}/mark-refunded`, { payment_id: randomUUID(), approval_id: ref.id, amount: 43 })
+  check(r.status === 200 && r.body.data.status === 'refunded' && r.body.data.refunded_amount === 43, 'mark-refunded', r.body)
   r = await internal('GET', `/internal/approvals?type=refund&status=approved&branch_id=${BRANCH}`)
   check(r.body.data.length === 0, 'คืนแล้วไม่ค้างในรายการ', r.body)
   check(stock[TEA] === 0, 'คืนเงินไม่คืนสต็อก (1.28)', stock)

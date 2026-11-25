@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EXPENSE_CATEGORIES, getProfitReport } from '../../../api/payment'
+import { roundUpBaht } from '../../../lib/format'
 import { thb } from '../../../lib/posUtils'
 import GroupedBarChart from '../GroupedBarChart'
 import { OTHER_COLOR, SERIES_COLORS, branchColors } from '../seriesColors'
@@ -51,7 +52,7 @@ function DeltaPct({ now, before, label, invert = false }) {
 }
 
 const num = (n) => {
-  const v = Math.round(Number(n) || 0)
+  const v = roundUpBaht(n)
   return v < 0 ? `–${Math.abs(v).toLocaleString('en-US')}` : v.toLocaleString('en-US')
 }
 

@@ -4,6 +4,7 @@ import { getBranchReport, getDailyReport, listPayments } from '../../../api/paym
 import { useApprovalFeed } from '../../../api/approvalFeed'
 import { listApprovals } from '../../../api/pos'
 import { useReportFeed } from '../../../api/reportFeed'
+import { roundUpBaht } from '../../../lib/format'
 import { hhmm, thb } from '../../../lib/posUtils'
 import { YGrid, niceMax } from '../chartScale'
 import GroupedBarChart from '../GroupedBarChart'
@@ -126,7 +127,7 @@ function Delta({ now, before, unit = '%', suffix = 'จากเมื่อว�
   )
 }
 
-const num = (n) => Math.round(Number(n) || 0).toLocaleString('en-US')
+const num = (n) => roundUpBaht(n).toLocaleString('en-US')
 const ROW = { alignItems: 'stretch', marginBottom: 16 }
 
 export default function ReportsPage() {

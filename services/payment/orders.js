@@ -31,7 +31,7 @@ router.get('/', allow('staff', 'manager'), async (req, res) => {
 })
 
 // GET /orders/:id — รายละเอียดบิลสำหรับหน้าคิดเงิน
-router.get('/:id', allow('staff', 'manager'), async (req, res) => {
+router.get('/:id', allow('staff', 'manager', 'owner'), async (req, res) => {
   const { id } = parse(idParam, req.params)
   const order = await pos.getOrder(id)
   if (!order) throw notFound('ไม่พบบิล', 'ORDER_NOT_FOUND')
