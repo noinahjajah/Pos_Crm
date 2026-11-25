@@ -41,30 +41,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --app-ink: #f5f5f4;
-    --app-muted: #a8a29e;
-    --app-line: #3a3633;
-    --app-soft: #1f1d1b;
-    --app-card: #26231f;
-    --app-bg: #181614;
-    /* โหมดมืด: Figma ไม่มีให้ — สีหลักเป็นเขียวที่สว่างขึ้นให้อ่านออกบนพื้นมืด (คำนวณเอง) */
-    --app-brand: #2f9e86;
-    --app-brand-soft: #12302a;
-    --app-ok: #4ade80;
-    --app-ok-soft: #14301f;
-    --app-danger: #f87171;
-    --app-danger-soft: #3a1717;
-    --app-warn: #fbbf24;
-    --app-warn-soft: #3a2a12;
-    --app-series-1: #2fa78d;
-    --app-series-2: #b98316;
-    --app-series-3: #5b8ae6;
-    --app-series-4: #c460a4;
-    --app-series-other: #8a847b;
-  }
-}
+/*  */
 
 *,
 *::before,

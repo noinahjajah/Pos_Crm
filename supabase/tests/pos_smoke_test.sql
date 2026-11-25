@@ -75,7 +75,8 @@ select pos.add_ticket((select id from o2), (select staff from ids),
 select pos.merge_tables((select id from o1), array[(select id from t where table_no = 'T3'), (select id from t where table_no = 'T4')]);
 select pg_temp.ok((select status from pos.orders where id = (select id from o2)) = 'merged', 'บิลที่ถูกรวม → merged (1.12)');
 select pg_temp.ok((select guest_count = 5 and subtotal = 395 from pos.orders where id = (select id from o1)), 'รวมโต๊ะ: ลูกค้า 3+2 · ยอด 315+80');
-select pg_temp.ok((select count(*) from pos.order_tables where order_id = (select id from o1) and left_at is null) = 3, 'บิลหลักใช้ 3 โต๊ะ (T2 T3 T4)');
+select pg_temp.ok((select count(*) from pos.order_tables where order_id = (select id from o1) and left_at is null) = 2, 'บิลหลักใช้ T2 + T4 (โต๊ะว่างที่เลือกเพิ่ม) · T3 ที่เอาบิลมารวมกลับเป็นว่าง');
+select pg_temp.ok((select status from pos.dining_tables where id = (select id from t where table_no = 'T3')) = 'available', 'โต๊ะที่ถูกรวมบิล → ว่าง (1.12)');
 select pg_temp.ok((select array_agg(round_no order by round_no) from pos.kitchen_tickets where order_id = (select id from o1)) = array[1, 2, 3], 'ตั๋วของบิลที่รวมต่อท้ายเป็นรอบ 3');
 
 -- ---------- ส่วนลด (ต้องอนุมัติก่อน) ----------

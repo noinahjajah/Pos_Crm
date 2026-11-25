@@ -251,7 +251,7 @@ export async function mergeTables(orderId, { table_ids }) {
       let round = order.tickets.length
       const moved = other.tickets.map((t) => ({ ...t, round_no: ++round }))
       order.tickets.push(...moved)
-      order.table_ids.push(...other.table_ids.filter((id) => !order.table_ids.includes(id)))
+      // โต๊ะของบิลที่ถูกรวมกลับเป็นว่าง (ไม่ผูกเข้าบิลหลัก)
       order.guest_count += other.guest_count
       if (other.opened_at < order.opened_at) order.opened_at = other.opened_at
       other.status = 'merged'
