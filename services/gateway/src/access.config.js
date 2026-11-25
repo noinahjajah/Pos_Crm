@@ -148,6 +148,7 @@ export const SERVICES = [
       ['GET', '/categories', SMO],
       ['POST', '/categories', [O]],
       ['PATCH', '/categories/:id', [O]],
+      ['DELETE', '/categories/:id', [O]],
       ['GET', '/menus', SMO],
       ['GET', '/menus/:id', SMO],
       ['POST', '/menus', MO],

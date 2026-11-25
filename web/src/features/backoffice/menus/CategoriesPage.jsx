@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { createCategory, listCategories, updateCategory } from '../../../api/catalog'
+import { createCategory, deleteCategory, listCategories, updateCategory } from '../../../api/catalog'
 import { errorText, useBranchScope, useToast } from '../useBranchScope'
 import './menus.css'
 import '../backoffice.css'
 
 // หน้าหมวดหมู่ — ของกลางทุกสาขา จัดการได้เฉพาะ owner (1.14)
-// ปิดใช้แทนการลบ (เมนูเก่ายังอ้างหมวดได้)
+// ปิดใช้ได้ หรือลบเมื่อไม่มีเมนูในหมวดแล้ว
 
 export default function CategoriesPage() {
   const scope = useBranchScope()
@@ -36,6 +36,17 @@ export default function CategoriesPage() {
     try {
       await updateCategory(cat.id, { is_active: !cat.is_active })
       notify(cat.is_active ? `ปิดใช้ ${cat.name} แล้ว` : `เปิดใช้ ${cat.name} แล้ว`)
+      reload()
+    } catch (err) {
+      notify(errorText(err), 'error')
+    }
+  }
+
+  async function remove(cat) {
+    if (!window.confirm(`ลบหมวด "${cat.name}" ?\nลบได้เมื่อไม่มีเมนูในหมวดนี้แล้ว`)) return
+    try {
+      await deleteCategory(cat.id)
+      notify(`ลบ ${cat.name} แล้ว`)
       reload()
     } catch (err) {
       notify(errorText(err), 'error')
@@ -96,6 +107,9 @@ export default function CategoriesPage() {
                       </button>
                       <button className="mm-btn" onClick={() => toggle(c)}>
                         {c.is_active ? 'ปิดใช้' : 'เปิดใช้'}
+                      </button>
+                      <button className="mm-btn mm-btn-danger" onClick={() => remove(c)}>
+                        ลบ
                       </button>
                     </div>
                   </td>

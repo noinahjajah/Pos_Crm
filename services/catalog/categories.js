@@ -1,7 +1,7 @@
 // /categories — หมวดหมู่ ใช้ร่วมกันทุกสาขา จัดการได้เฉพาะ owner (1.14)
 import { Router } from 'express'
 import { db, run } from './db.js'
-import { allow, atLeastOne, idParam, name, notFound, parse, send, z } from './helpers.js'
+import { allow, atLeastOne, conflict, idParam, name, notFound, parse, send, z } from './helpers.js'
 
 const createSchema = z.object({
   name,
@@ -35,6 +35,19 @@ router.patch('/:id', allow('owner'), async (req, res) => {
   const row = await run(db.from('categories').update(body).eq('id', id).select().maybeSingle())
   if (!row) throw notFound('ไม่พบหมวดหมู่', 'CATEGORY_NOT_FOUND')
   send(res, row)
+})
+
+// DELETE /categories/:id — owner ลบได้เมื่อไม่มีเมนูที่ยังใช้อยู่ในหมวด
+router.delete('/:id', allow('owner'), async (req, res) => {
+  const { id } = parse(idParam, req.params)
+  const cat = await run(db.from('categories').select('id').eq('id', id).maybeSingle())
+  if (!cat) throw notFound('ไม่พบหมวดหมู่', 'CATEGORY_NOT_FOUND')
+  const live = await run(db.from('menus').select('id').eq('category_id', id).eq('is_deleted', false).limit(1))
+  if (live.length) throw conflict('CATEGORY_IN_USE', 'ยังมีเมนูในหมวดนี้ ย้ายหรือลบเมนูก่อน')
+  // เมนูที่ลบแล้ว (soft) ยังอ้างหมวดอยู่ ลบทิ้งก่อน — ประวัติออเดอร์เก็บชื่อเมนูไว้เอง
+  await run(db.from('menus').delete().eq('category_id', id).eq('is_deleted', true))
+  await run(db.from('categories').delete().eq('id', id))
+  send(res, { id, deleted: true })
 })
 
 export default router
