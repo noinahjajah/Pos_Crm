@@ -6,9 +6,30 @@ import '../backoffice.css'
 // หน้าต่างรายละเอียดบิลที่ลูกค้าจ่าย (ใช้ในประวัติการขายและแดชบอร์ด owner)
 // payment มาจาก GET /payment/payments (มี order = เมนูในบิล หรือ null ถ้าระบบบิลไม่ตอบ)
 
+/** จับคู่เมนูที่คืนกับรายการในบิล (ด้วย order_item_id · ไม่มี id ใช้ชื่อเมนูแทน) → Map index → { quantity, amount } */
+function refundByItem(order, refund) {
+  const map = new Map()
+  if (!order || !refund?.items.length) return map
+  for (const r of refund.items) {
+    const idx = order.items.findIndex((i, k) =>
+      !map.has(k) && (r.order_item_id && i.id ? i.id === r.order_item_id : i.menu_name === r.menu_name),
+    )
+    if (idx >= 0) map.set(idx, r)
+  }
+  return map
+}
+
 export default function SaleDetail({ payment: p, branch, onClose }) {
   const o = p.order
-  const row = (label, value, cls = '') => (
+  const isRefund = p.type === 'refund'
+  const refund = isRefund ? p.refund : null
+  // คืนทั้งบิล = คำขอไม่ได้ระบุเมนู (คืนยอดที่เหลือทั้งหมด)
+  const wholeBill = Boolean(refund) && refund.items.length === 0
+  const refunded = refundByItem(o, refund)
+  // เมนูที่คืนแต่หาในบิลไม่เจอ (เช่นระบบบิลไม่ตอบ) → แสดงเป็นรายการแยก
+  const unmatched = refund ? refund.items.filter((r) => ![...refunded.values()].includes(r)) : []
+  const showRefundCol = isRefund && refunded.size > 0
+  const row =(label, value, cls = '') => (
     <tr>
       <td className="bo-muted">{label}</td>
       <td className={`bo-num ${cls}`}>{value}</td>
@@ -28,6 +49,19 @@ export default function SaleDetail({ payment: p, branch, onClose }) {
           {o?.guest_count ? ` · ${o.guest_count} ท่าน` : ''}
         </p>
 
+        {isRefund && (
+          <div className={`bo-refund-note ${wholeBill ? 'is-whole' : ''}`}>
+            <strong>
+              {!refund
+                ? 'ดึงรายการที่คืนไม่ได้ (ระบบบิลไม่ตอบ)'
+                : wholeBill
+                  ? 'คืนเงินทั้งบิล'
+                  : `คืนเงิน ${refund.items.length} รายการ — แถวที่ไฮไลต์คือเมนูที่คืน`}
+            </strong>
+            {refund?.reason && <span>เหตุผล: {refund.reason}</span>}
+          </div>
+        )}
+
         {o ? (
           <table className="bo-table" style={{ marginTop: 12 }}>
             <thead>
@@ -35,25 +69,63 @@ export default function SaleDetail({ payment: p, branch, onClose }) {
                 <th>รายการ</th>
                 <th className="bo-num">จำนวน</th>
                 <th className="bo-num">รวม</th>
+                {showRefundCol && <th className="bo-num">คืน</th>}
               </tr>
             </thead>
             <tbody>
-              {o.items.map((i, idx) => (
-                <tr key={idx}>
-                  <td>
-                    {i.menu_name}
-                    {i.options.length > 0 && <div className="bo-muted" style={{ fontSize: 12 }}>{i.options.join(', ')}</div>}
-                  </td>
-                  <td className="bo-num">{i.quantity}</td>
-                  <td className="bo-num">{baht(i.line_total)}</td>
-                </tr>
-              ))}
+              {o.items.map((i, idx) => {
+                const r = refunded.get(idx)
+                const rowCls = showRefundCol ? (r ? 'bo-refunded-row' : 'bo-kept-row') : ''
+                return (
+                  <tr key={idx} className={rowCls}>
+                    <td>
+                      {i.menu_name}
+                      {r && <span className="bo-refund-tag">คืน</span>}
+                      {i.options.length > 0 && <div className="bo-muted" style={{ fontSize: 12 }}>{i.options.join(', ')}</div>}
+                    </td>
+                    <td className="bo-num">{i.quantity}</td>
+                    <td className="bo-num">{baht(i.line_total)}</td>
+                    {showRefundCol && (
+                      <td className="bo-num">
+                        {r ? (
+                          <span className="bo-neg">
+                            {r.quantity < i.quantity ? `${r.quantity} × ` : ''}−{baht(r.amount)}
+                          </span>
+                        ) : (
+                          <span className="bo-muted">—</span>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         ) : (
           <div className="mm-empty" style={{ marginTop: 12 }}>
             ดึงรายการอาหารของบิลนี้ไม่ได้ (ระบบบิลไม่ตอบ)
           </div>
+        )}
+
+        {unmatched.length > 0 && (
+          <table className="bo-table" style={{ marginTop: 12 }}>
+            <thead>
+              <tr>
+                <th>เมนูที่คืน</th>
+                <th className="bo-num">จำนวน</th>
+                <th className="bo-num">คืน</th>
+              </tr>
+            </thead>
+            <tbody>
+              {unmatched.map((r, idx) => (
+                <tr key={idx} className="bo-refunded-row">
+                  <td>{r.menu_name || '—'}</td>
+                  <td className="bo-num">{r.quantity}</td>
+                  <td className="bo-num bo-neg">−{baht(r.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
 
         <table className="bo-table" style={{ marginTop: 12 }}>

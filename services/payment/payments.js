@@ -254,17 +254,34 @@ async function salesSummary(filtered) {
   }
 }
 
-/** เติมข้อมูลบิลจาก pos: เลขบิล โต๊ะ เมนูที่ลูกค้าจ่าย (ติดต่อไม่ได้ก็แสดงแค่รายการเงิน, order = null) */
+/** เติมข้อมูลบิลจาก pos: เลขบิล โต๊ะ เมนูที่ลูกค้าจ่าย (ติดต่อไม่ได้ก็แสดงแค่รายการเงิน, order = null)
+ *  รายการคืนเงินเติม refund = { reason, items: [{ order_item_id, menu_name, quantity, amount }] } จากคำขอที่อนุมัติ
+ *  items ว่าง = คืนทั้งบิล · ดึงคำขอไม่ได้ → refund = null */
 async function withOrderInfo(items) {
   const ids = [...new Set(items.map((p) => p.order_id))]
-  const orders = new Map(await Promise.all(ids.map(async (id) => [id, await pos.getOrder(id).catch(() => null)])))
+  const approvalIds = [...new Set(items.filter((p) => p.type === 'refund' && p.approval_id).map((p) => p.approval_id))]
+  const [orders, approvals] = await Promise.all([
+    Promise.all(ids.map(async (id) => [id, await pos.getOrder(id).catch(() => null)])).then((e) => new Map(e)),
+    Promise.all(approvalIds.map(async (id) => [id, await pos.getApproval(id).catch(() => null)])).then((e) => new Map(e)),
+  ])
   return items.map((p) => {
     const o = orders.get(p.order_id)
+    const a = p.type === 'refund' ? approvals.get(p.approval_id) : null
+    const refund = a && {
+      reason: a.reason ?? null,
+      items: (a.refund_items || []).map((r) => ({
+        order_item_id: r.order_item_id,
+        menu_name: r.menu_name ?? null,
+        quantity: Number(r.quantity),
+        amount: Number(r.amount),
+      })),
+    }
     const order = o && {
       order_no: o.order_no ?? null,
       table_no: o.table_no ?? null,
       guest_count: o.guest_count ?? null,
       items: (o.items || []).map((i) => ({
+        id: i.id ?? null,
         menu_name: i.menu_name,
         options: (i.options || []).map((op) => op.option_name).filter(Boolean),
         quantity: Number(i.quantity),
@@ -276,7 +293,7 @@ async function withOrderInfo(items) {
       vat_amount: Number(o.vat_amount),
       total: Number(o.total),
     }
-    return { ...p, order: order || null }
+    return { ...p, order: order || null, ...(p.type === 'refund' ? { refund: refund || null } : {}) }
   })
 }
 

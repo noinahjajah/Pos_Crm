@@ -57,6 +57,40 @@
 .bo-pos {
   color: var(--mm-ok);
 }
+
+/* ---------- รายละเอียดบิลคืนเงิน: บอกว่าคืนเมนูไหน ---------- */
+.bo-refund-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--mm-danger-soft);
+  color: var(--mm-danger);
+  font-size: 14px;
+}
+.bo-refund-note span {
+  color: var(--mm-ink);
+  font-size: 13px;
+}
+.bo-table tr.bo-refunded-row td {
+  background: var(--mm-danger-soft);
+}
+.bo-table tr.bo-kept-row td {
+  color: var(--mm-muted);
+}
+.bo-refund-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--mm-danger);
+  color: var(--mm-card);
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: 2px;
+}
 .bo-row-actions {
   display: flex;
   gap: 6px;
