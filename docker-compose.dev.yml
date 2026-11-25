@@ -72,6 +72,8 @@ services:
           path: ./services/pos/package.json
 
   web:
+    # ชื่อ image แยกจากโหมดปกติ (pos-crm-web = nginx พอร์ต 8000) ไม่งั้น build โหมด dev แล้วรัน docker compose up ธรรมดาจะได้ image dev ไปเปิดพอร์ต 8000 ไม่ติด
+    image: pos-crm-web-dev
     build:
       context: ./web
       target: dev
