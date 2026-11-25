@@ -7,6 +7,8 @@ import { useReportFeed } from '../../../api/reportFeed'
 import { hhmm, thb } from '../../../lib/posUtils'
 import { YGrid, niceMax } from '../chartScale'
 import GroupedBarChart from '../GroupedBarChart'
+import SaleDetail from '../payments/SaleDetail'
+import { METHOD_LABEL, TYPE_LABEL, dateTime } from '../payments/paymentLabels'
 import { OTHER_COLOR, SERIES_COLORS } from '../seriesColors'
 import { errorText, todayTh, useBranchScope } from '../useBranchScope'
 import '../../../styles/pos.css'
@@ -513,7 +515,108 @@ function OwnerOverview({ branches }) {
       </div>
 
       <HourlySalesPanel refreshKey={version} live={live} />
+
+      <SalesHistoryPanel branches={branches} colorOf={colorOf} refreshKey={version} live={live} />
     </>
+  )
+}
+
+const HISTORY_LIMIT = 15
+
+/** owner · ทุกสาขา: เงินที่ลูกค้าจ่ายล่าสุดของทุกสาขา (7 วัน) · เลือกดูทีละสาขาได้ · กดแถวดูเมนูในบิล */
+function SalesHistoryPanel({ branches, colorOf, refreshKey, live }) {
+  const [branchId, setBranchId] = useState('')
+  const [state, setState] = useState({ key: null, items: null, total: 0, error: '' })
+  const [selected, setSelected] = useState(null)
+  const nameOf = (id) => branches.find((b) => b.id === id)?.name || 'ไม่พบสาขา'
+
+  useEffect(() => {
+    let cancelled = false
+    const today = todayTh()
+    listPayments({ from: shiftDate(today, 6), to: today, branch_id: branchId, page: 1, limit: HISTORY_LIMIT })
+      .then((res) => !cancelled && setState({ key: branchId, items: res.data || [], total: res.meta?.total || 0, error: '' }))
+      .catch((err) => !cancelled && setState({ key: branchId, items: null, total: 0, error: errorText(err) }))
+    return () => {
+      cancelled = true
+    }
+  }, [branchId, refreshKey])
+
+  const loading = state.key !== branchId
+
+  return (
+    <section className="pos-panel" aria-label="ประวัติการขายล่าสุด" style={{ marginTop: 16 }}>
+      <div className="pos-panel-head">
+        <div>
+          <h2 className="pos-panel-title" style={{ margin: 0 }}>
+            ประวัติการขายล่าสุด · {branchId ? nameOf(branchId) : `ทุกสาขา (${branches.length})`}
+          </h2>
+          <p className="pos-dialog-sub">
+            เงินที่ลูกค้าจ่าย 7 วันล่าสุด{state.items ? ` · ${state.total.toLocaleString('th-TH')} รายการ` : ''} <LiveBadge live={live} />
+          </p>
+        </div>
+        <Link className="pos-btn" to="/admin/payments">
+          ดูทั้งหมด
+        </Link>
+      </div>
+
+      <div className="pos-tabs" role="tablist" style={{ marginBottom: 12 }}>
+        {[{ id: '', name: 'ทุกสาขา' }, ...branches].map((b) => (
+          <button key={b.id || 'all'} type="button" role="tab" aria-selected={branchId === b.id} className={branchId === b.id ? 'is-active' : ''} onClick={() => setBranchId(b.id)}>
+            {b.name}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="pos-skeleton" style={{ height: 200 }} />
+      ) : state.error ? (
+        <p className="pos-note is-warn">{state.error}</p>
+      ) : state.items.length === 0 ? (
+        <p className="pos-dialog-sub">ยังไม่มีการขายใน 7 วันนี้</p>
+      ) : (
+        <div className="pos-rtable-wrap">
+          <table className="pos-rtable">
+            <thead>
+              <tr>
+                <th>เวลา</th>
+                <th>สาขา</th>
+                <th>บิล</th>
+                <th>โต๊ะ</th>
+                <th>วิธีชำระ</th>
+                <th className="is-num">จำนวนเงิน (บาท)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.items.map((p) => (
+                <tr key={p.id} onClick={() => setSelected(p)} style={{ cursor: 'pointer' }} title="กดเพื่อดูรายการในบิล">
+                  <td>{dateTime(p.paid_at)}</td>
+                  <td>
+                    <span className="pos-dot-label">
+                      <i style={{ background: colorOf.get(p.branch_id) || OTHER_COLOR }} aria-hidden="true" />
+                      {nameOf(p.branch_id)}
+                    </span>
+                  </td>
+                  <td>{p.order?.order_no || <span className="pos-muted">{p.order_id.slice(0, 8)}</span>}</td>
+                  <td>{p.order?.table_no || <span className="pos-muted">—</span>}</td>
+                  <td>
+                    {METHOD_LABEL[p.method] || p.method}
+                    {p.type === 'refund' && <span className="pos-pill is-waiting" style={{ marginLeft: 6 }}>{TYPE_LABEL.refund}</span>}
+                  </td>
+                  <td className="is-num" style={p.type === 'refund' ? { color: 'var(--app-danger, #c0392b)' } : undefined}>
+                    <strong>
+                      {p.type === 'refund' ? '−' : ''}
+                      {num(p.amount)}
+                    </strong>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selected && <SaleDetail payment={selected} branch={nameOf(selected.branch_id)} onClose={() => setSelected(null)} />}
+    </section>
   )
 }
 

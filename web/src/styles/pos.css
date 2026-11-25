@@ -852,10 +852,51 @@
   cursor: pointer;
 }
 .pos-opt input {
-  width: 16px;
-  height: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 18px;
+  height: 18px;
   margin: 0;
-  accent-color: var(--app-brand);
+  background: #fff;
+  border: 1.5px solid var(--app-line);
+  border-radius: 50%;
+  display: grid;
+  place-content: center;
+  cursor: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+.pos-opt input[type='checkbox'] {
+  border-radius: 5px;
+}
+.pos-opt input::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--app-brand);
+  transform: scale(0);
+  transition: transform 0.12s;
+}
+.pos-opt input[type='checkbox']::before {
+  width: 10px;
+  height: 10px;
+  border-radius: 0;
+  background: #fff;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+.pos-opt input:checked {
+  border-color: var(--app-brand);
+}
+.pos-opt input[type='checkbox']:checked {
+  background: var(--app-brand);
+}
+.pos-opt input:checked::before {
+  transform: scale(1);
+}
+.pos-opt input:focus-visible {
+  outline: 2px solid var(--app-brand);
+  outline-offset: 2px;
 }
 .pos-opt.is-checked {
   border-color: var(--app-brand);

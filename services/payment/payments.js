@@ -205,22 +205,80 @@ paymentRouter.get('/', allow('manager', 'owner'), async (req, res) => {
   const { from, to } = q.date ? { from: q.date, to: q.date } : dateRange(req.query, { defaultToday: true })
   const [start, end] = dayRangeIso(from, to)
 
-  let query = db
-    .from('payments')
-    .select('*', { count: 'exact' })
-    .gte('paid_at', start)
-    .lt('paid_at', end)
+  const branchId = branchFilter(req)
+  const filtered = (query) => {
+    query = query.gte('paid_at', start).lt('paid_at', end)
+    if (branchId) query = query.eq('branch_id', branchId)
+    if (q.type) query = query.eq('type', q.type)
+    if (q.method) query = query.eq('method', q.method)
+    return query
+  }
+
+  const query = filtered(db.from('payments').select('*', { count: 'exact' }))
     .order('paid_at', { ascending: false })
     .range((q.page - 1) * q.limit, q.page * q.limit - 1)
-  const branchId = branchFilter(req)
-  if (branchId) query = query.eq('branch_id', branchId)
-  if (q.type) query = query.eq('type', q.type)
-  if (q.method) query = query.eq('method', q.method)
 
-  const { data, error, count } = await query
+  const [{ data, error, count }, summary] = await Promise.all([query, salesSummary(filtered)])
   if (error) throw dbError(error)
-  send(res, data.map(present), { meta: { page: q.page, limit: q.limit, total: count ?? data.length, from, to } })
+  const items = await withOrderInfo(data.map(present))
+  send(res, items, { meta: { page: q.page, limit: q.limit, total: count ?? data.length, from, to, summary } })
 })
+
+/** ยอดรวมของทุกแถวที่ตรงตัวกรอง (ไม่แบ่งหน้า) ทั้งรวมและแยกสาขา */
+async function salesSummary(filtered) {
+  const rows = []
+  for (let offset = 0; ; offset += 1000) {
+    const chunk = await run(filtered(db.from('payments').select('branch_id, type, amount')).order('id').range(offset, offset + 999))
+    rows.push(...chunk)
+    if (chunk.length < 1000) break
+  }
+  const empty = () => ({ sales: 0, refunds: 0, net: 0, bills: 0, refund_count: 0 })
+  const total = empty()
+  const byBranch = new Map()
+  for (const r of rows) {
+    const b = byBranch.get(r.branch_id) || byBranch.set(r.branch_id, empty()).get(r.branch_id)
+    for (const s of [total, b]) {
+      if (r.type === 'refund') {
+        s.refunds += Number(r.amount)
+        s.refund_count += 1
+      } else {
+        s.sales += Number(r.amount)
+        s.bills += 1
+      }
+    }
+  }
+  const finish = (s) => ({ ...s, sales: round2(s.sales), refunds: round2(s.refunds), net: round2(s.sales - s.refunds) })
+  return {
+    ...finish(total),
+    branches: [...byBranch].map(([branch_id, s]) => ({ branch_id, ...finish(s) })).sort((a, b) => b.net - a.net),
+  }
+}
+
+/** เติมข้อมูลบิลจาก pos: เลขบิล โต๊ะ เมนูที่ลูกค้าจ่าย (ติดต่อไม่ได้ก็แสดงแค่รายการเงิน, order = null) */
+async function withOrderInfo(items) {
+  const ids = [...new Set(items.map((p) => p.order_id))]
+  const orders = new Map(await Promise.all(ids.map(async (id) => [id, await pos.getOrder(id).catch(() => null)])))
+  return items.map((p) => {
+    const o = orders.get(p.order_id)
+    const order = o && {
+      order_no: o.order_no ?? null,
+      table_no: o.table_no ?? null,
+      guest_count: o.guest_count ?? null,
+      items: (o.items || []).map((i) => ({
+        menu_name: i.menu_name,
+        options: (i.options || []).map((op) => op.option_name).filter(Boolean),
+        quantity: Number(i.quantity),
+        unit_price: Number(i.unit_price),
+        line_total: Number(i.line_total ?? i.quantity * i.unit_price),
+      })),
+      subtotal: Number(o.subtotal),
+      discount_amount: Number(o.discount_amount),
+      vat_amount: Number(o.vat_amount),
+      total: Number(o.total),
+    }
+    return { ...p, order: order || null }
+  })
+}
 
 // ===================== /refunds =====================
 export const refundRouter = Router()
