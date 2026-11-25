@@ -1,0 +1,178 @@
+/* ธีมแยกตามประเภทร้าน — ร้านอาหาร / ร้านเครื่องดื่ม / บาร์
+   ทำงานจาก <html data-shop="restaurant|drinks|bar"> ซึ่ง Topbar ใส่ให้ตามสาขาของผู้ใช้
+   owner (ทุกสาขา) และหน้า login ไม่มี data-shop → ใช้ธีมกลางใน index.css ตามเดิม
+
+   หลักการ: เขียนทับตัวแปร --app-* เป็นหลัก (ทุกหน้าอ้างตัวแปรชุดนี้อยู่แล้ว)
+   เขียนทับ class ของหน้าอื่นเฉพาะจุดที่จำเป็น: ฟอนต์หัวข้อ มุมปุ่ม และสีตัวอักษรบนปุ่มสีหลักของบาร์
+   ทั้งไฟล์อยู่ใน @media screen → ใบเสร็จ/ใบสั่งครัวที่พิมพ์ยังเป็นขาวดำเหมือนเดิม */
+
+@media screen {
+  /* =========================================================
+     ร้านอาหาร — อบอุ่น ครัวไทย: แดงอิฐ บนครีม
+     ========================================================= */
+  html[data-shop='restaurant'] {
+    --app-ink: #2a1c14;
+    --app-muted: #75665a;
+    --app-line: #e9dccb;
+    --app-soft: #f3e9db;
+    --app-card: #fffdf9;
+    --app-bg: #f8f1e7;
+    --app-brand: #a23b20;
+    --app-brand-soft: #f6e3dc;
+    --app-ok: #3f7d2c;
+    --app-ok-soft: #e4f0da;
+    --app-danger: #b4232a;
+    --app-danger-soft: #fbe9e7;
+    --app-warn: #b45f06;
+    --app-warn-soft: #fcebd3;
+    --shop-display: 'Chakra Petch', var(--app-sans);
+    --shop-radius: 10px;
+  }
+
+  /* =========================================================
+     ร้านเครื่องดื่ม — สดใส คาเฟ่: เขียวมัทฉะ บนขาวนวล มุมมน
+     ========================================================= */
+  html[data-shop='drinks'] {
+    --app-ink: #1d2419;
+    --app-muted: #636b5c;
+    --app-line: #e2e6d8;
+    --app-soft: #eef1e6;
+    --app-card: #ffffff;
+    --app-bg: #f7f8f2;
+    --app-brand: #3f7a3a;
+    --app-brand-soft: #e5efdf;
+    --app-ok: #1f7a55;
+    --app-ok-soft: #dcf1e6;
+    --app-warn: #b4570f;
+    --app-warn-soft: #fcebdc;
+    --shop-display: 'Mitr', var(--app-sans);
+    --shop-radius: 14px;
+  }
+
+  /* =========================================================
+     บาร์ — กลางคืน หรูแบบเงียบ: ทองแอมเบอร์ บนน้ำเงินเข้ม (โหมดมืด) มุมคม
+     ========================================================= */
+  html[data-shop='bar'] {
+    color-scheme: dark;
+    --app-ink: #ece6da;
+    --app-muted: #a39d92;
+    --app-line: #2e323c;
+    --app-soft: #1c1f27;
+    --app-card: #1d2029;
+    --app-bg: #14161c;
+    --app-brand: #d39b3a;
+    --app-brand-soft: #2c2519;
+    --app-ok: #5cc98f;
+    --app-ok-soft: #16302a;
+    --app-danger: #f07167;
+    --app-danger-soft: #3a1e1f;
+    /* "มีลูกค้า" ต้องแยกจากสีทองของแบรนด์ → ใช้ส้มอมแดง */
+    --app-warn: #f2875a;
+    --app-warn-soft: #3a2419;
+    /* กราฟ: สว่างขึ้นให้อ่านได้บนพื้นมืด */
+    --app-series-1: #2fb89c;
+    --app-series-2: #d9a441;
+    --app-series-3: #7aa2f2;
+    --app-series-4: #db7dbb;
+    --app-series-other: #8d877d;
+    --shop-display: 'Prompt', var(--app-sans);
+    --shop-radius: 6px;
+    --shop-on-brand: #1a1408;
+  }
+
+  /* ---------- ร่วมทุกร้าน: ฟอนต์หัวข้อ ---------- */
+  html[data-shop] :is(h1, h2, h3,
+    .pos-title, .pos-panel-title, .pos-dialog-title, .pos-zone-title, .pos-cart-title,
+    .pos-success-title, .pos-log-title, .pos-kpi-value,
+    .mm-title, .mm-dialog-title, .bo-panel-title, .bo-kpi-value,
+    .app-logo-text) {
+    font-family: var(--shop-display);
+    letter-spacing: 0.01em;
+  }
+
+  /* ---------- ร่วมทุกร้าน: มุมปุ่ม เมนู และช่องกรอก ---------- */
+  html[data-shop] :is(.pos-btn, .mm-btn, .app-nav-link, .app-logo-mark,
+    .app-logout, .app-menu-btn, .pos-input, .mm-input) {
+    border-radius: var(--shop-radius);
+  }
+
+  /* ---------- ร่วมทุกร้าน: ป้ายประเภทร้านต่อท้ายชื่อสาขาในแถบบน ---------- */
+  html[data-shop] .app-branch::after {
+    align-self: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--app-brand-soft);
+    color: var(--app-brand);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  html[data-shop='restaurant'] .app-branch::after { content: 'ร้านอาหาร'; }
+  html[data-shop='drinks'] .app-branch::after { content: 'ร้านเครื่องดื่ม'; }
+  html[data-shop='bar'] .app-branch::after { content: 'บาร์'; }
+
+  /* =========================================================
+     ลายเซ็นของแต่ละร้าน
+     ========================================================= */
+
+  /* ร้านอาหาร: เส้นแดงอิฐหนาใต้แถบบน + เมนูที่เลือกเป็นพื้นแดงอิฐเต็ม */
+  html[data-shop='restaurant'] .app-topbar {
+    border-bottom: 3px solid var(--app-brand);
+  }
+  html[data-shop='restaurant'] .app-sidebar {
+    background: linear-gradient(180deg, var(--app-card) 0%, var(--app-soft) 100%);
+  }
+  html[data-shop='restaurant'] .app-nav-link.is-active {
+    background: var(--app-brand);
+    color: #fff;
+  }
+
+  /* ร้านเครื่องดื่ม: ปุ่มหลักทรงแคปซูล + เมนูที่เลือกเป็นแคปซูลเขียวอ่อน */
+  html[data-shop='drinks'] :is(.pos-btn-primary, .mm-btn-primary) {
+    border-radius: 999px;
+    padding-inline: 20px;
+  }
+  html[data-shop='drinks'] .app-nav-link {
+    border-radius: 999px;
+    padding-inline: 14px;
+  }
+  html[data-shop='drinks'] .app-content {
+    background:
+      radial-gradient(1200px 400px at 100% 0%, var(--app-brand-soft) 0%, transparent 60%);
+  }
+
+  /* บาร์: เส้นทองบาง ๆ ใต้แถบบน + แสงทองจาง ๆ มุมจอ + เมนูที่เลือกมีเส้นทองด้านใน */
+  html[data-shop='bar'] .app-topbar {
+    border-bottom-color: color-mix(in oklch, var(--app-brand) 45%, transparent);
+  }
+  html[data-shop='bar'] .app-content {
+    background:
+      radial-gradient(900px 500px at 0% 0%, color-mix(in oklch, var(--app-brand) 9%, transparent) 0%, transparent 65%);
+  }
+  html[data-shop='bar'] .app-nav-link.is-active {
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--app-brand) 55%, transparent);
+  }
+  html[data-shop='bar'] .app-sidebar,
+  html[data-shop='bar'] .app-topbar {
+    background: #181a21;
+  }
+
+  /* บาร์: พื้นทองสว่าง → ตัวอักษรบนพื้นสีหลักต้องเป็นสีเข้ม (ขาวบนทองอ่านยาก) */
+  html[data-shop='bar'] :is(.app-logo-mark, .pos-btn-primary, .mm-btn-primary, .mm-group em,
+    .bo-kpi.is-main .bo-kpi-label, .bo-kpi.is-main .bo-kpi-value, .bo-kpi.is-main .bo-kpi-sub) {
+    color: var(--shop-on-brand);
+  }
+  /* บาร์: ปุ่มกลม/ช่องติ๊กที่เคยเป็นพื้นขาว → ใช้สีการ์ดแทน (ไม่แตะ QR ที่ต้องขาวให้สแกนได้) */
+  html[data-shop='bar'] .pos-opt input:not(:checked),
+  html[data-shop='bar'] .pos-opt input[type='radio'] {
+    background: var(--app-card);
+  }
+  html[data-shop='bar'] .pos-opt input[type='checkbox']::before {
+    background: var(--shop-on-brand);
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  html[data-shop] :is(.app-nav-link, .pos-btn, .mm-btn) {
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, filter 0.15s ease;
+  }
+}

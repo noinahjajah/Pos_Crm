@@ -14,20 +14,25 @@ export default function Topbar({ onMenu }) {
   const [branchName, setBranchName] = useState(user?.branch?.name || user?.branch_name || '')
   const [loggingOut, setLoggingOut] = useState(false)
 
-  // /me ไม่ได้ส่งชื่อสาขามา → หาจากรายชื่อสาขา
+  // /me ไม่ได้ส่งชื่อ/ประเภทสาขามา → หาจากรายชื่อสาขา
+  // ประเภทร้านใส่ไว้ที่ <html data-shop> ให้ธีมแต่ละร้านใน styles/shop-themes.css ทำงาน
   useEffect(() => {
-    if (isOwner || branchName || !user?.branch_id) return
+    if (isOwner || !user?.branch_id) return
     let cancelled = false
+    const root = document.documentElement
     listBranches()
       .then((branches) => {
         const found = (branches || []).find((b) => b.id === user.branch_id)
-        if (!cancelled && found) setBranchName(found.name)
+        if (cancelled || !found) return
+        setBranchName((prev) => prev || found.name)
+        if (found.branch_type) root.dataset.shop = found.branch_type
       })
       .catch(() => {})
     return () => {
       cancelled = true
+      delete root.dataset.shop
     }
-  }, [isOwner, branchName, user?.branch_id])
+  }, [isOwner, user?.branch_id])
 
   async function handleLogout() {
     setLoggingOut(true)
